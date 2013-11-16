@@ -1,0 +1,49 @@
+class A
+  Number aNumber, bNumber = 0, 100
+  Table cTable = {}
+  
+  
+  function (...)test(Bool a, Number b)
+    a = false
+    b = 100
+  end
+end
+
+A body, body2, body3
+
+if true then
+  body()
+  body2 = body3
+  body2.b = "B"
+end
+
+class B extends A
+end
+
+function (Bool)test(Bool a, Number b)
+  return true
+end
+
+local var f = function()()
+end
+
+g = function()
+end
+
+global Function g = function()
+end
+
+function init()  
+  if true then
+  elseif false then
+  elseif false then
+    shutdown()
+  else
+  end  
+end
+
+function update()	
+end
+
+function shutdown()
+end

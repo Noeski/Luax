@@ -1,0 +1,345 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 65A8157716629CCC0050D80A /* Luax.app */; };
+		654D74D818371DF800E37009 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 654D74D618371DF800E37009 /* InfoPlist.strings */; };
+		654D750518371E6B00E37009 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74E918371E6B00E37009 /* main.m */; };
+		654D750818371E6B00E37009 /* LXClass.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74EF18371E6B00E37009 /* LXClass.m */; };
+		654D750918371E6B00E37009 /* LXCompiler.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74F118371E6B00E37009 /* LXCompiler.m */; };
+		654D750B18371E6B00E37009 /* LXNode.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74F518371E6B00E37009 /* LXNode.m */; };
+		654D750E18371E6B00E37009 /* LXToken.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74FB18371E6B00E37009 /* LXToken.m */; };
+		654D750F18371E6B00E37009 /* LXVariable.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74FD18371E6B00E37009 /* LXVariable.m */; };
+		654D75141837248100E37009 /* Main.lux in Resources */ = {isa = PBXBuildFile; fileRef = 654D75131837248100E37009 /* Main.lux */; };
+		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
+		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		65274AA516BF1BA7005A26E1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /Applications/;
+			dstSubfolderSpec = 0;
+			files = (
+				65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		654D74D318371DEC00E37009 /* Luax-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "Luax-Info.plist"; path = "Source/Luax-Info.plist"; sourceTree = SOURCE_ROOT; };
+		654D74D418371DEC00E37009 /* Luax-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Luax-Prefix.pch"; path = "Source/Luax-Prefix.pch"; sourceTree = SOURCE_ROOT; };
+		654D74D718371DF800E37009 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Source/en.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
+		654D74E918371E6B00E37009 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = Source/main.m; sourceTree = SOURCE_ROOT; };
+		654D74EE18371E6B00E37009 /* LXClass.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXClass.h; path = Source/LXClass.h; sourceTree = SOURCE_ROOT; };
+		654D74EF18371E6B00E37009 /* LXClass.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXClass.m; path = Source/LXClass.m; sourceTree = SOURCE_ROOT; };
+		654D74F018371E6B00E37009 /* LXCompiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXCompiler.h; path = Source/LXCompiler.h; sourceTree = SOURCE_ROOT; };
+		654D74F118371E6B00E37009 /* LXCompiler.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXCompiler.m; path = Source/LXCompiler.m; sourceTree = SOURCE_ROOT; };
+		654D74F418371E6B00E37009 /* LXNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXNode.h; path = Source/LXNode.h; sourceTree = SOURCE_ROOT; };
+		654D74F518371E6B00E37009 /* LXNode.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXNode.m; path = Source/LXNode.m; sourceTree = SOURCE_ROOT; };
+		654D74FA18371E6B00E37009 /* LXToken.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXToken.h; path = Source/LXToken.h; sourceTree = SOURCE_ROOT; };
+		654D74FB18371E6B00E37009 /* LXToken.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXToken.m; path = Source/LXToken.m; sourceTree = SOURCE_ROOT; };
+		654D74FC18371E6B00E37009 /* LXVariable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXVariable.h; path = Source/LXVariable.h; sourceTree = SOURCE_ROOT; };
+		654D74FD18371E6B00E37009 /* LXVariable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXVariable.m; path = Source/LXVariable.m; sourceTree = SOURCE_ROOT; };
+		654D75131837248100E37009 /* Main.lux */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Main.lux; sourceTree = "<group>"; };
+		65A8157716629CCC0050D80A /* Luax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luax.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		65A8157B16629CCC0050D80A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		65A8157E16629CCC0050D80A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		65A8157F16629CCC0050D80A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		65A8158016629CCC0050D80A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		65F35F6416BEE70C007692D2 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		65A8157416629CCC0050D80A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */,
+				65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		654D751218371F4500E37009 /* LuaX Script */ = {
+			isa = PBXGroup;
+			children = (
+				654D74FA18371E6B00E37009 /* LXToken.h */,
+				654D74FB18371E6B00E37009 /* LXToken.m */,
+				654D74EE18371E6B00E37009 /* LXClass.h */,
+				654D74EF18371E6B00E37009 /* LXClass.m */,
+				654D74FC18371E6B00E37009 /* LXVariable.h */,
+				654D74FD18371E6B00E37009 /* LXVariable.m */,
+				654D74F418371E6B00E37009 /* LXNode.h */,
+				654D74F518371E6B00E37009 /* LXNode.m */,
+				654D74F018371E6B00E37009 /* LXCompiler.h */,
+				654D74F118371E6B00E37009 /* LXCompiler.m */,
+			);
+			name = "LuaX Script";
+			sourceTree = "<group>";
+		};
+		65A8156C16629CCC0050D80A = {
+			isa = PBXGroup;
+			children = (
+				65A8158116629CCC0050D80A /* Source */,
+				65A8158216629CCC0050D80A /* Supporting Files */,
+				65B55889168F8D4500BEA415 /* Resources */,
+				65A8157A16629CCC0050D80A /* Frameworks */,
+				65A8157816629CCC0050D80A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		65A8157816629CCC0050D80A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				65A8157716629CCC0050D80A /* Luax.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		65A8157A16629CCC0050D80A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				65F35F6416BEE70C007692D2 /* QuartzCore.framework */,
+				65A8157B16629CCC0050D80A /* Cocoa.framework */,
+				65A8157D16629CCC0050D80A /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		65A8157D16629CCC0050D80A /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				65A8157E16629CCC0050D80A /* AppKit.framework */,
+				65A8157F16629CCC0050D80A /* CoreData.framework */,
+				65A8158016629CCC0050D80A /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		65A8158116629CCC0050D80A /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				654D751218371F4500E37009 /* LuaX Script */,
+				654D74E918371E6B00E37009 /* main.m */,
+			);
+			name = Source;
+			path = Console;
+			sourceTree = "<group>";
+		};
+		65A8158216629CCC0050D80A /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				654D74D318371DEC00E37009 /* Luax-Info.plist */,
+				654D74D418371DEC00E37009 /* Luax-Prefix.pch */,
+				654D74D618371DF800E37009 /* InfoPlist.strings */,
+			);
+			name = "Supporting Files";
+			path = Console;
+			sourceTree = "<group>";
+		};
+		65B55889168F8D4500BEA415 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				654D75131837248100E37009 /* Main.lux */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		65A8157616629CCC0050D80A /* Luax */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65A8159516629CCD0050D80A /* Build configuration list for PBXNativeTarget "Luax" */;
+			buildPhases = (
+				65A8157316629CCC0050D80A /* Sources */,
+				65A8157416629CCC0050D80A /* Frameworks */,
+				65A8157516629CCC0050D80A /* Resources */,
+				65274AA516BF1BA7005A26E1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Luax;
+			productName = Console;
+			productReference = 65A8157716629CCC0050D80A /* Luax.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		65A8156E16629CCC0050D80A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				CLASSPREFIX = LX;
+				LastUpgradeCheck = 0450;
+				ORGANIZATIONNAME = "Noah Hilt";
+			};
+			buildConfigurationList = 65A8157116629CCC0050D80A /* Build configuration list for PBXProject "Luax" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 65A8156C16629CCC0050D80A;
+			productRefGroup = 65A8157816629CCC0050D80A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				65A8157616629CCC0050D80A /* Luax */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		65A8157516629CCC0050D80A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				654D74D818371DF800E37009 /* InfoPlist.strings in Resources */,
+				654D75141837248100E37009 /* Main.lux in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		65A8157316629CCC0050D80A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				654D750818371E6B00E37009 /* LXClass.m in Sources */,
+				654D750F18371E6B00E37009 /* LXVariable.m in Sources */,
+				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
+				654D750B18371E6B00E37009 /* LXNode.m in Sources */,
+				654D750918371E6B00E37009 /* LXCompiler.m in Sources */,
+				654D750518371E6B00E37009 /* main.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		654D74D618371DF800E37009 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				654D74D718371DF800E37009 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		65A8159316629CCD0050D80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		65A8159416629CCD0050D80A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		65A8159616629CCD0050D80A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Source/Luax-Prefix.pch";
+				INFOPLIST_FILE = "$(SRCROOT)/Source/Luax-Info.plist";
+				PRODUCT_NAME = Luax;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		65A8159716629CCD0050D80A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Source/Luax-Prefix.pch";
+				INFOPLIST_FILE = "$(SRCROOT)/Source/Luax-Info.plist";
+				PRODUCT_NAME = Luax;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		65A8157116629CCC0050D80A /* Build configuration list for PBXProject "Luax" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65A8159316629CCD0050D80A /* Debug */,
+				65A8159416629CCD0050D80A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		65A8159516629CCD0050D80A /* Build configuration list for PBXNativeTarget "Luax" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				65A8159616629CCD0050D80A /* Debug */,
+				65A8159716629CCD0050D80A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 65A8156E16629CCC0050D80A /* Project object */;
+}
