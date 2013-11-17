@@ -19,7 +19,7 @@ typedef enum {
 @interface LXScope : NSObject
 
 @property (nonatomic, assign) LXScopeType type;
-@property (nonatomic, assign) LXScope *parent;
+@property (nonatomic, weak) LXScope *parent;
 @property (nonatomic, readonly) NSMutableArray *children;
 @property (nonatomic, readonly) NSMutableArray *localVariables;
 @property (nonatomic, assign) NSRange range;
@@ -40,7 +40,7 @@ typedef enum {
 @property (nonatomic) NSRange range;
 @property (nonatomic) NSInteger startLine;
 @property (nonatomic) NSInteger endLine;
-@property (nonatomic, retain) NSString *error;
+@property (nonatomic, strong) NSString *error;
 
 - (NSString *)toString;
 @end
@@ -56,52 +56,52 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXScope *scope;
-@property (nonatomic, retain) NSArray *statements;
+@property (nonatomic, strong) LXScope *scope;
+@property (nonatomic, strong) NSArray *statements;
 @end
 
 @interface LXNodeIfStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNode *condition;
-@property (nonatomic, retain) LXNodeBlock *body;
-@property (nonatomic, retain) NSArray *elseIfStatements;
-@property (nonatomic, retain) LXNodeBlock *elseStatement;
+@property (nonatomic, strong) LXNode *condition;
+@property (nonatomic, strong) LXNodeBlock *body;
+@property (nonatomic, strong) NSArray *elseIfStatements;
+@property (nonatomic, strong) LXNodeBlock *elseStatement;
 @end
 
 @interface LXNodeElseIfStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNode *condition;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) LXNode *condition;
+@property (nonatomic, strong) LXNodeBlock *body;
 @end
 
 @interface LXNodeWhileStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNode *condition;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) LXNode *condition;
+@property (nonatomic, strong) LXNodeBlock *body;
 @end
 
 @interface LXNodeDoStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) LXNodeBlock *body;
 @end
 
 @interface LXNodeNumericForStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) NSString *variable;
-@property (nonatomic, retain) LXNode *startExpression;
-@property (nonatomic, retain) LXNode *endExpression;
-@property (nonatomic, retain) LXNode *stepExpression;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) NSString *variable;
+@property (nonatomic, strong) LXNode *startExpression;
+@property (nonatomic, strong) LXNode *endExpression;
+@property (nonatomic, strong) LXNode *stepExpression;
+@property (nonatomic, strong) LXNodeBlock *body;
 
 @end
 
@@ -109,24 +109,24 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSArray *variableList;
-@property (nonatomic, retain) NSArray *generators;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) NSArray *variableList;
+@property (nonatomic, strong) NSArray *generators;
+@property (nonatomic, strong) LXNodeBlock *body;
 
 @end
 
 @interface LXNodeRepeatStatement : LXNodeStatement {
     
 }
-@property (nonatomic, retain) LXNode *condition;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) LXNode *condition;
+@property (nonatomic, strong) LXNodeBlock *body;
 @end
 
 @interface LXNodeFunctionStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNode *expression;
+@property (nonatomic, strong) LXNode *expression;
 @property (nonatomic) BOOL isLocal;
 
 @end
@@ -135,11 +135,11 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *name;
-@property (nonatomic, retain) NSString *superclass;
-@property (nonatomic, retain) NSArray *functions;
-@property (nonatomic, retain) NSArray *variables;
-@property (nonatomic, retain) NSArray *variableDeclarations;
+@property (nonatomic, strong) NSString *name;
+@property (nonatomic, strong) NSString *superclass;
+@property (nonatomic, strong) NSArray *functions;
+@property (nonatomic, strong) NSArray *variables;
+@property (nonatomic, strong) NSArray *variableDeclarations;
 @property (nonatomic) BOOL isLocal;
 
 @end
@@ -148,8 +148,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSArray *varList;
-@property (nonatomic, retain) NSArray *initList;
+@property (nonatomic, strong) NSArray *variables;
+@property (nonatomic, strong) NSArray *initializers;
 
 @end
 
@@ -157,7 +157,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *label;
+@property (nonatomic, strong) NSString *label;
 
 @end
 
@@ -165,7 +165,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSArray *arguments;
+@property (nonatomic, strong) NSArray *arguments;
 
 @end
 
@@ -178,7 +178,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *label;
+@property (nonatomic, strong) NSString *label;
 
 @end
 
@@ -186,8 +186,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSArray *varList;
-@property (nonatomic, retain) NSArray *initList;
+@property (nonatomic, strong) NSArray *variables;
+@property (nonatomic, strong) NSArray *initializers;
 
 @end
 
@@ -195,16 +195,16 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSArray *varList;
-@property (nonatomic, retain) NSArray *initList;
-
+@property (nonatomic, strong) NSArray *variables;
+@property (nonatomic, strong) NSArray *initializers;
+@property (nonatomic, assign) BOOL isLocal;
 @end
 
 @interface LXNodeExpressionStatement : LXNodeStatement {
     
 }
 
-@property (nonatomic, retain) LXNode *expression;
+@property (nonatomic, strong) LXNode *expression;
 
 @end
 
@@ -213,15 +213,14 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXVariable *scriptVariable;
+@property (nonatomic, strong) LXVariable *scriptVariable;
 @end
 
 @interface LXNodeVariableExpression : LXNodeExpression {
     
 }
 
-@property (nonatomic, retain) NSString *variable;
-@property (nonatomic) BOOL local;
+@property (nonatomic, strong) NSString *variable;
 
 @end
 
@@ -229,8 +228,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *op;
-@property (nonatomic, retain) LXNode *rhs;
+@property (nonatomic, strong) NSString *op;
+@property (nonatomic, strong) LXNode *rhs;
 
 @end
 
@@ -238,9 +237,9 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *op;
-@property (nonatomic, retain) LXNode *lhs;
-@property (nonatomic, retain) LXNode *rhs;
+@property (nonatomic, strong) NSString *op;
+@property (nonatomic, strong) LXNode *lhs;
+@property (nonatomic, strong) LXNode *rhs;
 
 @end
 
@@ -248,7 +247,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSNumber *value;
+@property (nonatomic, strong) NSNumber *value;
 
 @end
 
@@ -256,7 +255,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *value;
+@property (nonatomic, strong) NSString *value;
 
 @end
 
@@ -281,15 +280,15 @@ typedef enum {
 @end
 
 @interface KeyValuePair : NSObject
-@property (nonatomic, retain) LXNode *key;
-@property (nonatomic, retain) LXNode *value;
+@property (nonatomic, strong) LXNode *key;
+@property (nonatomic, strong) LXNode *value;
 @end
 
 @interface LXNodeTableConstructorExpression : LXNodeExpression {
     
 }
 
-@property (nonatomic, retain) NSArray *keyValuePairs;
+@property (nonatomic, strong) NSArray *keyValuePairs;
 
 @end
 
@@ -297,8 +296,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXNode *base;
-@property (nonatomic, retain) NSString *value;
+@property (nonatomic, strong) LXNode *base;
+@property (nonatomic, strong) NSString *value;
 @property (nonatomic) BOOL useColon;
 
 @end
@@ -307,8 +306,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXNode *base;
-@property (nonatomic, retain) LXNode *index;
+@property (nonatomic, strong) LXNode *base;
+@property (nonatomic, strong) LXNode *index;
 
 @end
 
@@ -316,8 +315,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXNode *base;
-@property (nonatomic, retain) NSArray *arguments;
+@property (nonatomic, strong) LXNode *base;
+@property (nonatomic, strong) NSArray *arguments;
 
 @end
 
@@ -325,8 +324,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXNode *base;
-@property (nonatomic, retain) NSString *value;
+@property (nonatomic, strong) LXNode *base;
+@property (nonatomic, strong) NSString *value;
 
 @end
 
@@ -334,8 +333,8 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) LXNode *base;
-@property (nonatomic, retain) LXNode *table;
+@property (nonatomic, strong) LXNode *base;
+@property (nonatomic, strong) LXNode *table;
 
 @end
 
@@ -343,10 +342,10 @@ typedef enum {
     
 }
 
-@property (nonatomic, retain) NSString *name;
-@property (nonatomic, retain) NSArray *returnTypes;
-@property (nonatomic, retain) NSArray *arguments;
-@property (nonatomic, retain) LXNodeBlock *body;
+@property (nonatomic, strong) LXNode *name;
+@property (nonatomic, strong) NSArray *returnTypes;
+@property (nonatomic, strong) NSArray *arguments;
+@property (nonatomic, strong) LXNodeBlock *body;
 @property (nonatomic) BOOL isVarArg;
 
 @end

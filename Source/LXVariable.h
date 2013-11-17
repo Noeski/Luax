@@ -9,8 +9,8 @@
 #import "LXClass.h"
 
 @interface LXVariable : NSObject
-@property (nonatomic, retain) NSString *name;
-@property (nonatomic, retain) LXClass *type;
+@property (nonatomic, strong) NSString *name;
+@property (nonatomic, strong) LXClass *type;
 @property (nonatomic, assign) BOOL isGlobal;
 @property (nonatomic, readonly) BOOL isDefined;
 

@@ -13,7 +13,7 @@
 - (id)initWithParent:(LXScope *)parent openScope:(BOOL)openScope {
     if(self = [super init]) {
         _type = LXScopeTypeBlock;
-        _parent = [parent retain];
+        _parent = parent;
         _children = [[NSMutableArray alloc] init];
         _localVariables = [[NSMutableArray alloc] init];
         
@@ -31,13 +31,6 @@
     }
     
     return self;
-}
-
-- (void)dealloc {
-    [_parent release];
-    [_children release];
-    [_localVariables release];
-    [super dealloc];
 }
 
 - (BOOL)isGlobalScope {
@@ -75,7 +68,6 @@
     variable.isGlobal = [self isGlobalScope];
     
     [self.localVariables addObject:variable];
-    [variable release];
     
     return variable;
 }
@@ -102,19 +94,15 @@
 @implementation LXNode
 NSInteger stringScopeLevel = 0;
 
-- (void)dealloc {
-    [_error release];
-    [super dealloc];
-}
-
 - (void)setError:(NSString *)error {
-    [_error release];
-    _error = [error retain];
+    _error = error;
     
     NSLog(@"%@", error);
 }
 
 - (NSString *)toString {
+    NSLog(@"ERROR");
+    
     return @"";
 }
 
@@ -157,12 +145,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeBlock
 
-- (void)dealloc {
-    [_scope release];
-    [_statements release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = @"";
     NSInteger index = 0;
@@ -182,14 +164,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeIfStatement
-
-- (void)dealloc {
-    [_condition release];
-    [_body release];
-    [_elseIfStatements release];
-    [_elseStatement release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = [self indentedString:[NSString stringWithFormat:@"if %@ then", [self.condition toString]]];
@@ -229,12 +203,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeElseIfStatement
 
-- (void)dealloc {
-    [_condition release];
-    [_body release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [self indentedString:[NSString stringWithFormat:@"elseif %@ then", [self.condition toString]]];
     string = [string stringByAppendingString:@"\n"];
@@ -253,12 +221,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeWhileStatement
-
-- (void)dealloc {
-    [_condition release];
-    [_body release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = [self indentedString:[NSString stringWithFormat:@"while %@ do", [self.condition toString]]];
@@ -281,11 +243,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeDoStatement
 
-- (void)dealloc {
-    [_body release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [self indentedString:@"do"];
     string = [string stringByAppendingString:@"\n"];
@@ -305,15 +262,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeNumericForStatement
-
-- (void)dealloc {
-    [_variable release];
-    [_startExpression release];
-    [_endExpression release];
-    [_stepExpression release];
-    [_body release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string;
@@ -342,23 +290,9 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeGenericForStatement
-
-- (void)dealloc {
-    [_variableList release];
-    [_generators release];
-    [_body release];
-    [super dealloc];
-}
-
 @end
 
 @implementation LXNodeRepeatStatement
-
-- (void)dealloc {
-    [_condition release];
-    [_body release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = [self indentedString:@"repeat"];
@@ -378,11 +312,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeFunctionStatement
 
-- (void)dealloc {
-    [_expression release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [self indentedString:self.isLocal ? @"local " : @""];
     
@@ -393,96 +322,57 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeClassStatement
 
-- (void)dealloc {
-    [_name release];
-    [_superclass release];
-    [_functions release];
-    [_variables release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = nil;
     
     if(self.superclass) {
-        string = [NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__index = %@})\n", self.name, self.name, self.superclass];
-        string = [string stringByAppendingFormat:@"function %@.new()\n  local obj = %@:new()\n", self.name, self.superclass];
+        string = [NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)\n  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class})\n  obj:init(...)\n  return obj\nend})\n", self.name, self.name, self.name, self.superclass];
+        string = [string stringByAppendingFormat:@"for k, v in pairs(%@) do\n  %@[k] = v\nend\n", self.superclass, self.name];
+        string = [string stringByAppendingFormat:@"function %@:init(...)\n  %@.init(self, ...)\n", self.name, self.superclass];
     }
     else {
-        string = [NSString stringWithFormat:@"%@ = %@ or {}\n", self.name, self.name];
-        string = [string stringByAppendingFormat:@"function %@.new()\n  obj = setmetatable({}, {__index = %@})\n", self.name, self.name];
+        string = [NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)\n  local obj = setmetatable({class = \"%@\"}, {__index = class})\n  obj:init(...)\n  return obj\nend})\n", self.name, self.name, self.name];
+        string = [string stringByAppendingFormat:@"function %@:init(...)\n", self.name];
     }
     
     for(LXNodeDeclarationStatement *declaration in self.variableDeclarations) {
-        for(NSInteger i = 0; i < [declaration.varList count]; ++i) {
-            LXVariable *variable = declaration.varList[i];
-            LXNode *init = i < [declaration.initList count] ? declaration.initList[i] : nil;//Default initializer?
+        for(NSInteger i = 0; i < [declaration.variables count]; ++i) {
+            LXVariable *variable = declaration.variables[i];
+
+            LXNode *init = i < [declaration.initializers count] ? declaration.initializers[i] : variable.type.defaultExpression;
             
-            string = [string stringByAppendingFormat:@"  obj.%@ = %@\n", variable.name, [init toString]];
+            string = [string stringByAppendingFormat:@"  self.%@ = %@\n", variable.name, [init toString]];
         }
     }
     
-    string = [string stringByAppendingString:@"  return obj\nend"];
+    string = [string stringByAppendingString:@"end"];
+
+    for(LXNode *function in self.functions) {
+        string = [string stringByAppendingString:@"\n"];
+        string = [string stringByAppendingString:[function toString]];
+    }
 
     return [self indentedString:string];
-    
-    /*NSString *string = [NSString stringWithFormat:[self indentedString:@"%@class %@%@\n"], self.isLocal ? @"local " : @"", self.name, self.superclass ? [NSString stringWithFormat:@" extends %@", self.superclass] : @""];
-    
-    [self openStringScope];
-
-    for(LXNode *variable in self.variables) {
-        string = [string stringByAppendingString:[variable toString]];
-        string = [string stringByAppendingString:@"\n"];
-    }
-    
-    for(LXNode *function in self.functions) {
-        string = [string stringByAppendingString:[function toString]];
-        string = [string stringByAppendingString:@"\n"];
-    }
-    
-    [self closeStringScope];
-    
-    string = [string stringByAppendingString:[self indentedString:@"end"]];
-    
-    return string;*/
 }
 
 @end
 
 @implementation LXNodeLocalStatement
 
-- (void)dealloc {
-    [_varList release];
-    [_initList release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [self indentedString:@"local "];
+    NSString *initString = @"";
     
-    NSInteger index = 0;
-    for(LXVariable *variable in self.varList) {
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXVariable *variable = self.variables[i];
+        LXNode *init = i < [self.initializers count] ? self.initializers[i] : variable.type.defaultExpression;
+        
         string = [string stringByAppendingString:variable.name];
-        
-        ++index;
-        
-        if(index < [self.varList count]) {
-            string = [string stringByAppendingString:@","];
-        }
-    }
-    
-    if([self.initList count] > 0) {
-        string = [string stringByAppendingString:@" = "];
-        
-        index = 0;
-        for(LXNode *init in self.initList) {
-            string = [string stringByAppendingString:[init toString]];
-            
-            ++index;
-            
-            if(index < [self.initList count]) {
-                string = [string stringByAppendingString:@","];
-            }
+        initString = [initString stringByAppendingString:[init toString]];
+
+        if(i < [self.variables count]) {
+            string = [string stringByAppendingString:@", "];
+            initString = [initString stringByAppendingString:@", "];
         }
     }
     
@@ -493,11 +383,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeLabelStatement
 
-- (void)dealloc {
-    [_label release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [NSString stringWithFormat:[self indentedString:@"::%@::"], self.label];
     
@@ -507,11 +392,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeReturnStatement
-
-- (void)dealloc {
-    [_arguments release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = [self indentedString:@"return "];
@@ -542,11 +422,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeGotoStatement
 
-- (void)dealloc {
-    [_label release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     NSString *string = [NSString stringWithFormat:[self indentedString:@"goto %@"], self.label];
     
@@ -557,94 +432,53 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeAssignmentStatement
 
-- (void)dealloc {
-    [_varList release];
-    [_initList release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
-    NSString *string = [self indentedString:@""];
+    NSString *string = @"";
+    NSString *initString = @"";
     
-    NSInteger index = 0;
-    for(LXNode *variable in self.varList) {
-        string = [string stringByAppendingString:[variable toString]];
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXNodeExpression *variableExpression = self.variables[i];
+        LXNode *init = i < [self.initializers count] ? self.initializers[i] : [[LXNodeNilExpression alloc] init];
         
-        ++index;
+        string = [string stringByAppendingString:[variableExpression toString]];
+        initString = [initString stringByAppendingString:[init toString]];
         
-        if(index < [self.varList count]) {
-            string = [string stringByAppendingString:@","];
+        if(i < [self.variables count]-1) {
+            string = [string stringByAppendingString:@", "];
+            initString = [initString stringByAppendingString:@", "];
         }
     }
     
-    if([self.initList count] > 0) {
-        string = [string stringByAppendingString:@" = "];
-        
-        index = 0;
-        for(LXNode *init in self.initList) {
-            string = [string stringByAppendingString:[init toString]];
-            
-            ++index;
-            
-            if(index < [self.initList count]) {
-                string = [string stringByAppendingString:@","];
-            }
-        }
-    }
-    
-    return string;
+    return [self indentedString:[string stringByAppendingFormat:@" = %@", initString]];
 }
 
 @end
 
 @implementation LXNodeDeclarationStatement
 
-- (void)dealloc {
-    [_varList release];
-    [_initList release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
-    NSString *string = [self indentedString:@""];
+    NSString *string = self.isLocal ? @"local " : @"";
+    NSString *initString = @"";
     
-    NSInteger index = 0;
-    for(LXVariable *variable in self.varList) {
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXVariable *variable = self.variables[i];
+        LXNode *init = i < [self.initializers count] ? self.initializers[i] : variable.type.defaultExpression;
+        
         string = [string stringByAppendingString:variable.name];
+        initString = [initString stringByAppendingString:[init toString]];
         
-        ++index;
-        
-        if(index < [self.varList count]) {
-            string = [string stringByAppendingString:@","];
+        if(i < [self.variables count]-1) {
+            string = [string stringByAppendingString:@", "];
+            initString = [initString stringByAppendingString:@", "];
         }
     }
     
-    if([self.initList count] > 0) {
-        string = [string stringByAppendingString:@" = "];
-        
-        index = 0;
-        for(LXNode *init in self.initList) {
-            string = [string stringByAppendingString:[init toString]];
-            
-            ++index;
-            
-            if(index < [self.initList count]) {
-                string = [string stringByAppendingString:@","];
-            }
-        }
-    }
-    
-    return string;
+    return [self indentedString:[string stringByAppendingFormat:@" = %@", initString]];
 }
 
 @end
 
 @implementation LXNodeExpressionStatement
-
-- (void)dealloc {
-    [_expression release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     return [self indentedString:[self.expression toString]];
@@ -658,11 +492,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeVariableExpression
 
-- (void)dealloc {
-    [_variable release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     return self.variable;
 }
@@ -670,12 +499,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeUnaryOpExpression
-
-- (void)dealloc {
-    [_op release];
-    [_rhs release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@%@", self.op, [self.rhs toString]];
@@ -685,13 +508,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeBinaryOpExpression
 
-- (void)dealloc {
-    [_op release];
-    [_lhs release];
-    [_rhs release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@%@%@", [self.lhs toString], self.op, [self.rhs toString]];
 }
@@ -700,11 +516,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeNumberExpression
 
-- (void)dealloc {
-    [_value release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@", self.value];
 }
@@ -712,11 +523,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeStringExpression
-
-- (void)dealloc {
-    [_value release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@", self.value];
@@ -749,35 +555,36 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation KeyValuePair
-
-- (void)dealloc {
-    [_key release];
-    [_value release];
-    [super dealloc];
-}
-
 @end
 
 @implementation LXNodeTableConstructorExpression
 
-- (void)dealloc {
-    [_keyValuePairs release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
-    return @"{}";
+    NSString *string = @"{";
+    
+    for(NSInteger i = 0; i < [self.keyValuePairs count]; ++i) {
+        KeyValuePair *kvp = self.keyValuePairs[i];
+        
+        if(kvp.key) {
+            string = [string stringByAppendingFormat:@"%@=%@", [kvp.key toString], [kvp.value toString]];
+        }
+        else {
+            string = [string stringByAppendingFormat:@"%@", [kvp.value toString]];
+        }
+        
+        if(i < [self.keyValuePairs count]-1) {
+            string = [string stringByAppendingString:@", "];
+        }
+    }
+    
+    string = [string stringByAppendingString:@"}"];
+    
+    return string;
 }
 
 @end
 
 @implementation LXNodeMemberExpression
-
-- (void)dealloc {
-    [_base release];
-    [_value release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@%@%@", [self.base toString], self.useColon ? @":" : @".", self.value];
@@ -787,12 +594,6 @@ NSInteger stringScopeLevel = 0;
 
 @implementation LXNodeIndexExpression
 
-- (void)dealloc {
-    [_base release];
-    [_index release];
-    [super dealloc];
-}
-
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@[%@]", [self.base toString], [self.index toString]];
 }
@@ -800,12 +601,6 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeCallExpression
-
-- (void)dealloc {
-    [_base release];
-    [_arguments release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = [NSString stringWithFormat:@"%@(", [self.base toString]];
@@ -829,39 +624,18 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeStringCallExpression
-
-- (void)dealloc {
-    [_base release];
-    [_value release];
-    [super dealloc];
-}
-
 @end
 
 @implementation LXNodeTableCallExpression
-
-- (void)dealloc {
-    [_base release];
-    [_table release];
-    [super dealloc];
-}
-
 @end
 
 @implementation LXNodeFunctionExpression
-
-- (void)dealloc {
-    [_name release];
-    [_arguments release];
-    [_body release];
-    [super dealloc];
-}
 
 - (NSString *)toString {
     NSString *string = @"";
     
     if(self.name) {
-        string = [string stringByAppendingFormat:@"function %@(", self.name];
+        string = [string stringByAppendingFormat:@"function %@(", [self.name toString]];
     }
     else {
         string = [string stringByAppendingString:@"function("];

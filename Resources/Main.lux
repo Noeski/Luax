@@ -1,5 +1,5 @@
 class A
-  Number aNumber, bNumber = 0, 100
+  Number aNumber, bNumber
   Table cTable = {}
   
   
@@ -18,6 +18,7 @@ if true then
 end
 
 class B extends A
+  A instanceA
 end
 
 function (Bool)test(Bool a, Number b)

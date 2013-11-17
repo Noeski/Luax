@@ -33,9 +33,9 @@ typedef enum {
 @property (nonatomic) NSInteger startLine;
 @property (nonatomic) NSInteger endLine;
 @property (nonatomic) NSInteger column;
-@property (nonatomic, retain) LXVariable *variable;
-@property (nonatomic, retain) LXClass *variableType;
-@property (nonatomic, retain) LXScope *scope;
+@property (nonatomic, strong) LXVariable *variable;
+@property (nonatomic, strong) LXClass *variableType;
+@property (nonatomic, strong) LXScope *scope;
 @property (nonatomic) BOOL isMember;
 
 - (BOOL)isKeyword;
