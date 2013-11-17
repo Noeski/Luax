@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     //NSString *fileName = [[NSBundle mainBundle] pathForResource:@"Main" ofType:@"lux"];
     NSString *source = [NSString stringWithContentsOfFile:fileName encoding:NSUTF8StringEncoding error:nil];
     LXCompiler *compiler = [[LXCompiler alloc] init];
-    [compiler compile:source];
+    [compiler compile:fileName string:source];
     
     return 0;
 }
