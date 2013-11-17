@@ -433,6 +433,8 @@ NSInteger stringScopeLevel = 0;
 @implementation LXNodeAssignmentStatement
 
 - (NSString *)toString {
+    unichar op = [self.op characterAtIndex:0];
+    
     NSString *string = @"";
     NSString *initString = @"";
     
@@ -441,7 +443,13 @@ NSInteger stringScopeLevel = 0;
         LXNode *init = i < [self.initializers count] ? self.initializers[i] : [[LXNodeNilExpression alloc] init];
         
         string = [string stringByAppendingString:[variableExpression toString]];
-        initString = [initString stringByAppendingString:[init toString]];
+        
+        if(op != '=') {
+            initString = [initString stringByAppendingFormat:@"%@ %@ %@", [variableExpression toString], [self.op substringToIndex:[self.op length]-1], [init toString]];
+        }
+        else {
+            initString = [initString stringByAppendingString:[init toString]];
+        }
         
         if(i < [self.variables count]-1) {
             string = [string stringByAppendingString:@", "];
@@ -493,7 +501,7 @@ NSInteger stringScopeLevel = 0;
 @implementation LXNodeVariableExpression
 
 - (NSString *)toString {
-    return self.variable;
+    return self.scriptVariable.isMember ? [NSString stringWithFormat:@"self.%@", self.variable] : self.variable;
 }
 
 @end

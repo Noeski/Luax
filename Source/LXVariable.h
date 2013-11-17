@@ -12,6 +12,7 @@
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXClass *type;
 @property (nonatomic, assign) BOOL isGlobal;
+@property (nonatomic, assign) BOOL isMember;
 @property (nonatomic, readonly) BOOL isDefined;
 
 - (NSString *)autoCompleteString;

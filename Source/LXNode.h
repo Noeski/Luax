@@ -188,6 +188,7 @@ typedef enum {
 
 @property (nonatomic, strong) NSArray *variables;
 @property (nonatomic, strong) NSArray *initializers;
+@property (nonatomic, strong) NSString *op;
 
 @end
 

@@ -18,4 +18,8 @@
     return self.type == LX_TK_NAME || (self.type >= LX_TK_TYPE_VAR && self.type < LX_TK_CLASS);
 }
 
+- (BOOL)isAssignmentOperator {
+    return self.type == '=' || (self.type >= LX_TK_PLUS_EQ && self.type < LX_TK_GE);
+}
+
 @end

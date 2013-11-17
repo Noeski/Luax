@@ -243,10 +243,12 @@
                 [self next];
                 break;
             }
-            case '-': {  /* '-' or '--' (comment) */
+            case '-': {  /* '-', '-=' or '--' (comment) */
                 [self next];
-                if([self current] != '-')
-                return [self tokenWithType:'-' position:startPosition line:startLine column:startColumn];
+                if([self current] == '=') { [self next]; return [self tokenWithType:LX_TK_MINUS_EQ position:startPosition line:startLine column:startColumn]; }
+                else if([self current] != '-')
+                    return [self tokenWithType:'-' position:startPosition line:startLine column:startColumn];
+                
                 /* else is a comment */
                 [self next];
                 if([self current] == '[') {  /* long comment? */
@@ -279,6 +281,31 @@
                 if([self current] != '=') return [self tokenWithType:'=' position:startPosition line:startLine column:startColumn];
                 else { [self next]; return [self tokenWithType:LX_TK_EQ position:startPosition line:startLine column:startColumn]; }
             }
+            case '+': {
+                [self next];
+                if([self current] != '=') return [self tokenWithType:'+' position:startPosition line:startLine column:startColumn];
+                else { [self next]; return [self tokenWithType:LX_TK_PLUS_EQ position:startPosition line:startLine column:startColumn]; }
+            }
+            case '*': {
+                [self next];
+                if([self current] != '=') return [self tokenWithType:'*' position:startPosition line:startLine column:startColumn];
+                else { [self next]; return [self tokenWithType:LX_TK_MULT_EQ position:startPosition line:startLine column:startColumn]; }
+            }
+            case '/': {
+                [self next];
+                if([self current] != '=') return [self tokenWithType:'/' position:startPosition line:startLine column:startColumn];
+                else { [self next]; return [self tokenWithType:LX_TK_DIV_EQ position:startPosition line:startLine column:startColumn]; }
+            }
+            case '^': {
+                [self next];
+                if([self current] != '=') return [self tokenWithType:'^' position:startPosition line:startLine column:startColumn];
+                else { [self next]; return [self tokenWithType:LX_TK_POW_EQ position:startPosition line:startLine column:startColumn]; }
+            }
+            case '%': {
+                [self next];
+                if([self current] != '=') return [self tokenWithType:'%' position:startPosition line:startLine column:startColumn];
+                else { [self next]; return [self tokenWithType:LX_TK_MOD_EQ position:startPosition line:startLine column:startColumn]; }
+            }
             case '<': {
                 [self next];
                 if([self current] != '=') return [self tokenWithType:'<' position:startPosition line:startLine column:startColumn];
@@ -307,8 +334,15 @@
                 [self next];
                 if([self checkNext:@"."]) {
                     if([self checkNext:@"."])
-                    return [self tokenWithType:LX_TK_DOTS position:startPosition line:startLine column:startColumn];   /* '...' */
-                    else return [self tokenWithType:LX_TK_CONCAT position:startPosition line:startLine column:startColumn];   /* '..' */
+                        return [self tokenWithType:LX_TK_DOTS position:startPosition line:startLine column:startColumn];   /* '...' */
+                    else {
+                        if([self current] != '=')
+                            return [self tokenWithType:LX_TK_CONCAT position:startPosition line:startLine column:startColumn];   /* '..' */
+                        else {
+                            [self next];
+                            return [self tokenWithType:LX_TK_CONCAT_EQ position:startPosition line:startLine column:startColumn]; 
+                        }
+                    }
                 }
                 else if(![self isDigit:[self current]]) return [self tokenWithType:'.' position:startPosition line:startLine column:startColumn];
                 /* else go through */
@@ -336,7 +370,7 @@
                                            @"in", @"local", @"global", @"nil", @"not", @"or", @"repeat",
                                            @"return", @"then", @"true", @"until", @"while",
                                            @"var", @"Bool", @"Number", @"String", @"Table", @"Function",
-                                           @"class", @"extends", @"super"
+                                           @"class", @"extends"
                                            ];
                     }
                     

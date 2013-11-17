@@ -879,6 +879,12 @@
 }
 
 - (LXNodeClassStatement *)parseClassStatement:(LXScope *)scope {
+    NSMutableArray *functions = [NSMutableArray array];
+    NSMutableArray *variables = [NSMutableArray array];
+    NSMutableArray *variableDeclarations = [NSMutableArray array];
+    
+    NSMutableArray *functionIndices = [NSMutableArray array];
+    
     LXNodeClassStatement *classStatement = [[LXNodeClassStatement alloc] init];
     
     if([self currentToken].type != LX_TK_NAME) {
@@ -900,11 +906,14 @@
     LXScope *classScope = [self pushScope:scope openScope:YES];
     classScope.type = LXScopeTypeClass;
     
-    NSMutableArray *functions = [NSMutableArray array];
-    NSMutableArray *variables = [NSMutableArray array];
-    NSMutableArray *variableDeclarations = [NSMutableArray array];
+    LXVariable *variable = [classScope createVariable:@"self" type:[self findType:classStatement.name]];
+    [variables addObject:variable];
     
-    NSMutableArray *functionIndices = [NSMutableArray array];
+    if(classStatement.superclass) {
+        LXVariable *variable = [classScope createVariable:@"super" type:[self findType:classStatement.superclass]];
+        variable.isMember = YES;
+        [variables addObject:variable];
+    }
     
     while([self currentToken].type != LX_TK_END) {
         if([self consumeToken:LX_TK_FUNCTION]) {
@@ -932,7 +941,8 @@
             NSString *var = [self tokenValue:[self consumeToken]];
             
             LXVariable *variable = [classScope createVariable:var type:[self findType:type]];
-
+            variable.isMember = YES;
+            
             currentToken.variable = variable;
             [variables addObject:variable];
             
@@ -949,7 +959,8 @@
                 var = [self tokenValue:[self consumeToken]];
                 
                 LXVariable *variable = [classScope createVariable:var type:[self findType:type]];
-                
+                variable.isMember = YES;
+
                 currentToken.variable = variable;
                 [variables addObject:variable];
 
@@ -1413,7 +1424,7 @@
         else {
             LXNode *expression = [self parseSuffixedExpression:scope onlyDotColon:NO];
             
-            if(expression && ([self currentToken].type == ',' || [self currentToken].type == '=')) {
+            if(expression && ([self currentToken].type == ',' || [[self currentToken] isAssignmentOperator])) {
                 LXNodeAssignmentStatement *assignmentStatement = [[LXNodeAssignmentStatement alloc] init];
                 NSMutableArray *varList = [NSMutableArray arrayWithObject:expression];
                 NSMutableArray *initList = [NSMutableArray array];
@@ -1425,10 +1436,12 @@
                         [varList addObject:expression];
                 }
                 
-                if(![self consumeToken:'=']) {
+                if(![[self currentToken] isAssignmentOperator]) {
                     [errors addObject:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:[self currentToken]]]];
                 }
                 
+                LXToken *assignmentOp = [self consumeToken];
+
                 do {
                     LXNode *expression = [self parseExpression:scope];
                     
@@ -1438,7 +1451,8 @@
                 
                 assignmentStatement.variables = varList;
                 assignmentStatement.initializers = initList;
-                
+                assignmentStatement.op = [self tokenValue:assignmentOp];
+
                 return assignmentStatement;
             }
             else {
