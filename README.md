@@ -127,4 +127,7 @@ binop ::= '<b>+</b>' | '<b>-</b>' | '<b>*</b>' | '<b>/</b>' | '<b>^</b>' | '<b>%
 unop ::= '<b>-</b>' | <b>not</b> | '<b>#</b>'
 </pre>
 
+Links
+-----
+[Lua](http://www.lua.org)
 [EBNF](docs/EBNF.md)
