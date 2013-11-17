@@ -2,71 +2,77 @@ EBNF
 ---
 
 <pre>
-chunk ::= {stat [';']} [laststat [';']]
+chunk ::= block
 
-block ::= chunk
+block ::= {stat} [retstat]
 
-stat ::= varlist '=' explist | 
+stat ::= '<b>;</b>' |
+         varlist '<b>=</b>' explist | 
          functioncall | 
+         label |
+         <b>break</b> |
+         <b>goto</b> Name |
          <b>do</b> block <b>end</b> | 
          <b>while</b> exp <b>do</b> block <b>end</b> | 
          <b>repeat</b> block <b>until</b> exp | 
          <b>if</b> exp <b>then</b> block {<b>elseif</b> exp <b>then</b> block} [<b>else</b> block] <b>end</b> | 
-         <b>for</b> type Name '=' exp ',' exp [',' exp] <b>do</b> block <b>end</b> | 
+         <b>for</b> type Name '<b>=</b>' exp '<b>,</b>' exp ['<b>,</b>' exp] <b>do</b> block <b>end</b> | 
          <b>for</b> typednamelist <b>in</b> explist <b>do</b> block <b>end</b> | 
          <b>class</b> Name [extends Name] classbody |
          <b>function</b> funcname funcbody | 
          scope <b>function</b> Name funcbody | 
-         [scope] type namelist ['=' explist] 
+         [scope] type namelist ['<b>=</b>' explist] 
 
-laststat ::= <b>return</b> [explist] | <b>break</b>
+retstat ::= <b>return</b> [explist] ['<b>;</b>']
 
-funcname ::= Name {'.' Name} [':' Name]
+label ::= '<b>::</b>' Name '<b>::</b>'
 
-varlist ::= var {',' var}
+funcname ::= Name {'<b>.</b>' Name} ['<b>:</b>' Name]
 
-var ::= Name | prefixexp '[' exp ']' | prefixexp '.' Name 
+varlist ::= var {'<b>,</b>' var}
+
+var ::= Name | prefixexp '<b>[</b>' exp '<b>]</b>' | prefixexp '<b>.</b>' Name 
 
 scope ::= <b>local</b> | <b>global</b>
 
-type ::= <b>Number</b> | <b>Bool</b> | <b>String</b> | <b>Table</b> | <b>Function</b> | Name
+type ::= <b>var</b> | <b>Number</b> | <b>Bool</b> | <b>String</b> | <b>Table</b> | <b>Function</b> | Name
 
-namelist ::= Name {',' Name}
+namelist ::= Name {'<b>,</b>' Name}
 
-typednamelist ::= type Name {',' type Name}
+typednamelist ::= type Name {'<b>,</b>' type Name}
 
-explist ::= {exp ','} exp
+explist ::= {exp '<b>,</b>'} exp
 
-exp ::= <b>nil</b> | <b>false</b> | <b>true</b> | Number | String | '...' | function | 
+exp ::= <b>nil</b> | <b>false</b> | <b>true</b> | Number | String | '<b>...</b>' | function | 
         prefixexp | tableconstructor | exp binop exp | unop exp 
 
-prefixexp ::= var | functioncall | '(' exp ')'
+prefixexp ::= var | functioncall | '<b>(</b>' exp '<b>)</b>'
 
-functioncall ::= prefixexp args | prefixexp ':' Name args 
+functioncall ::= prefixexp args | prefixexp '<b>:</b>' Name args 
 
-args ::= '(' [explist] ')' | tableconstructor | String 
+args ::= '<b>(</b>' [explist] '<b>)</b>' | tableconstructor | String 
 
 classbody ::= {classstat} <b>end</b>
 
-classstat ::= <b>function</b> Name funcbody | type namelist ['=' explist]
+classstat ::= <b>function</b> Name funcbody | type namelist ['<b>=</b>' explist]
 
 function ::= <b>function</b> funcbody
 
-funcbody ::= '(' [parlist] ')' block <b>end</b>
+funcbody ::= '<b>(</b>' [parlist] '<b>)</b>' block <b>end</b>
 
-parlist ::= typednamelist [',' '...'] | '...'
+parlist ::= typednamelist ['<b>,</b>' '<b>...</b>'] | '<b>...</b>'
 
-tableconstructor ::= '{' [fieldlist] '}'
+tableconstructor ::= '<b>{</b>' [fieldlist] '<b>}</b>'
 
 fieldlist ::= field {fieldsep field} [fieldsep]
 
-field ::= '[' exp ']' '=' exp | type Name '=' exp | exp
+field ::= '<b>[</b>' exp '<b>]</b>' '<b>=</b>' exp | type Name '<b>=</b>' exp | exp
 
-fieldsep ::= ',' | ';'
+fieldsep ::= '<b>,</b>' | '<b>;</b>'
 
-binop ::= '+' | '-' | '*' | '/' | '^' | '%' | '..' | 
-          '<' | '<=' | '>' | '>=' | '==' | '~=' | 
+binop ::= '<b>+</b>' | '<b>-</b>' | '<b>*</b>' | '<b>/</b>' | '<b>^</b>' | '<b>%</b>' | '<b>..</b>' | 
+          '<b><</b>' | '<b><=</b>' | '<b>></b>' | '<b>>=</b>' | '<b>==</b>' | '<b>~=</b>' | 
           <b>and</b> | <b>or</b>
 
-unop ::= '-' | <b>not</b> | '#'
+unop ::= '<b>-</b>' | <b>not</b> | '<b>#</b>'
 </pre>
