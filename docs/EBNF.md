@@ -7,7 +7,7 @@ chunk ::= block
 block ::= {stat} [retstat]
 
 stat ::= '<b>;</b>' |
-         varlist '<b>=</b>' explist | 
+         varlist assignmentop explist | 
          functioncall | 
          label |
          <b>break</b> |
@@ -70,8 +70,11 @@ field ::= '<b>[</b>' exp '<b>]</b>' '<b>=</b>' exp | type Name '<b>=</b>' exp | 
 
 fieldsep ::= '<b>,</b>' | '<b>;</b>'
 
+assignmentop ::= '<b>=</b>' | '<b>+=</b>' | '<b>-=</b>' | '<b>*=</b>' | '<b>/=</b>' | 
+                 '<b>^=</b>' | '<b>%=</b>' | '<b>..=</b>'
+
 binop ::= '<b>+</b>' | '<b>-</b>' | '<b>*</b>' | '<b>/</b>' | '<b>^</b>' | '<b>%</b>' | '<b>..</b>' | 
-          '<b><</b>' | '<b><=</b>' | '<b>></b>' | '<b>>=</b>' | '<b>==</b>' | '<b>~=</b>' | 
+          '<b>&lt;</b>' | '<b>&lt;=</b>' | '<b>></b>' | '<b>>=</b>' | '<b>==</b>' | '<b>~=</b>' | 
           <b>and</b> | <b>or</b>
 
 unop ::= '<b>-</b>' | <b>not</b> | '<b>#</b>'
