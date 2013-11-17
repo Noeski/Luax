@@ -37,4 +37,7 @@ end
 local eagle = Bird()
 eagle:fly()
 ```
+The Complete Syntax of Luax
+---------------------------
 
+[EBNF](docs/EBNF.md)
