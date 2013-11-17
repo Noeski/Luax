@@ -129,5 +129,5 @@ unop ::= '<b>-</b>' | <b>not</b> | '<b>#</b>'
 
 Links
 -----
-[Lua](http://www.lua.org)
-[EBNF](docs/EBNF.md)
+* [Lua](http://www.lua.org)
+* [EBNF](docs/EBNF.md)
