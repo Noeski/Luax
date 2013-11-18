@@ -267,10 +267,10 @@ NSInteger stringScopeLevel = 0;
     NSString *string;
     
     if(self.stepExpression) {
-        string = [self indentedString:[NSString stringWithFormat:@"for %@=%@,%@,%@ do", self.variable, self.startExpression, self.endExpression, self.stepExpression]];
+        string = [NSString stringWithFormat:@"for %@=%@,%@,%@ do", self.variable.name, [self.startExpression toString], [self.endExpression toString], [self.stepExpression toString]];
     }
     else {
-        string = [self indentedString:[NSString stringWithFormat:@"for %@=%@,%@ do", self.variable, self.startExpression, self.endExpression]];
+        string = [NSString stringWithFormat:@"for %@=%@,%@ do", self.variable.name, [self.startExpression toString], [self.endExpression toString]];
     }
     
     string = [string stringByAppendingString:@"\n"];
@@ -282,20 +282,59 @@ NSInteger stringScopeLevel = 0;
         string = [string stringByAppendingString:@"\n"];
     }
     
-    string = [string stringByAppendingString:[self indentedString:@"end"]];
+    string = [string stringByAppendingString:@"end"];
     
-    return string;
+    return [self indentedString:string];
 }
 
 @end
 
 @implementation LXNodeGenericForStatement
+
+- (NSString *)toString {
+    NSString *variableString = @"";
+    NSString *generatorString = @"";
+
+    for(NSInteger i = 0; i < [self.variableList count]; ++i) {
+        LXVariable *variable = self.variableList[i];
+        
+        variableString = [variableString stringByAppendingFormat:@"%@", variable.name];
+        
+        if(i < [self.variableList count]-1) {
+            variableString = [variableString stringByAppendingString:@","];
+        }
+    }
+    
+    for(NSInteger i = 0; i < [self.generators count]; ++i) {
+        LXNodeExpression *generator = self.generators[i];
+        
+        generatorString = [generatorString stringByAppendingFormat:@"%@", [generator toString]];
+        
+        if(i < [self.generators count]-1) {
+            generatorString = [generatorString stringByAppendingString:@","];
+        }
+    }
+    
+    NSString *string = [NSString stringWithFormat:@"for %@ in %@ do\n", variableString, generatorString];
+
+    if([self.body.statements count] > 0) {
+        [self openStringScope];
+        string = [string stringByAppendingString:[self.body toString]];
+        [self closeStringScope];
+        string = [string stringByAppendingString:@"\n"];
+    }
+    
+    string = [string stringByAppendingString:@"end"];
+    
+    return [self indentedString:string];
+}
+
 @end
 
 @implementation LXNodeRepeatStatement
 
 - (NSString *)toString {
-    NSString *string = [self indentedString:@"repeat"];
+    NSString *string = @"repeat";
     string = [string stringByAppendingString:@"\n"];
 
     if([self.body.statements count] > 0) {
@@ -304,8 +343,8 @@ NSInteger stringScopeLevel = 0;
         [self closeStringScope];
         string = [string stringByAppendingString:@"\n"];
     }
-    string = [string stringByAppendingString:[self indentedString:@"until %@"]], [self.condition toString];
-    return string;
+    string = [string stringByAppendingString:@"until %@"], [self.condition toString];
+    return [self indentedString:string];
 }
 
 @end
@@ -353,30 +392,6 @@ NSInteger stringScopeLevel = 0;
     }
 
     return [self indentedString:string];
-}
-
-@end
-
-@implementation LXNodeLocalStatement
-
-- (NSString *)toString {
-    NSString *string = [self indentedString:@"local "];
-    NSString *initString = @"";
-    
-    for(NSInteger i = 0; i < [self.variables count]; ++i) {
-        LXVariable *variable = self.variables[i];
-        LXNode *init = i < [self.initializers count] ? self.initializers[i] : variable.type.defaultExpression;
-        
-        string = [string stringByAppendingString:variable.name];
-        initString = [initString stringByAppendingString:[init toString]];
-
-        if(i < [self.variables count]) {
-            string = [string stringByAppendingString:@", "];
-            initString = [initString stringByAppendingString:@", "];
-        }
-    }
-    
-    return string;
 }
 
 @end
@@ -562,7 +577,7 @@ NSInteger stringScopeLevel = 0;
 
 @end
 
-@implementation KeyValuePair
+@implementation LXKeyValuePair
 @end
 
 @implementation LXNodeTableConstructorExpression
@@ -571,10 +586,13 @@ NSInteger stringScopeLevel = 0;
     NSString *string = @"{";
     
     for(NSInteger i = 0; i < [self.keyValuePairs count]; ++i) {
-        KeyValuePair *kvp = self.keyValuePairs[i];
+        LXKeyValuePair *kvp = self.keyValuePairs[i];
         
         if(kvp.key) {
-            string = [string stringByAppendingFormat:@"%@=%@", [kvp.key toString], [kvp.value toString]];
+            if(kvp.isBoxed)
+                string = [string stringByAppendingFormat:@"[%@]=%@", [kvp.key toString], [kvp.value toString]];
+            else
+                string = [string stringByAppendingFormat:@"%@=%@", [kvp.key toString], [kvp.value toString]];
         }
         else {
             string = [string stringByAppendingFormat:@"%@", [kvp.value toString]];
@@ -632,9 +650,19 @@ NSInteger stringScopeLevel = 0;
 @end
 
 @implementation LXNodeStringCallExpression
+
+- (NSString *)toString {
+    return [NSString stringWithFormat:@"%@ %@", [self.base toString], self.value];
+}
+
 @end
 
 @implementation LXNodeTableCallExpression
+
+- (NSString *)toString {
+    return [NSString stringWithFormat:@"%@ %@", [self.base toString], [self.table toString]];
+}
+
 @end
 
 @implementation LXNodeFunctionExpression

@@ -451,9 +451,10 @@
                     
                 }
                 
-                KeyValuePair *kvp = [[KeyValuePair alloc] init];
+                LXKeyValuePair *kvp = [[LXKeyValuePair alloc] init];
                 kvp.key = key;
                 kvp.value = value;
+                kvp.isBoxed = YES;
                 [keyValuePairs addObject:kvp];
             }
             else if(token.type == LX_TK_NAME) {
@@ -463,7 +464,7 @@
                 
                 if(next.type == '=') {
                     LXNodeVariableExpression *expression = [[LXNodeVariableExpression alloc] init];
-                    expression.variable = [self tokenValue:[self currentToken]];
+                    expression.variable = [self tokenValue:[self consumeToken]];
                     key = expression;
                     
                     [self consumeToken:'='];
@@ -475,7 +476,7 @@
                     
                 }
                 
-                KeyValuePair *kvp = [[KeyValuePair alloc] init];
+                LXKeyValuePair *kvp = [[LXKeyValuePair alloc] init];
                 kvp.key = key;
                 kvp.value = value;
                 [keyValuePairs addObject:kvp];
@@ -490,7 +491,7 @@
                     
                 }
                 
-                KeyValuePair *kvp = [[KeyValuePair alloc] init];
+                LXKeyValuePair *kvp = [[LXKeyValuePair alloc] init];
                 kvp.value = value;
                 [keyValuePairs addObject:kvp];
             }
@@ -1303,20 +1304,29 @@
         return doStatement;
     }
     else if([self consumeToken:LX_TK_FOR]) {
-        if([self currentToken].type != LX_TK_NAME) {
+        if(![[self currentToken] isType]) {
             LXToken *token = [self currentToken];
             
-            [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:token]] line:token.startLine column:token.column];
+            [self addError:[NSString stringWithFormat:@"Expected 'name' or 'type' near: %@", [self tokenValue:token]] line:token.startLine column:token.column];
         }
         
-        NSString *baseVarName = [self tokenValue:[self consumeToken]];
-        if([self consumeToken:'=']) {
+        if([self nextToken].type == '=') {
             LXNodeNumericForStatement *forStatement = [[LXNodeNumericForStatement alloc] init];
             
             LXScope *forScope = [self pushScope:scope openScope:NO];
-            [forScope createVariable:baseVarName type:[self findType:@"Number"]];
             
-            forStatement.variable = baseVarName;
+            LXToken *variableToken = [self currentToken];
+            NSString *var = [self tokenValue:[self consumeToken]];
+            
+            LXClass *variableType = [self findType:@"Number"];
+            LXVariable *variable = [forScope createVariable:var type:variableType];
+            
+            variableToken.variable = variable;
+
+            forStatement.variable = variable;
+            
+            [self consumeToken];
+
             forStatement.startExpression = [self parseExpression:scope];
             
             if(![self consumeToken:',']) {
@@ -1350,22 +1360,61 @@
             return forStatement;
         }
         else {
+            LXToken *typeToken = [self currentToken];
+            NSString *type = [self tokenValue:[self consumeToken]];
+            
+            if([self currentToken].type != LX_TK_NAME) {
+                LXToken *token = [self currentToken];
+                
+                [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:token]] line:token.startLine column:token.column];
+            }
+            
+            LXToken *variableToken = [self currentToken];
+            NSString *var = [self tokenValue:[self consumeToken]];
+            
             LXNodeGenericForStatement *forStatement = [[LXNodeGenericForStatement alloc] init];
             
             LXScope *forScope = [self pushScope:scope openScope:NO];
-            [forScope createVariable:baseVarName type:nil];
             
-            NSMutableArray *varList = [NSMutableArray arrayWithObject:baseVarName];
+            LXClass *variableType = [self findType:type];
+            LXVariable *variable = [forScope createVariable:var type:variableType];
+
+            typeToken.variableType = variableType;
+            variableToken.variable = variable;
+            
+            NSMutableArray *varList = [NSMutableArray arrayWithObject:variable];
             
             while([self consumeToken:',']) {
-                if([self currentToken].type != LX_TK_NAME) {
+                if(![[self currentToken] isType]) {
                     LXToken *token = [self currentToken];
                     
-                    [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:token]] line:token.startLine column:token.column];
+                    [self addError:[NSString stringWithFormat:@"Expected 'name' or 'type' near: %@", [self tokenValue:token]] line:token.startLine column:token.column];
                 }
-                
-                NSString *varName = [self tokenValue:[self consumeToken]];
-                [varList addObject:varName];
+                else {
+                    if([self nextToken].type == LX_TK_NAME) {
+                        LXToken *typeToken = [self currentToken];
+                        NSString *type = [self tokenValue:[self consumeToken]];
+                        
+                        LXToken *variableToken = [self currentToken];
+                        NSString *var = [self tokenValue:[self consumeToken]];
+                        
+                        LXClass *variableType = [self findType:type];
+                        LXVariable *variable = [forScope createVariable:var type:variableType];
+                        
+                        typeToken.variableType = variableType;
+                        variableToken.variable = variable;
+                        
+                        [varList addObject:variable];
+                    }
+                    else {
+                        LXToken *currentToken = [self currentToken];
+                        NSString *var = [self tokenValue:[self consumeToken]];
+                        
+                        LXVariable *variable = [forScope createVariable:var type:variableType];
+                        currentToken.variable = variable;
+                        [varList addObject:variable];
+                    }
+                }
             }
             
             forStatement.variableList = varList;

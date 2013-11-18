@@ -97,7 +97,7 @@ typedef enum {
     
 }
 
-@property (nonatomic, strong) NSString *variable;
+@property (nonatomic, strong) LXVariable *variable;
 @property (nonatomic, strong) LXNode *startExpression;
 @property (nonatomic, strong) LXNode *endExpression;
 @property (nonatomic, strong) LXNode *stepExpression;
@@ -141,15 +141,6 @@ typedef enum {
 @property (nonatomic, strong) NSArray *variables;
 @property (nonatomic, strong) NSArray *variableDeclarations;
 @property (nonatomic) BOOL isLocal;
-
-@end
-
-@interface LXNodeLocalStatement : LXNodeStatement {
-    
-}
-
-@property (nonatomic, strong) NSArray *variables;
-@property (nonatomic, strong) NSArray *initializers;
 
 @end
 
@@ -280,9 +271,10 @@ typedef enum {
 
 @end
 
-@interface KeyValuePair : NSObject
+@interface LXKeyValuePair : NSObject
 @property (nonatomic, strong) LXNode *key;
 @property (nonatomic, strong) LXNode *value;
+@property (nonatomic, assign) BOOL isBoxed;
 @end
 
 @interface LXNodeTableConstructorExpression : LXNodeExpression {
