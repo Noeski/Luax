@@ -101,7 +101,7 @@ args ::= '<b>(</b>' [explist] '<b>)</b>' | tableconstructor | String
 
 classbody ::= {classstat} <b>end</b>
 
-classstat ::= <b>function</b> Name funcbody | type namelist ['<b>=</b>' explist]
+classstat ::= <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] Name funcbody | type namelist ['<b>=</b>' explist]
 
 function ::= <b>function</b> funcbody
 
