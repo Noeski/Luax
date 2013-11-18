@@ -66,8 +66,8 @@ stat ::= '<b>;</b>' |
          <b>for</b> type Name '<b>=</b>' exp '<b>,</b>' exp ['<b>,</b>' exp] <b>do</b> block <b>end</b> | 
          <b>for</b> typednamelist <b>in</b> explist <b>do</b> block <b>end</b> | 
          <b>class</b> Name [extends Name] classbody |
-         <b>function</b> funcname funcbody | 
-         scope <b>function</b> Name funcbody | 
+         <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] funcname funcbody | 
+         scope <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] Name funcbody | 
          [scope] type namelist ['<b>=</b>' explist] 
 
 retstat ::= <b>return</b> [explist] ['<b>;</b>']
