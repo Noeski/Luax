@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     NSString *source = [NSString stringWithContentsOfFile:fileName encoding:NSUTF8StringEncoding error:nil];
     LXCompiler *compiler = [[LXCompiler alloc] init];
     [compiler compile:fileName string:source];
+    [compiler compile:fileName string:source];
     [compiler save];
     
     return 0;

@@ -12,11 +12,16 @@ int main(int argc, char *argv[]) {
     if(argc < 2)
         return 1;
     
-    NSString *fileName = [NSString stringWithCString:argv[1] encoding:NSUTF8StringEncoding];
-    //NSString *fileName = [[NSBundle mainBundle] pathForResource:@"Main" ofType:@"lux"];
-    NSString *source = [NSString stringWithContentsOfFile:fileName encoding:NSUTF8StringEncoding error:nil];
     LXCompiler *compiler = [[LXCompiler alloc] init];
-    [compiler compile:fileName string:source];
+    
+    for(int i = 1; i < argc; ++i) {
+        NSString *fileName = [NSString stringWithCString:argv[i] encoding:NSUTF8StringEncoding];
+        NSString *source = [NSString stringWithContentsOfFile:fileName encoding:NSUTF8StringEncoding error:nil];
+        
+        [compiler compile:fileName string:source];
+    }
+
+    [compiler save];
     
     return 0;
 }
