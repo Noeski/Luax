@@ -32,5 +32,9 @@
 + (LXClassTable *)classTable;
 @end
 
+@interface LXClassFunction : LXClass
++ (LXClassFunction *)classFunction;
+@end
+
 @interface LXClassBase : LXClass
 @end

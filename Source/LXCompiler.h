@@ -13,6 +13,7 @@
 
 @interface LXCompilerError : NSObject
 @property (nonatomic, strong) NSString *error;
+@property (nonatomic, assign) NSRange range;
 @property (nonatomic, assign) NSInteger line;
 @property (nonatomic, assign) NSInteger column;
 @end

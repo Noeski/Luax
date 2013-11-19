@@ -1,9 +1,10 @@
-#import "ScriptTextView.h"
-#import "NSString+JSON.h"
+#import "LXTextView.h"
+#import "LXDocument.h"
 #import "LXNode.h"
 #import "LXToken.h"
+#import "NSString+JSON.h"
 
-@implementation CustomWindow
+@implementation LXAutoCompleteWindow
 
 - (BOOL)canBecomeKeyWindow {
     return YES;
@@ -11,7 +12,7 @@
 
 @end
 
-@implementation ScriptAutoCompleteDefinition
+@implementation LXAutoCompleteDefinition
 
 - (id)init {
     if(self = [super init]) {
@@ -23,7 +24,7 @@
 
 @end
 
-@implementation ScriptUndoManager
+@implementation LXTextViewUndoManager
 - (void)beginUndoGrouping {
     numberOfOpenGroups++;
     
@@ -50,18 +51,13 @@
 
 @end
 
-@implementation ScriptTextView
+@implementation LXTextView
 
-@synthesize inCompleteMethod;
-
-- (id)initWithFrame:(NSRect)frame {
-	if (self = [super initWithFrame:frame]) {
-        self.delegate = self;
+- (id)initWithFrame:(NSRect)frame document:(LXDocument *)document {
+	if(self = [super initWithFrame:frame]) {
+        _document = document;
         
-        undoManager = [[ScriptUndoManager alloc] init];
-        
-        LXCompiler *c = [[LXCompiler alloc] init];
-        compiler = [[LXContext alloc] initWithName:@"" compiler:c];
+        undoManager = [[LXTextViewUndoManager alloc] init];
         
         errors = [[NSMutableArray alloc] init];
         identifierCharacterSet = [NSCharacterSet characterSetWithCharactersInString:
@@ -140,94 +136,7 @@
 	return self;
 }
 
-- (id)initWithCoder:(NSCoder *)aDecoder {
-    if(self = [super initWithCoder:aDecoder]) {
-        self.delegate = self;
-        
-        undoManager = [[ScriptUndoManager alloc] init];
-        
-        LXCompiler *c = [[LXCompiler alloc] init];
-        compiler = [[LXContext alloc] initWithName:@"" compiler:c];
-        
-        errors = [[NSMutableArray alloc] init];
-        identifierCharacterSet = [NSCharacterSet characterSetWithCharactersInString:
-                                  @"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
-        NSRect frame = NSMakeRect(0, 0, 150, 150);
-        window = [[NSWindow alloc] initWithContentRect:frame
-                                             styleMask:NSBorderlessWindowMask
-                                               backing:NSBackingStoreBuffered
-                                                 defer:NO];
-        window.alphaValue = 0.0f;
-        window.hasShadow = YES;
-        
-        window.delegate = self;
-        [window setBackgroundColor:[NSColor clearColor]];
-        
-        NSFont *font = [[NSFontManager sharedFontManager] fontWithFamily:@"Menlo"
-                                                                  traits:0
-                                                                  weight:0
-                                                                    size:11];
-        
-        NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        [contentView setWantsLayer:YES];
-        [contentView.layer setBackgroundColor:CGColorCreateGenericGray(1, 1)];
-        autoCompleteScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        autoCompleteTableView = [[NSTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        
-        [autoCompleteTableView setAllowsEmptySelection:NO];
-        [autoCompleteTableView setAllowsMultipleSelection:NO];
-        [autoCompleteTableView setDoubleAction:@selector(finishAutoComplete)];
-        
-        NSTextFieldCell *cell = [[NSTextFieldCell alloc] init];
-        cell.font = font;
-        cell.alignment = NSRightTextAlignment;
-        NSTableColumn *tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column1"];
-        [tableColumn setWidth:150];
-        [tableColumn setDataCell:cell];
-        
-        [autoCompleteTableView addTableColumn:tableColumn];
-        
-        cell = [[NSTextFieldCell alloc] init];
-        cell.font = font;
-        tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column2"];
-        [tableColumn setWidth:150];
-        [tableColumn setDataCell:cell];
-        
-        [autoCompleteTableView addTableColumn:tableColumn];
-        
-        [autoCompleteTableView setHeaderView:nil];
-        [autoCompleteTableView setDataSource:self];
-        [autoCompleteTableView setDelegate:self];
-        [autoCompleteScrollView setDocumentView:autoCompleteTableView];
-        [autoCompleteScrollView setHasVerticalScroller:YES];
-        [contentView addSubview:autoCompleteScrollView];
-        
-        autoCompleteDescriptionView = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        [autoCompleteDescriptionView setFont:font];
-        [autoCompleteDescriptionView setStringValue:@"My Label"];
-        [autoCompleteDescriptionView setBezeled:NO];
-        [autoCompleteDescriptionView setDrawsBackground:NO];
-        [autoCompleteDescriptionView setEditable:NO];
-        [autoCompleteDescriptionView setSelectable:NO];
-        
-        NSView *separatorView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 1)];
-        [separatorView setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
-        [separatorView setWantsLayer:YES];
-        [separatorView.layer setBackgroundColor:CGColorCreateGenericGray(0.8, 1)];
-        [autoCompleteDescriptionView addSubview:separatorView];
-        
-        [contentView addSubview:autoCompleteDescriptionView];
-        
-        window.contentView = contentView;
-        
-		[self setDefaults];
-    }
-    
-    return self;
-}
-
 - (void)setDefaults {
-	inCompleteMethod = NO;
 	highlightedLine = -1;
 	
     commentsColor = [NSColor colorWithDeviceRed:0.0f green:0.6f blue:0.0f alpha:1.0f];
@@ -246,7 +155,7 @@
     currentAutoCompleteDefinitions = [[NSMutableArray alloc] init];
     
     for(NSDictionary *definition in definitions) {
-        ScriptAutoCompleteDefinition *autoCompleteDefinition = [[ScriptAutoCompleteDefinition alloc] init];
+        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
         
         autoCompleteDefinition.key = definition[@"key"];
         
@@ -324,9 +233,9 @@
 }
 
 - (void)recompile:(NSString *)string {
-    [compiler compile:string];
+    [self.document.context compile:string];
     
-    for(LXToken *token in compiler.parser.tokens) {
+    for(LXToken *token in self.document.context.parser.tokens) {
         switch(token.type) {
             case LX_TK_COMMENT:
             case LX_TK_LONGCOMMENT:
@@ -355,7 +264,7 @@
 - (LXToken *)tokenBeforeRange:(NSRange)range {
     LXToken *closestToken = nil;
     
-    for(LXToken *token in compiler.parser.tokens) {
+    for(LXToken *token in self.document.context.parser.tokens) {
         if(range.location <= token.range.location) {
             break;
         }
@@ -369,7 +278,7 @@
 - (LXToken *)tokenAfterRange:(NSRange)range {
     LXToken *closestToken = nil;
     
-    for(LXToken *token in compiler.parser.tokens) {
+    for(LXToken *token in self.document.context.parser.tokens) {
         if(token.range.location >= NSMaxRange(range)) {
             closestToken = token;
             break;
@@ -380,7 +289,7 @@
 }
 
 - (LXScope *)scopeAtLocation:(NSInteger)location {
-    return [compiler.compiler.globalScope scopeAtLocation:location];
+    return [self.document.context.compiler.globalScope scopeAtLocation:location];
 }
 
 - (void)showAutoCompleteWindow {
@@ -483,7 +392,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 - (void)colorTokensInRange:(NSRange)range {
     [self.layoutManager removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:range];
     
-    for(LXToken *token in compiler.parser.tokens) {
+    for(LXToken *token in self.document.context.parser.tokens) {
         if(token.range.location > NSMaxRange(range))
             break;
         
@@ -564,11 +473,11 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 
                 if(scope.type == LXScopeTypeClass ||
                    scope.type == LXScopeTypeFunction) {
-                    for(NSString *key in [compiler.compiler.typeMap allKeys]) {
-                        if(![compiler.compiler.typeMap[key] isDefined])
+                    for(NSString *key in [self.document.context.compiler.typeMap allKeys]) {
+                        if(![self.document.context.compiler.typeMap[key] isDefined])
                             continue;
                         
-                        ScriptAutoCompleteDefinition *autoCompleteDefinition = [[ScriptAutoCompleteDefinition alloc] init];
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                         
                         autoCompleteDefinition.key = key;
                         autoCompleteDefinition.type = @"Class";
@@ -585,7 +494,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                     for(LXVariable *variable in scope.localVariables) {
                         BOOL found = NO;
                         
-                        for(ScriptAutoCompleteDefinition *definition in autoCompleteDefinitions) {
+                        for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
                             if([definition.key isEqualToString:variable.name]) {
                                 found = YES;
                                 break;
@@ -595,7 +504,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         if(found)
                             continue;
                         
-                        ScriptAutoCompleteDefinition *autoCompleteDefinition = [[ScriptAutoCompleteDefinition alloc] init];
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                         
                         autoCompleteDefinition.key = variable.name;
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
@@ -610,10 +519,10 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 }
                 
                 //
-                for(ScriptAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
+                for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
                     BOOL found = NO;
                     
-                    for(ScriptAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                    for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
                         if([otherDefinition.key isEqualToString:definition.key]) {
                             found = YES;
                             break;
@@ -658,29 +567,31 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     CGFloat largestTypeWidth = 0;
     CGFloat largestStringWidth = 200;
     
-    NSString *string = [[self string] substringWithRange:autoCompleteWordRange];
-    
-    for(ScriptAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-        NSString *autoCompleteKey = definition.key;
+    if(autoCompleteWordRange.length && autoCompleteWordRange.location+autoCompleteWordRange.length <= [[self string] length]) {
+        NSString *string = [[self string] substringWithRange:autoCompleteWordRange];
         
-        if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
-            [currentAutoCompleteDefinitions addObject:definition];
+        for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
+            NSString *autoCompleteKey = definition.key;
             
-            CGFloat sizeOfString = [definition.string sizeWithAttributes:sizeAttribute].width + 6;
-            
-            if(sizeOfString > largestStringWidth) {
-                largestStringWidth = sizeOfString;
-            }
-            
-            sizeOfString = [definition.type sizeWithAttributes:sizeAttribute].width + 6;
-            
-            if(sizeOfString > largestTypeWidth) {
-                largestTypeWidth = sizeOfString;
+            if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
+                [currentAutoCompleteDefinitions addObject:definition];
+                
+                CGFloat sizeOfString = [definition.string sizeWithAttributes:sizeAttribute].width + 6;
+                
+                if(sizeOfString > largestStringWidth) {
+                    largestStringWidth = sizeOfString;
+                }
+                
+                sizeOfString = [definition.type sizeWithAttributes:sizeAttribute].width + 6;
+                
+                if(sizeOfString > largestTypeWidth) {
+                    largestTypeWidth = sizeOfString;
+                }
             }
         }
     }
     
-    [currentAutoCompleteDefinitions sortUsingComparator:^NSComparisonResult(ScriptAutoCompleteDefinition *obj1, ScriptAutoCompleteDefinition *obj2) {
+    [currentAutoCompleteDefinitions sortUsingComparator:^NSComparisonResult(LXAutoCompleteDefinition *obj1, LXAutoCompleteDefinition *obj2) {
         return [obj1.key compare:obj2.key options:NSCaseInsensitiveSearch];
     }];
     
@@ -818,7 +729,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 
                 while(tokenClass) {
                     for(LXVariable *variable in tokenClass.variables) {
-                        ScriptAutoCompleteDefinition *autoCompleteDefinition = [[ScriptAutoCompleteDefinition alloc] init];
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                         
                         autoCompleteDefinition.key = variable.name;
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
@@ -841,7 +752,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                     for(LXVariable *variable in scope.localVariables) {
                         BOOL found = NO;
                         
-                        for(ScriptAutoCompleteDefinition *definition in allDefinitions) {
+                        for(LXAutoCompleteDefinition *definition in allDefinitions) {
                             if([definition.key isEqualToString:variable.name]) {
                                 found = YES;
                                 break;
@@ -851,7 +762,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         if(found)
                             continue;
                         
-                        ScriptAutoCompleteDefinition *autoCompleteDefinition = [[ScriptAutoCompleteDefinition alloc] init];
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                     
                         autoCompleteDefinition.key = variable.name;
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
@@ -865,10 +776,10 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                     scope = scope.parent;
                 }
                 
-                for(ScriptAutoCompleteDefinition *definition in autoCompleteDefinitions) {
+                for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
                     BOOL found = NO;
                     
-                    for(ScriptAutoCompleteDefinition *otherDefinition in allDefinitions) {
+                    for(LXAutoCompleteDefinition *otherDefinition in allDefinitions) {
                         if([otherDefinition.key isEqualToString:definition.key]) {
                             found = YES;
                             break;
@@ -882,7 +793,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 }
             }
             
-            for(ScriptAutoCompleteDefinition *definition in allDefinitions) {
+            for(LXAutoCompleteDefinition *definition in allDefinitions) {
                 NSString *autoCompleteKey = definition.key;
                 
                 if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
@@ -1017,7 +928,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 
 - (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
     BOOL selected = [tableView selectedRow] == row;
-    ScriptAutoCompleteDefinition *definition = currentAutoCompleteDefinitions[row];
+    LXAutoCompleteDefinition *definition = currentAutoCompleteDefinitions[row];
     
     if([tableColumn.identifier isEqualToString:@"Column1"]) {
         NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
@@ -1074,7 +985,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 
 - (void)autoCompleteIndexChanged:(NSInteger)index {
     if(index != -1) {
-        ScriptAutoCompleteDefinition *definition = currentAutoCompleteDefinitions[index];
+        LXAutoCompleteDefinition *definition = currentAutoCompleteDefinitions[index];
         
         NSString *autoCompleteWord = definition.string;
         
@@ -1148,7 +1059,9 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         }
         
         autoCompleteRange = NSMakeRange(0, 0);
+        //autoCompleteWordRange = NSMakeRange(0, 0);
         [self setSelectedRange:selectedRange];
+        
         [self hideAutoCompleteWindow];
     }
 }
@@ -1161,6 +1074,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         insertAutoComplete = NO;
         [self shouldChangeTextInRange:autoCompleteRange replacementString:@"" undo:NO];
         autoCompleteRange = NSMakeRange(0, 0);
+        //autoCompleteWordRange = NSMakeRange(0, 0);
 
         [self hideAutoCompleteWindow];
     }
@@ -1299,6 +1213,19 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         NSRect rect = rects[i];
         
         [NSBezierPath fillRect:rect];
+    }
+    
+    for(LXCompilerError *error in self.document.context.errors) {
+        NSRange range = error.range;
+        
+        NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        NSBezierPath *path = [NSBezierPath bezierPath];
+        [path moveToPoint:NSMakePoint(rangeRect.origin.x, NSMaxY(rangeRect))];
+        [path lineToPoint:NSMakePoint(rangeRect.origin.x+2, NSMaxY(rangeRect)+2)];
+        [path lineToPoint:NSMakePoint(rangeRect.origin.x-2, NSMaxY(rangeRect)+2)];
+        [path closePath];
+        [[NSColor colorWithDeviceRed:0.8 green:0.0 blue:0.0 alpha:1.0] set];
+        [path fill];
     }
     
     for(NSValue *value in autoCompleteMarkers) {

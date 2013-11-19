@@ -1,13 +1,13 @@
 #import <Cocoa/Cocoa.h>
 
-#import "LXCompiler.h"
+@class LXDocument;
 
-@interface CustomWindow : NSWindow {
+@interface LXAutoCompleteWindow : NSWindow {
     
 }
 @end
 
-@interface ScriptAutoCompleteDefinition : NSObject {
+@interface LXAutoCompleteDefinition : NSObject {
     
 }
 
@@ -20,13 +20,13 @@
 
 @end
 
-@interface ScriptUndoManager : NSUndoManager {
+@interface LXTextViewUndoManager : NSUndoManager {
     NSInteger numberOfOpenGroups;
 }
 
 @end
 
-@interface ScriptTextView : NSTextView<NSTextViewDelegate,NSWindowDelegate,NSTableViewDataSource, NSTableViewDelegate> {
+@interface LXTextView : NSTextView<NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate> {
 	NSInteger lineHeight;
 	NSPoint startPoint;
 	NSPoint startOrigin;
@@ -36,7 +36,6 @@
     NSUndoManager *undoManager;
     BOOL insideUndoGroup;
     
-    LXContext *compiler;
     NSMutableArray *errors;
     NSColor *commentsColor, *keywordsColor, *numbersColor, *stringsColor, *functionsColor, *typesColor;
     NSCharacterSet *identifierCharacterSet;
@@ -55,7 +54,6 @@
 	NSColor *highlightedLineBackgroundColor;
 	NSColor *highlightedLineColor;
 	NSInteger highlightedLine;
-	BOOL inCompleteMethod;
     
     BOOL showingAutoCompleteWindow;
     NSWindow *window;
@@ -65,7 +63,9 @@
     id eventMonitor;
 }
 
-@property (assign) BOOL inCompleteMethod;
+@property (nonatomic, weak) LXDocument *document;
+
+- (id)initWithFrame:(NSRect)frame document:(LXDocument *)document;
 
 - (void)setDefaults;
 

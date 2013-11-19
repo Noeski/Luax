@@ -7,12 +7,32 @@
 //
 
 #import "LXAppDelegate.h"
+#import "LXDocument.h"
 
 @implementation LXAppDelegate
 
+__strong LXCompiler *compiler;
+__strong LXDocument *document;
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    //window = [[ConsoleWindowController alloc] initWithWindowNibName:@"ConsoleWindowController"];
-    //[window showWindow:self];
+    compiler = [[LXCompiler alloc] init];
+    document = [[LXDocument alloc] initWithContentView:documentView name:@"Test" compiler:compiler];
+    //document.delegate = self;
+
+    document.textView.string = @"";
+
+    [self performInsertFirstDocument:document];
+
     [window makeKeyAndOrderFront:self];
 }
+
+- (void)performInsertFirstDocument:(LXDocument*)document {
+	[documentView setSubviews:[NSArray array]];
+	[documentView addSubview:document.textScrollView];
+	[documentView addSubview:document.gutterScrollView];
+	
+	[document resizeViewsForSuperView:documentView];
+	[document updateLineNumbers];
+}
+
 @end

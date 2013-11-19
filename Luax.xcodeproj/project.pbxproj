@@ -29,9 +29,11 @@
 		656AD274183ADBEA00E691D6 /* LXAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD273183ADBEA00E691D6 /* LXAppDelegate.m */; };
 		656AD278183ADC3400E691D6 /* NSString+JSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD277183ADC3400E691D6 /* NSString+JSON.m */; };
 		656AD27A183ADD0200E691D6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD279183ADD0200E691D6 /* MainMenu.xib */; };
-		656AD285183ADF0D00E691D6 /* ScriptTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD284183ADF0D00E691D6 /* ScriptTextView.m */; };
+		656AD285183ADF0D00E691D6 /* LXTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD284183ADF0D00E691D6 /* LXTextView.m */; };
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
 		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
+		79C7A08C183BFFC500AB0A7C /* LXDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 79C7A08B183BFFC500AB0A7C /* LXDocument.m */; };
+		79C7A08F183C00EF00AB0A7C /* LXGutterView.m in Sources */ = {isa = PBXBuildFile; fileRef = 79C7A08E183C00EF00AB0A7C /* LXGutterView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -83,14 +85,18 @@
 		656AD276183ADC3400E691D6 /* NSString+JSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "NSString+JSON.h"; path = "Source/IDE/NSString+JSON.h"; sourceTree = SOURCE_ROOT; };
 		656AD277183ADC3400E691D6 /* NSString+JSON.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "NSString+JSON.m"; path = "Source/IDE/NSString+JSON.m"; sourceTree = SOURCE_ROOT; };
 		656AD279183ADD0200E691D6 /* MainMenu.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MainMenu.xib; path = Source/IDE/MainMenu.xib; sourceTree = SOURCE_ROOT; };
-		656AD283183ADF0D00E691D6 /* ScriptTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ScriptTextView.h; path = Source/IDE/ScriptTextView.h; sourceTree = SOURCE_ROOT; };
-		656AD284183ADF0D00E691D6 /* ScriptTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = ScriptTextView.m; path = Source/IDE/ScriptTextView.m; sourceTree = SOURCE_ROOT; };
+		656AD283183ADF0D00E691D6 /* LXTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXTextView.h; path = Source/IDE/LXTextView.h; sourceTree = SOURCE_ROOT; };
+		656AD284183ADF0D00E691D6 /* LXTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXTextView.m; path = Source/IDE/LXTextView.m; sourceTree = SOURCE_ROOT; };
 		65A8157716629CCC0050D80A /* Luax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luax.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A8157B16629CCC0050D80A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		65A8157E16629CCC0050D80A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		65A8157F16629CCC0050D80A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		65A8158016629CCC0050D80A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		65F35F6416BEE70C007692D2 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		79C7A08A183BFFC500AB0A7C /* LXDocument.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXDocument.h; path = Source/IDE/LXDocument.h; sourceTree = SOURCE_ROOT; };
+		79C7A08B183BFFC500AB0A7C /* LXDocument.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXDocument.m; path = Source/IDE/LXDocument.m; sourceTree = SOURCE_ROOT; };
+		79C7A08D183C00EF00AB0A7C /* LXGutterView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXGutterView.h; path = Source/IDE/LXGutterView.h; sourceTree = SOURCE_ROOT; };
+		79C7A08E183C00EF00AB0A7C /* LXGutterView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXGutterView.m; path = Source/IDE/LXGutterView.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,8 +146,12 @@
 				656AD279183ADD0200E691D6 /* MainMenu.xib */,
 				656AD272183ADBEA00E691D6 /* LXAppDelegate.h */,
 				656AD273183ADBEA00E691D6 /* LXAppDelegate.m */,
-				656AD283183ADF0D00E691D6 /* ScriptTextView.h */,
-				656AD284183ADF0D00E691D6 /* ScriptTextView.m */,
+				656AD283183ADF0D00E691D6 /* LXTextView.h */,
+				656AD284183ADF0D00E691D6 /* LXTextView.m */,
+				79C7A08D183C00EF00AB0A7C /* LXGutterView.h */,
+				79C7A08E183C00EF00AB0A7C /* LXGutterView.m */,
+				79C7A08A183BFFC500AB0A7C /* LXDocument.h */,
+				79C7A08B183BFFC500AB0A7C /* LXDocument.m */,
 			);
 			name = IDE;
 			sourceTree = "<group>";
@@ -325,7 +335,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				656AD285183ADF0D00E691D6 /* ScriptTextView.m in Sources */,
+				656AD285183ADF0D00E691D6 /* LXTextView.m in Sources */,
 				654D750818371E6B00E37009 /* LXClass.m in Sources */,
 				654D750F18371E6B00E37009 /* LXVariable.m in Sources */,
 				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
@@ -333,7 +343,9 @@
 				656AD278183ADC3400E691D6 /* NSString+JSON.m in Sources */,
 				656AD274183ADBEA00E691D6 /* LXAppDelegate.m in Sources */,
 				654D750B18371E6B00E37009 /* LXNode.m in Sources */,
+				79C7A08C183BFFC500AB0A7C /* LXDocument.m in Sources */,
 				654D750918371E6B00E37009 /* LXCompiler.m in Sources */,
+				79C7A08F183C00EF00AB0A7C /* LXGutterView.m in Sources */,
 				654D750518371E6B00E37009 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

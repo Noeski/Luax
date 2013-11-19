@@ -11,7 +11,7 @@
 
 @interface LXAppDelegate : NSObject <NSApplicationDelegate> {
     IBOutlet NSWindow *window;
-    //ConsoleWindowController *window;
+    IBOutlet NSView *documentView;
 }
 
 @end

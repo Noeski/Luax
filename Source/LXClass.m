@@ -98,6 +98,28 @@
 
 @end
 
+@implementation LXClassFunction
+
+- (id)init {
+    if(self = [super init]) {
+        self.name = @"Function";
+        self.isDefined = YES;
+        
+        LXNodeFunctionExpression *functionExpression = [[LXNodeFunctionExpression alloc] init];
+        functionExpression.body = [[LXNodeBlock alloc] init];
+        
+        self.defaultExpression = functionExpression;
+    }
+    
+    return self;
+}
+
++ (LXClassFunction *)classFunction {
+    return [[LXClassFunction alloc] init];
+}
+
+@end
+
 @implementation LXClassBase
 
 - (id)init {
