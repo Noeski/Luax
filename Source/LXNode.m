@@ -72,6 +72,10 @@
     return variable;
 }
 
+- (void)removeVariable:(LXVariable *)variable {
+    [self.localVariables removeObject:variable];
+}
+
 - (LXScope *)scopeAtLocation:(NSInteger)location {
     if(![self isGlobalScope] &&
        ![self isFileScope] &&
@@ -87,6 +91,10 @@
     }
     
     return self;
+}
+
+- (void)removeScope:(LXScope *)scope {
+    [self.children removeObject:scope];
 }
 
 @end

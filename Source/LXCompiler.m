@@ -129,6 +129,7 @@
 @interface LXContext() {
     NSMutableArray *scopeStack;
     NSMutableArray *definedTypes;
+    NSMutableArray *definedVariables;
 
     NSInteger currentTokenIndex;
 }
@@ -146,6 +147,7 @@
 
         scopeStack = [[NSMutableArray alloc] init];
         definedTypes = [[NSMutableArray alloc] init];
+        definedVariables = [[NSMutableArray alloc] init];
     }
     
     return self;
@@ -162,7 +164,13 @@
         [self.compiler undeclareType:type.name];
     }
     
+    for(LXVariable *variable in definedVariables) {
+        [self.compiler.globalScope removeVariable:variable];
+    }
+    
     [definedTypes removeAllObjects];
+    
+    [self.compiler.globalScope removeScope:self.scope];
     
     [self.parser parse:string];
     
@@ -194,10 +202,16 @@
 }
 
 - (LXClass *)findType:(NSString *)name {
+    if(name == nil)
+        return nil;
+    
     return [self.compiler findType:name];
 }
 
 - (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType {
+    if(name == nil)
+        return nil;
+    
     LXClass *type = [self.compiler declareType:name objectType:objectType];
     
     [definedTypes addObject:type];
@@ -668,6 +682,7 @@
         }
         else {
             local = [self.compiler.globalScope createVariable:identifier type:nil];
+            [definedVariables addObject:local];
         }
         
         token.variable = local;
@@ -836,6 +851,7 @@
             }
             else {
                 local = [self.compiler.globalScope createVariable:identifier type:nil];
+                [definedVariables addObject:local];
             }
             
             token.variable = local;
@@ -1128,7 +1144,7 @@
             for(NSNumber *index in functionIndices) {
                 currentTokenIndex = index.integerValue;
                 
-                LXNodeFunctionExpression *functionExpression = [self parseFunction:classScope anonymous:NO isLocal:NO];
+                LXNodeFunctionExpression *functionExpression = [self parseFunction:classScope anonymous:NO isLocal:YES];
                 
                 LXNode *functionName = functionExpression.name;
                 
@@ -1579,6 +1595,7 @@
                 }
                 else {
                     variable = [self.compiler.globalScope createVariable:var type:variableType];
+                    [definedVariables addObject:variable];
                 }
             }
             
@@ -1623,6 +1640,7 @@
                         }
                         else {
                             variable = [self.compiler.globalScope createVariable:var type:[self findType:type]];
+                            [definedVariables addObject:variable];
                         }
                     }
                     

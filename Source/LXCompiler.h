@@ -31,7 +31,7 @@
 @end
 
 @interface LXContext : NSObject
-@property (nonatomic, weak) LXCompiler *compiler;
+@property (nonatomic, strong) LXCompiler *compiler;
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXParser *parser;
 @property (nonatomic, strong) LXScope *scope;

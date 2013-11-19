@@ -32,7 +32,9 @@ typedef enum {
 - (LXVariable *)localVariable:(NSString *)name;
 - (LXVariable *)variable:(NSString *)name;
 - (LXVariable *)createVariable:(NSString *)name type:(LXClass *)type;
+- (void)removeVariable:(LXVariable *)variable;
 - (LXScope *)scopeAtLocation:(NSInteger)location;
+- (void)removeScope:(LXScope *)scope;
 @end
 
 @interface LXNode : NSObject
