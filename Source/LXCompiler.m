@@ -178,8 +178,6 @@
     currentTokenIndex = 0;
     
     self.block = [self parseBlock:self.compiler.globalScope];
-    
-    NSLog(@"%@", [self.block toString]);
 }
 
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column {
@@ -849,16 +847,24 @@
             LXNodeVariableExpression *variableExpression = [[LXNodeVariableExpression alloc] init];
             variableExpression.variable = identifier;
             
-            LXVariable *local = [scope variable:identifier];
+            LXVariable *local = nil;
             
-            if(local) {
-                //variableExpression.local = YES;
+            if(isLocal) {
+                local = [scope localVariable:identifier];
+                
+                if(local) {
+                    //ERROR
+                }
+                else {
+                    local = [scope createVariable:identifier type:[self findType:@"Function"]];
+                }
             }
             else {
                 local = [self.compiler.globalScope createVariable:identifier type:[self findType:@"Function"]];
-                [definedVariables addObject:local];
             }
             
+            [definedVariables addObject:local];
+
             token.variable = local;
             variableExpression.scriptVariable = local;
             

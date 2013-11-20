@@ -489,13 +489,40 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                     }
                 }
                 else {
-                
-                while(scope) {
-                    for(LXVariable *variable in scope.localVariables) {
+                    while(scope) {
+                        for(LXVariable *variable in scope.localVariables) {
+                            BOOL found = NO;
+                            
+                            for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
+                                if([definition.key isEqualToString:variable.name]) {
+                                    found = YES;
+                                    break;
+                                }
+                            }
+                            
+                            if(found)
+                                continue;
+                            
+                            LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                            
+                            autoCompleteDefinition.key = variable.name;
+                            autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
+                            autoCompleteDefinition.string = variable.name;
+                            autoCompleteDefinition.title = variable.name;
+                            autoCompleteDefinition.description = nil;
+                            autoCompleteDefinition.markers = nil;
+                            [autoCompleteDefinitions addObject:autoCompleteDefinition];
+                        }
+                        
+                        scope = scope.parent;
+                    }
+                    
+                    //
+                    for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
                         BOOL found = NO;
                         
-                        for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-                            if([definition.key isEqualToString:variable.name]) {
+                        for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                            if([otherDefinition.key isEqualToString:definition.key]) {
                                 found = YES;
                                 break;
                             }
@@ -504,6 +531,28 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         if(found)
                             continue;
                         
+                        [autoCompleteDefinitions addObject:definition];
+                    }
+                }
+                
+                if([autoCompleteDefinitions count] > 0) {
+                    autoCompleteWordRange = NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
+                    settingAutoComplete = YES;
+                }
+            }
+        }
+        else if(ch == '.' ||
+                ch == ':') {
+            NSInteger startIndex = affectedCharRange.location-1;
+
+            LXToken *previousToken = [self tokenBeforeRange:NSMakeRange(startIndex+1, 0)];
+            LXToken *variableToken = previousToken;
+            
+            if(variableToken.variable.type.isDefined) {
+                LXClass *tokenClass = variableToken.variable.type;
+                
+                while(tokenClass) {
+                    for(LXVariable *variable in tokenClass.variables) {
                         LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                         
                         autoCompleteDefinition.key = variable.name;
@@ -515,36 +564,30 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         [autoCompleteDefinitions addObject:autoCompleteDefinition];
                     }
                     
-                    scope = scope.parent;
-                }
-                
-                //
-                for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-                    BOOL found = NO;
-                    
-                    for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-                        if([otherDefinition.key isEqualToString:definition.key]) {
-                            found = YES;
-                            break;
-                        }
+                    for(LXNodeFunctionStatement *functionStatement in tokenClass.functions) {
+                        LXNodeFunctionExpression *function = (LXNodeFunctionExpression *)functionStatement.expression;
+                        
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                        
+                        autoCompleteDefinition.key = [function.name toString];
+                        autoCompleteDefinition.type = @"";
+                        autoCompleteDefinition.string = [function.name toString];
+                        autoCompleteDefinition.title = [function.name toString];
+                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.markers = nil;
+                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
                     }
                     
-                    if(found)
-                        continue;
-                    
-                    [autoCompleteDefinitions addObject:definition];
-                }
-                }
-                
-                if([autoCompleteDefinitions count] > 0) {
-                    autoCompleteWordRange = NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
-                    settingAutoComplete = YES;
+                    tokenClass = tokenClass.parent;
                 }
             }
-        }
-        else if(ch == '.' ||
-                ch == ':') {
             
+            if([autoCompleteDefinitions count] > 0) {
+                autoCompleteWordRange = NSMakeRange(startIndex+2, 0);
+                settingAutoComplete = YES;
+            }
+            
+            NSLog(@"Type: %@", variableToken.variable.type.name);
         }
         else {
             
@@ -735,6 +778,18 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
                         autoCompleteDefinition.string = variable.name;
                         autoCompleteDefinition.title = variable.name;
+                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.markers = nil;
+                        [allDefinitions addObject:autoCompleteDefinition];
+                    }
+                    
+                    for(LXNodeFunctionExpression *function in tokenClass.functions) {
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                        
+                        autoCompleteDefinition.key = [function.name toString];
+                        autoCompleteDefinition.type = @"";
+                        autoCompleteDefinition.string = [function.name toString];
+                        autoCompleteDefinition.title = [function.name toString];
                         autoCompleteDefinition.description = nil;
                         autoCompleteDefinition.markers = nil;
                         [allDefinitions addObject:autoCompleteDefinition];
