@@ -19,7 +19,8 @@ __strong LXDocument *document;
     document = [[LXDocument alloc] initWithContentView:documentView name:@"Test" compiler:compiler];
     //document.delegate = self;
 
-    document.textView.string = @"";
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"Main" ofType:@"lux"];    
+    document.textView.string = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
 
     [self performInsertFirstDocument:document];
 

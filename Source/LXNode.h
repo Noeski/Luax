@@ -11,9 +11,12 @@
 @interface LXLuaWriter : NSObject
 @property (nonatomic, assign) NSInteger currentLine;
 @property (nonatomic, assign) NSInteger currentColumn;
+@property (nonatomic, readonly) NSString *string;
+@property (nonatomic, readonly) NSArray *mappings;
 
-- (void)write:(NSString *)string;
-- (void)writeNewLine;
+- (void)write:(NSString *)generated line:(NSInteger)line column:(NSInteger)column;
+- (void)write:(NSString *)generated name:(NSString *)name line:(NSInteger)line column:(NSInteger)column;
+- (NSString *)generate;
 @end
 
 typedef enum {
@@ -43,7 +46,11 @@ typedef enum {
 @end
 
 @interface LXNode : NSObject
-@property (nonatomic, strong) NSArray *sourceMap;
+@property (nonatomic, readonly) NSInteger line;
+@property (nonatomic, readonly) NSInteger column;
+
+- (id)initWithLine:(NSInteger)line column:(NSInteger)column;
+
 - (NSString *)toString;
 - (void)compile:(LXLuaWriter *)writer;
 @end
