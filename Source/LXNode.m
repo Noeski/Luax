@@ -8,6 +8,35 @@
 
 #import "LXNode.h"
 
+@interface LXLuaWriter()
+@property (nonatomic, strong) NSMutableString *string;
+@end
+
+@implementation LXLuaWriter
+
+- (id)init {
+    if(self = [super init]) {
+        _string = [[NSMutableString alloc] init];
+    }
+    
+    return self;
+}
+
+- (void)write:(NSString *)string {
+    [self.string appendString:string];
+    
+    self.currentColumn += [string length];
+}
+
+- (void)writeNewLine {
+    [self.string appendString:@"\n"];
+    
+    self.currentLine += 1;
+    self.currentColumn = 0;
+}
+
+@end
+
 @implementation LXScope
 
 - (id)initWithParent:(LXScope *)parent openScope:(BOOL)openScope {
@@ -101,12 +130,6 @@
 
 @implementation LXNode
 NSInteger stringScopeLevel = 0;
-
-- (void)setError:(NSString *)error {
-    _error = error;
-    
-    NSLog(@"%@", error);
-}
 
 - (NSString *)toString {
     NSLog(@"ERROR");
@@ -355,6 +378,22 @@ NSInteger stringScopeLevel = 0;
     return [self indentedString:string];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"repeat"];
+    [writer writeNewLine];
+    
+    if([self.body.statements count] > 0) {
+        [self openStringScope];
+        [self.body compile:writer];
+        [self closeStringScope];
+        
+        [writer writeNewLine];
+    }
+    
+    [writer write:@"until "];
+    [self.condition compile:writer];
+}
+
 @end
 
 @implementation LXNodeFunctionStatement
@@ -363,6 +402,13 @@ NSInteger stringScopeLevel = 0;
     NSString *string = [self indentedString:self.isLocal ? @"local " : @""];
     
     return [string stringByAppendingString:[self.expression toString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    if(self.isLocal)
+        [writer write:@"local"];
+    
+    [self.expression compile:writer];
 }
 
 @end
@@ -412,6 +458,12 @@ NSInteger stringScopeLevel = 0;
     return string;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"::"];
+    [writer write:[NSString stringWithFormat:@"%@", self.label]];
+    [writer write:@"::"];
+}
+
 @end
 
 @implementation LXNodeReturnStatement
@@ -433,12 +485,31 @@ NSInteger stringScopeLevel = 0;
     return string;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"return "];
+    
+    NSInteger index = 0;
+    for(LXNode *argument in self.arguments) {
+        [argument compile:writer];
+        
+        ++index;
+        
+        if(index < [self.arguments count]) {
+            [writer write:@","];
+        }
+    }
+}
+
 @end
 
 @implementation LXNodeBreakStatement
 
 - (NSString *)toString {
     return [self indentedString:@"break"];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"break"];
 }
 
 @end
@@ -449,6 +520,11 @@ NSInteger stringScopeLevel = 0;
     NSString *string = [NSString stringWithFormat:[self indentedString:@"goto %@"], self.label];
     
     return string;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"goto"];
+    [writer write:self.label];
 }
 
 @end
@@ -483,6 +559,40 @@ NSInteger stringScopeLevel = 0;
     return [self indentedString:[string stringByAppendingFormat:@" = %@", initString]];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    unichar op = [self.op characterAtIndex:0];
+    
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXNodeExpression *variableExpression = self.variables[i];
+        
+        [variableExpression compile:writer];
+        
+        if(i < [self.variables count]-1) {
+            [writer write:@","];
+        }
+    }
+    
+    [writer write:@"="];
+    
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXNodeExpression *variableExpression = self.variables[i];
+        LXNode *init = i < [self.initializers count] ? self.initializers[i] : [[LXNodeNilExpression alloc] init];
+        
+        if(op != '=') {
+            [variableExpression compile:writer];
+            [writer write:[self.op substringToIndex:[self.op length]-1]];
+            [init compile:writer];
+        }
+        else {
+            [init compile:writer];
+        }
+        
+        if(i < [self.variables count]-1) {
+            [writer write:@","];
+        }
+    }
+}
+
 @end
 
 @implementation LXNodeDeclarationStatement
@@ -507,12 +617,44 @@ NSInteger stringScopeLevel = 0;
     return [self indentedString:[string stringByAppendingFormat:@" = %@", initString]];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    if(self.isLocal)
+        [writer write:@"local"];
+    
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXVariable *variable = self.variables[i];
+        
+        [writer write:variable.name];
+
+        if(i < [self.variables count]-1) {
+            [writer write:@","];
+        }
+    }
+    
+    [writer write:@"="];
+
+    for(NSInteger i = 0; i < [self.variables count]; ++i) {
+        LXVariable *variable = self.variables[i];
+        LXNode *init = i < [self.initializers count] ? self.initializers[i] : variable.type.defaultExpression;
+        
+        [init compile:writer];
+        
+        if(i < [self.variables count]-1) {
+            [writer write:@","];
+        }
+    }
+}
+
 @end
 
 @implementation LXNodeExpressionStatement
 
 - (NSString *)toString {
     return [self indentedString:[self.expression toString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.expression compile:writer];
 }
 
 @end
@@ -527,12 +669,21 @@ NSInteger stringScopeLevel = 0;
     return self.scriptVariable.isMember ? [NSString stringWithFormat:@"self.%@", self.variable] : self.variable;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:self.scriptVariable.isMember ? [NSString stringWithFormat:@"self.%@", self.variable] : self.variable];
+}
+
 @end
 
 @implementation LXNodeUnaryOpExpression
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@%@", self.op, [self.rhs toString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:self.op];
+    [self.rhs compile:writer];
 }
 
 @end
@@ -543,12 +694,22 @@ NSInteger stringScopeLevel = 0;
     return [NSString stringWithFormat:@"%@%@%@", [self.lhs toString], self.op, [self.rhs toString]];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.lhs compile:writer];
+    [writer write:self.op];
+    [self.rhs compile:writer];
+}
+
 @end
 
 @implementation LXNodeNumberExpression
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@", self.value];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:[NSString stringWithFormat:@"%@", self.value]];
 }
 
 @end
@@ -559,12 +720,20 @@ NSInteger stringScopeLevel = 0;
     return [NSString stringWithFormat:@"%@", self.value];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:self.value];
+}
+
 @end
 
 @implementation LXNodeBoolExpression
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@", self.value ? @"true" : @"false"];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:self.value ? @"true" : @"false"];
 }
 
 @end
@@ -575,12 +744,20 @@ NSInteger stringScopeLevel = 0;
     return @"nil";
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"nil"];
+}
+
 @end
 
 @implementation LXNodeVarArgExpression
 
 - (NSString *)toString {
     return @"...";
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"..."];
 }
 
 @end
@@ -616,6 +793,37 @@ NSInteger stringScopeLevel = 0;
     return string;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:@"{"];
+    
+    for(NSInteger i = 0; i < [self.keyValuePairs count]; ++i) {
+        LXKeyValuePair *kvp = self.keyValuePairs[i];
+        
+        if(kvp.key) {
+            if(kvp.isBoxed)
+                [writer write:@"["];
+        
+            [kvp.key compile:writer];
+            
+            if(kvp.isBoxed)
+                [writer write:@"]"];
+            
+            [writer write:@"="];
+            [kvp.value compile:writer];
+        }
+        else {
+            [kvp.value compile:writer];
+        }
+        
+        if(i < [self.keyValuePairs count]-1) {
+            [writer write:@","];
+        }
+    }
+    
+    [writer write:@"}"];
+}
+
+
 @end
 
 @implementation LXNodeMemberExpression
@@ -624,12 +832,24 @@ NSInteger stringScopeLevel = 0;
     return [NSString stringWithFormat:@"%@%@%@", [self.base toString], self.useColon ? @":" : @".", self.value];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.base compile:writer];
+    [writer write:[NSString stringWithFormat:@"%@%@", self.useColon ? @":" : @".", self.value]];
+}
+
 @end
 
 @implementation LXNodeIndexExpression
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@[%@]", [self.base toString], [self.index toString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.base compile:writer];
+    [writer write:@"["];
+    [self.index compile:writer];
+    [writer write:@"]"];
 }
 
 @end
@@ -655,6 +875,24 @@ NSInteger stringScopeLevel = 0;
     return string;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.base compile:writer];
+    [writer write:@"("];
+    
+    NSInteger index = 0;
+    for(LXNode *variable in self.arguments) {
+        [variable compile:writer];
+        
+        ++index;
+        
+        if(index < [self.arguments count]) {
+            [writer write:@","];
+        }
+    }
+    
+    [writer write:@")"];
+}
+
 @end
 
 @implementation LXNodeStringCallExpression
@@ -663,12 +901,23 @@ NSInteger stringScopeLevel = 0;
     return [NSString stringWithFormat:@"%@ %@", [self.base toString], self.value];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.base compile:writer];
+    
+    [writer write:self.value];
+}
+
 @end
 
 @implementation LXNodeTableCallExpression
 
 - (NSString *)toString {
     return [NSString stringWithFormat:@"%@ %@", [self.base toString], [self.table toString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.base compile:writer];
+    [self.table compile:writer];
 }
 
 @end

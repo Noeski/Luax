@@ -8,7 +8,13 @@
 
 #import "LXVariable.h"
 
-@class LXNode;
+@interface LXLuaWriter : NSObject
+@property (nonatomic, assign) NSInteger currentLine;
+@property (nonatomic, assign) NSInteger currentColumn;
+
+- (void)write:(NSString *)string;
+- (void)writeNewLine;
+@end
 
 typedef enum {
     LXScopeTypeBlock,
@@ -25,7 +31,6 @@ typedef enum {
 @property (nonatomic, assign) NSRange range;
 @property (nonatomic, readonly) NSInteger scopeLevel;
 
-
 - (id)initWithParent:(LXScope *)parent openScope:(BOOL)openScope;
 - (BOOL)isGlobalScope;
 - (BOOL)isFileScope;
@@ -38,13 +43,9 @@ typedef enum {
 @end
 
 @interface LXNode : NSObject
-
-@property (nonatomic) NSRange range;
-@property (nonatomic) NSInteger startLine;
-@property (nonatomic) NSInteger endLine;
-@property (nonatomic, strong) NSString *error;
-
+@property (nonatomic, strong) NSArray *sourceMap;
 - (NSString *)toString;
+- (void)compile:(LXLuaWriter *)writer;
 @end
 
 //Statements
