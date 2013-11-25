@@ -564,7 +564,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         [autoCompleteDefinitions addObject:autoCompleteDefinition];
                     }
                     
-                    for(LXNodeFunctionStatement *functionStatement in tokenClass.functions) {
+                    /*for(LXNodeFunctionStatement *functionStatement in tokenClass.functions) {
                         LXNodeFunctionExpression *function = (LXNodeFunctionExpression *)functionStatement.expression;
                         
                         LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
@@ -576,7 +576,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         autoCompleteDefinition.description = nil;
                         autoCompleteDefinition.markers = nil;
                         [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                    }
+                    }*/
                     
                     tokenClass = tokenClass.parent;
                 }
@@ -783,7 +783,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         [allDefinitions addObject:autoCompleteDefinition];
                     }
                     
-                    for(LXNodeFunctionExpression *function in tokenClass.functions) {
+                    /*for(LXNodeFunctionExpression *function in tokenClass.functions) {
                         LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                         
                         autoCompleteDefinition.key = [function.name toString];
@@ -793,7 +793,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                         autoCompleteDefinition.description = nil;
                         autoCompleteDefinition.markers = nil;
                         [allDefinitions addObject:autoCompleteDefinition];
-                    }
+                    }*/
                     
                     tokenClass = tokenClass.parent;
                 }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="4514" systemVersion="13A603" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
-        <deployment defaultVersion="1070" identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="4514"/>
     </dependencies>
     <objects>
@@ -102,6 +101,26 @@
                                                                         <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                     </textFieldCell>
                                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                                                    <prototypeCellViews>
+                                                                        <tableCellView id="Gq6-Me-kon">
+                                                                            <rect key="frame" x="1" y="1" width="217" height="17"/>
+                                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                            <subviews>
+                                                                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" id="8Lf-br-BVA">
+                                                                                    <rect key="frame" x="0.0" y="0.0" width="217" height="17"/>
+                                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                                                                    <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="Yro-c4-4sV">
+                                                                                        <font key="font" metaFont="system"/>
+                                                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                                    </textFieldCell>
+                                                                                </textField>
+                                                                            </subviews>
+                                                                            <connections>
+                                                                                <outlet property="textField" destination="8Lf-br-BVA" id="0cM-dj-6ZF"/>
+                                                                            </connections>
+                                                                        </tableCellView>
+                                                                    </prototypeCellViews>
                                                                 </tableColumn>
                                                             </tableColumns>
                                                             <connections>
@@ -330,12 +349,12 @@
                                                                             <popUpButton id="684">
                                                                                 <rect key="frame" x="0.0" y="2" width="58" height="19"/>
                                                                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                                                <popUpButtonCell key="cell" type="roundRect" title="Local" bezelStyle="roundedRect" alignment="center" lineBreakMode="truncatingTail" state="on" inset="2" preferredEdge="maxY" id="685">
+                                                                                <popUpButtonCell key="cell" type="roundRect" bezelStyle="roundedRect" alignment="center" lineBreakMode="truncatingTail" inset="2" preferredEdge="maxY" id="685">
                                                                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                                                                     <font key="font" metaFont="cellTitle"/>
                                                                                     <menu key="menu" title="OtherViews" id="686">
                                                                                         <items>
-                                                                                            <menuItem title="Local" state="on" id="687">
+                                                                                            <menuItem title="Local" id="687">
                                                                                                 <connections>
                                                                                                     <action selector="switchToLocals:" target="-2" id="728"/>
                                                                                                 </connections>
@@ -471,10 +490,10 @@
                                                                                     <rect key="frame" x="0.0" y="0.0" width="300" height="140"/>
                                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                     <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
-                                                                                    <size key="minSize" width="300" height="140"/>
+                                                                                    <size key="minSize" width="301" height="140"/>
                                                                                     <size key="maxSize" width="1384" height="10000000"/>
                                                                                     <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
-                                                                                    <size key="minSize" width="300" height="140"/>
+                                                                                    <size key="minSize" width="301" height="140"/>
                                                                                     <size key="maxSize" width="1384" height="10000000"/>
                                                                                 </textView>
                                                                             </subviews>

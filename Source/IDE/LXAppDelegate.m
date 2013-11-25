@@ -7,11 +7,34 @@
 //
 
 #import "LXAppDelegate.h"
+#import "LXWindowController.h"
+#import "LXProject.h"
+#import "LXDocumentController.h"
 #import "LXDocument.h"
 
 @implementation LXAppDelegate
 
-__strong LXCompiler *compiler;
+__strong LXWindowController *windowController;
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        LXDocumentController *dc = [[LXDocumentController alloc] init];
+        if(dc) {};
+    }
+    
+    return self;
+}
+
+- (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    windowController = [[LXWindowController alloc] initWithWindowNibName:@"LXWindowController"];
+    
+    [windowController showWindow:self];
+}
+
+#pragma mark - actions
+
+/*__strong LXCompiler *compiler;
 __strong LXDocument *document;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
@@ -34,6 +57,6 @@ __strong LXDocument *document;
 	
 	[document resizeViewsForSuperView:documentView];
 	[document updateLineNumbers];
-}
+}*/
 
 @end

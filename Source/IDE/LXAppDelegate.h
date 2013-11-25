@@ -9,9 +9,9 @@
 #import <Cocoa/Cocoa.h>
 //#import "ConsoleWindowController.h"
 
-@interface LXAppDelegate : NSObject <NSApplicationDelegate> {
-    IBOutlet NSWindow *window;
-    IBOutlet NSView *documentView;
+@interface LXAppDelegate : NSResponder <NSApplicationDelegate> {
+    //IBOutlet NSWindow *window;
+    //IBOutlet NSView *documentView;
 }
 
 @end

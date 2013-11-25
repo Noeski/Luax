@@ -20,9 +20,7 @@
         self.name = @"Number";
         self.isDefined = YES;
         
-        LXNodeNumberExpression *numberExpression = [[LXNodeNumberExpression alloc] init];
-        numberExpression.value = @(0);
-        self.defaultExpression = numberExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"0" line:-1 column:-1];
     }
     
     return self;
@@ -42,9 +40,7 @@
         self.name = @"Bool";
         self.isDefined = YES;
         
-        LXNodeBoolExpression *booleanExpression = [[LXNodeBoolExpression alloc] init];
-        booleanExpression.value = NO;
-        self.defaultExpression = booleanExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"false" line:-1 column:-1];
     }
     
     return self;
@@ -63,9 +59,7 @@
         self.name = @"String";
         self.isDefined = YES;
         
-        LXNodeStringExpression *stringExpression = [[LXNodeStringExpression alloc] init];
-        stringExpression.value = @"";
-        self.defaultExpression = stringExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"\"\"" line:-1 column:-1];
     }
     
     return self;
@@ -84,9 +78,7 @@
         self.name = @"Table";
         self.isDefined = YES;
         
-        LXNodeTableConstructorExpression *tableExpression = [[LXNodeTableConstructorExpression alloc] init];
-        
-        self.defaultExpression = tableExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"{}" line:-1 column:-1];
     }
     
     return self;
@@ -105,10 +97,7 @@
         self.name = @"Function";
         self.isDefined = YES;
         
-        LXNodeFunctionExpression *functionExpression = [[LXNodeFunctionExpression alloc] init];
-        functionExpression.body = [[LXNodeBlock alloc] init];
-        
-        self.defaultExpression = functionExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"function() end" line:-1 column:-1];
     }
     
     return self;
@@ -127,8 +116,7 @@
         self.name = @"";
         self.isDefined = NO;
         
-        LXNodeNilExpression *nilExpression = [[LXNodeNilExpression alloc] init];
-        self.defaultExpression = nilExpression;
+        self.defaultExpression = [[LXNode alloc] initWithChunk:@"nil" line:-1 column:-1];
     }
     
     return self;

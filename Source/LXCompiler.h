@@ -36,7 +36,7 @@
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXParser *parser;
 @property (nonatomic, strong) LXScope *scope;
-@property (nonatomic, strong) LXNodeBlock *block;
+@property (nonatomic, strong) LXNode *block;
 @property (nonatomic, strong) NSMutableArray *errors;
 
 - (id)initWithName:(NSString *)name compiler:(LXCompiler *)compiler;
