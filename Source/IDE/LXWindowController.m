@@ -281,4 +281,8 @@
     [connectButton setAction:@selector(connect:)];
 }
 
+- (IBAction)newScript:(id)sender {
+    NSLog(@"New Script!");
+}
+
 @end

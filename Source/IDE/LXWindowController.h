@@ -23,4 +23,5 @@
 - (IBAction)connect:(id)sender;
 - (IBAction)disconnect:(id)sender;
 
+- (IBAction)newScript:(id)sender;
 @end

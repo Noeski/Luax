@@ -32,6 +32,12 @@ __strong LXWindowController *windowController;
     [windowController showWindow:self];
 }
 
+- (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename {
+    [LXProject loadProject:filename.lastPathComponent path:[filename substringWithRange:NSMakeRange(0, [filename length] - ([filename.lastPathComponent length]+1))] error:nil];
+
+    return YES;
+}
+
 #pragma mark - actions
 
 /*__strong LXCompiler *compiler;
