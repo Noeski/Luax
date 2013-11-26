@@ -29,4 +29,5 @@
 - (IBAction)disconnect:(id)sender;
 
 - (IBAction)newScript:(id)sender;
+- (IBAction)newGroup:(id)sender;
 @end

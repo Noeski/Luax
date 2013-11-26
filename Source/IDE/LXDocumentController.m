@@ -74,9 +74,11 @@ __strong LXProjectWindowController *windowController;
     
     [panel beginSheetModalForWindow:nil completionHandler:^(NSInteger result){
         if(result == NSFileHandlingPanelOKButton) {
+            windowController = [[LXProjectWindowController alloc] initWithWindowNibName:@"LXProjectWindowController"];
+
             NSURL *fileURL = [panel URL];
             
-            [LXProject loadProject:fileURL.lastPathComponent path:[fileURL.path substringWithRange:NSMakeRange(0, [fileURL.path length] - ([fileURL.lastPathComponent length]+1))] error:nil];
+            windowController.project = [LXProject loadProject:fileURL.lastPathComponent path:[fileURL.path substringWithRange:NSMakeRange(0, [fileURL.path length] - ([fileURL.lastPathComponent length]+1))] error:nil];
             [self noteNewRecentDocumentURL:fileURL];
         }
     }];

@@ -81,6 +81,12 @@
                                                 <action selector="newScript:" target="-1" id="VUx-2D-g8Z"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="New Group" id="n3H-4W-udZ">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="newGroup:" target="-1" id="tBn-zO-LVp"/>
+                                            </connections>
+                                        </menuItem>
                                     </items>
                                 </menu>
                             </menuItem>

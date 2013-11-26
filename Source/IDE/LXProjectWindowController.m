@@ -11,6 +11,29 @@
 
 #import "NSString+JSON.h"
 
+@protocol NSOutlineViewDeleteKeyDelegate
+- (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row;
+@end
+
+@interface NSOutlineView(DeleteKey)
+@end
+
+@implementation NSOutlineView(DeleteKey)
+- (void)keyDown:(NSEvent *)event {
+    
+    if([[event characters] isEqualToString:@""]) return;
+    
+    unichar firstChar = [[event characters] characterAtIndex:0];
+    
+    if (!(firstChar == NSDeleteFunctionKey || firstChar == NSDeleteCharFunctionKey || firstChar == NSDeleteCharacter))
+        return;
+    
+    if([[self delegate] respondsToSelector:@selector(outlineView:deleteRow:)])
+       [(id)[self delegate] outlineView:self deleteRow:[self selectedRow]];
+}
+
+@end
+
 @interface LXProjectWindowController()
 @property (nonatomic, strong) LXClient *client;
 @property (nonatomic, strong) LXServer *server;
@@ -45,7 +68,7 @@
     
     NSTableColumn* tableColumn = [[projectOutlineView tableColumns] objectAtIndex:0];
 	LXImageTextFieldCell* cell = [[LXImageTextFieldCell alloc] init];
-	[cell setEditable:NO];
+	[cell setEditable:YES];
 	[cell setImage:[NSImage imageNamed:@"scripticon.png"]];
 	[tableColumn setDataCell:cell];
 }
@@ -246,6 +269,9 @@
 #pragma mark - NSOutlineViewDataSource
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item {
+    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+        return [[item children] count] > 0;
+    
     return NO;
 }
 
@@ -254,32 +280,58 @@
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldExpandItem:(id)item {
+    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+        return YES;
+    
     return NO;
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldCollapseItem:(id)item {
+    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+        return YES;
+    
     return NO;
 }
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item {
     if(item == nil)
-        return 10;
+        return [self.project.root.children count];
+    
+    if([item isKindOfClass:[LXProjectGroup class]]) {
+        return [[item children] count];
+    }
     
     return 0;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item {
+    if(item == nil)
+        return self.project.root.children[index];
+    
+    if([item isKindOfClass:[LXProjectGroup class]]) {
+        return [item children][index];
+    }
+
     return nil;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
-    return @"Test";
+    return [item name];
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView setObjectValue:(id)object forTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
+    [self.project setFileName:item name:object];
 }
 
 - (void)outlineViewSelectionDidChange:(NSNotification *)aNotification {
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row {
+    LXProjectFile *item = [projectOutlineView itemAtRow:row];
+    LXProjectGroup *parent = item.parent;
+    
+    [self.project removeFile:item];
+    [projectOutlineView reloadItem:parent reloadChildren:YES];
 }
 
 #pragma mark - actions
@@ -336,7 +388,53 @@
 }
 
 - (IBAction)newScript:(id)sender {
-    NSLog(@"New Script!");
+    id item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+
+    LXProjectGroup *parent = nil;
+    NSInteger index = 0;
+    
+    if([item isKindOfClass:[LXProjectGroup class]]) {
+        parent = item;
+        index = [parent.children count];
+    }
+    else if([item isKindOfClass:[LXProjectFile class]]) {
+        parent = [(LXProjectFile *)item parent];
+        index = [parent.children indexOfObject:item]+1;
+    }
+    else {
+        parent = self.project.root;
+        index = [parent.children count];
+    }
+    
+    LXProjectFile *file = [self.project insertFile:parent atIndex:index];
+    [projectOutlineView expandItem:parent];
+    [projectOutlineView reloadItem:nil reloadChildren:YES];
+    [projectOutlineView editColumn:0 row:[projectOutlineView rowForItem:file] withEvent:nil select:YES];
+}
+
+- (IBAction)newGroup:(id)sender {
+    id item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+    
+    LXProjectGroup *parent = nil;
+    NSInteger index = 0;
+
+    if([item isKindOfClass:[LXProjectGroup class]]) {
+        parent = item;
+        index = [parent.children count];
+    }
+    else if([item isKindOfClass:[LXProjectFile class]]) {
+        parent = [(LXProjectFile *)item parent];
+        index = [parent.children indexOfObject:item]+1;
+    }
+    else {
+        parent = self.project.root;
+        index = [parent.children count];
+    }
+    
+    LXProjectGroup *group = [self.project insertGroup:parent atIndex:index];
+    [projectOutlineView expandItem:parent];
+    [projectOutlineView reloadItem:nil reloadChildren:YES];
+    [projectOutlineView editColumn:0 row:[projectOutlineView rowForItem:group] withEvent:nil select:YES];
 }
 
 @end
