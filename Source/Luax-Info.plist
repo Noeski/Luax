@@ -13,8 +13,8 @@
 			</array>
 			<key>CFBundleTypeName</key>
 			<string>Luax Project</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -23,8 +23,8 @@
 			</array>
 			<key>CFBundleTypeName</key>
 			<string>Luax File</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>

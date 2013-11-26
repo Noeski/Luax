@@ -9,12 +9,13 @@
 #import "LXDocumentController.h"
 #import "LXProject.h"
 
-#import "LXWindowController.h"
+#import "LXProjectWindowController.h"
+
+__strong LXProjectWindowController *windowController;
 
 @implementation LXDocumentController
 - (IBAction)newProject:(id)sender {
-    LXWindowController *windowController = [[LXWindowController alloc] initWithWindowNibName:@"LXWindowController"];
-    //[windowController showWindow:self];
+    windowController = [[LXProjectWindowController alloc] initWithWindowNibName:@"LXProjectWindowController"];
     
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     
@@ -35,7 +36,16 @@
             NSString *projectName = nameField.stringValue;
             NSURL *fileURL = [panel URL];
                 
-            [LXProject createNewProject:projectName path:fileURL.path error:nil];
+            windowController.project = [LXProject createNewProject:projectName path:fileURL.path error:nil];
+        }
+        else {
+            //Kind of hacky here..
+            double delayInSeconds = 0.2;
+            dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+            dispatch_after(popTime, dispatch_get_main_queue(), ^(void) {
+                [windowController close];
+                windowController = nil;
+            });
         }
     }];
 }

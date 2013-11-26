@@ -35,11 +35,12 @@
 		656AD29A18426CFC00E691D6 /* LXPacket.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD29618426CFC00E691D6 /* LXPacket.m */; };
 		656AD29B18426CFC00E691D6 /* LXServer.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD29818426CFC00E691D6 /* LXServer.m */; };
 		656AD29E18426F9B00E691D6 /* NSString+JSON.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD29D18426F9B00E691D6 /* NSString+JSON.m */; };
-		656AD2A21842741200E691D6 /* LXWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2A01842741200E691D6 /* LXWindowController.m */; };
-		656AD2A31842741200E691D6 /* LXWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD2A11842741200E691D6 /* LXWindowController.xib */; };
+		656AD2A21842741200E691D6 /* LXProjectWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2A01842741200E691D6 /* LXProjectWindowController.m */; };
+		656AD2A31842741200E691D6 /* LXProjectWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD2A11842741200E691D6 /* LXProjectWindowController.xib */; };
 		656AD2A818429D9500E691D6 /* LXProject.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2A718429D9500E691D6 /* LXProject.m */; };
 		656AD2AB1842B42700E691D6 /* LXDocumentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2AA1842B42700E691D6 /* LXDocumentController.m */; };
 		656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */; };
+		659DE1B91844C65700627535 /* LXImageTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 659DE1B81844C65700627535 /* LXImageTextFieldCell.m */; };
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
 		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
 		79C7A08C183BFFC500AB0A7C /* LXDocument.m in Sources */ = {isa = PBXBuildFile; fileRef = 79C7A08B183BFFC500AB0A7C /* LXDocument.m */; };
@@ -105,14 +106,16 @@
 		656AD29818426CFC00E691D6 /* LXServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXServer.m; path = Source/IDE/LXServer.m; sourceTree = SOURCE_ROOT; };
 		656AD29C18426F9B00E691D6 /* NSString+JSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "NSString+JSON.h"; path = "Source/NSString+JSON.h"; sourceTree = SOURCE_ROOT; };
 		656AD29D18426F9B00E691D6 /* NSString+JSON.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "NSString+JSON.m"; path = "Source/NSString+JSON.m"; sourceTree = SOURCE_ROOT; };
-		656AD29F1842741200E691D6 /* LXWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXWindowController.h; path = Source/IDE/LXWindowController.h; sourceTree = SOURCE_ROOT; };
-		656AD2A01842741200E691D6 /* LXWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXWindowController.m; path = Source/IDE/LXWindowController.m; sourceTree = SOURCE_ROOT; };
-		656AD2A11842741200E691D6 /* LXWindowController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = LXWindowController.xib; path = Source/IDE/LXWindowController.xib; sourceTree = SOURCE_ROOT; };
+		656AD29F1842741200E691D6 /* LXProjectWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXProjectWindowController.h; path = Source/IDE/LXProjectWindowController.h; sourceTree = SOURCE_ROOT; };
+		656AD2A01842741200E691D6 /* LXProjectWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXProjectWindowController.m; path = Source/IDE/LXProjectWindowController.m; sourceTree = SOURCE_ROOT; };
+		656AD2A11842741200E691D6 /* LXProjectWindowController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = LXProjectWindowController.xib; path = Source/IDE/LXProjectWindowController.xib; sourceTree = SOURCE_ROOT; };
 		656AD2A618429D9500E691D6 /* LXProject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXProject.h; path = Source/LXProject.h; sourceTree = SOURCE_ROOT; };
 		656AD2A718429D9500E691D6 /* LXProject.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXProject.m; path = Source/LXProject.m; sourceTree = SOURCE_ROOT; };
 		656AD2A91842B42700E691D6 /* LXDocumentController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXDocumentController.h; path = Source/IDE/LXDocumentController.h; sourceTree = SOURCE_ROOT; };
 		656AD2AA1842B42700E691D6 /* LXDocumentController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXDocumentController.m; path = Source/IDE/LXDocumentController.m; sourceTree = SOURCE_ROOT; };
 		656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = LXProjectAccessoryView.xib; path = Source/IDE/LXProjectAccessoryView.xib; sourceTree = SOURCE_ROOT; };
+		659DE1B71844C65700627535 /* LXImageTextFieldCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXImageTextFieldCell.h; path = Source/IDE/LXImageTextFieldCell.h; sourceTree = SOURCE_ROOT; };
+		659DE1B81844C65700627535 /* LXImageTextFieldCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXImageTextFieldCell.m; path = Source/IDE/LXImageTextFieldCell.m; sourceTree = SOURCE_ROOT; };
 		65A8157716629CCC0050D80A /* Luax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luax.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A8157B16629CCC0050D80A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		65A8157E16629CCC0050D80A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -183,9 +186,11 @@
 				79C7A08B183BFFC500AB0A7C /* LXDocument.m */,
 				656AD2A91842B42700E691D6 /* LXDocumentController.h */,
 				656AD2AA1842B42700E691D6 /* LXDocumentController.m */,
-				656AD29F1842741200E691D6 /* LXWindowController.h */,
-				656AD2A01842741200E691D6 /* LXWindowController.m */,
-				656AD2A11842741200E691D6 /* LXWindowController.xib */,
+				659DE1B71844C65700627535 /* LXImageTextFieldCell.h */,
+				659DE1B81844C65700627535 /* LXImageTextFieldCell.m */,
+				656AD29F1842741200E691D6 /* LXProjectWindowController.h */,
+				656AD2A01842741200E691D6 /* LXProjectWindowController.m */,
+				656AD2A11842741200E691D6 /* LXProjectWindowController.xib */,
 				656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */,
 			);
 			name = IDE;
@@ -362,7 +367,7 @@
 				654D75141837248100E37009 /* Main.lux in Resources */,
 				656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */,
 				656AD27A183ADD0200E691D6 /* MainMenu.xib in Resources */,
-				656AD2A31842741200E691D6 /* LXWindowController.xib in Resources */,
+				656AD2A31842741200E691D6 /* LXProjectWindowController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,9 +399,10 @@
 				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
 				656AD290183FF9A400E691D6 /* NSNumber+Base64VLQ.m in Sources */,
 				656AD29A18426CFC00E691D6 /* LXPacket.m in Sources */,
-				656AD2A21842741200E691D6 /* LXWindowController.m in Sources */,
+				656AD2A21842741200E691D6 /* LXProjectWindowController.m in Sources */,
 				656AD2AB1842B42700E691D6 /* LXDocumentController.m in Sources */,
 				654D75361838018700E37009 /* LXParser.m in Sources */,
+				659DE1B91844C65700627535 /* LXImageTextFieldCell.m in Sources */,
 				656AD29918426CFC00E691D6 /* LXClient.m in Sources */,
 				656AD29B18426CFC00E691D6 /* LXServer.m in Sources */,
 				656AD274183ADBEA00E691D6 /* LXAppDelegate.m in Sources */,

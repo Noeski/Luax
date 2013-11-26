@@ -7,14 +7,12 @@
 //
 
 #import "LXAppDelegate.h"
-#import "LXWindowController.h"
+#import "LXProjectWindowController.h"
 #import "LXProject.h"
 #import "LXDocumentController.h"
 #import "LXDocument.h"
 
 @implementation LXAppDelegate
-
-__strong LXWindowController *windowController;
 
 - (id)init {
     self = [super init];
@@ -27,9 +25,6 @@ __strong LXWindowController *windowController;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-    windowController = [[LXWindowController alloc] initWithWindowNibName:@"LXWindowController"];
-    
-    [windowController showWindow:self];
 }
 
 - (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename {

@@ -6,10 +6,12 @@
 //  Copyright (c) 2013 Noah Hilt. All rights reserved.
 //
 
-#import "LXWindowController.h"
+#import "LXProjectWindowController.h"
+#import "LXImageTextFieldCell.h"
+
 #import "NSString+JSON.h"
 
-@interface LXWindowController()
+@interface LXProjectWindowController()
 @property (nonatomic, strong) LXClient *client;
 @property (nonatomic, strong) LXServer *server;
 @property (nonatomic) BOOL connecting;
@@ -21,7 +23,7 @@
 @property (nonatomic, strong) NSMutableData *writeBuffer;
 @end
 
-@implementation LXWindowController
+@implementation LXProjectWindowController
 
 - (id)initWithWindow:(NSWindow *)window {
     if(self = [super initWithWindow:window]) {
@@ -40,6 +42,19 @@
     [super windowDidLoad];
     
     [hostTextField reloadData];
+    
+    NSTableColumn* tableColumn = [[projectOutlineView tableColumns] objectAtIndex:0];
+	LXImageTextFieldCell* cell = [[LXImageTextFieldCell alloc] init];
+	[cell setEditable:NO];
+	[cell setImage:[NSImage imageNamed:@"scripticon.png"]];
+	[tableColumn setDataCell:cell];
+}
+
+- (void)setProject:(LXProject *)project {
+    _project = project;
+    [projectOutlineView reloadData];
+    
+    self.window.title = project.name;
 }
 
 #pragma mark -LXServerDelegate
@@ -226,6 +241,45 @@
     NSDictionary *dictionary = [array objectAtIndex:[hostTextField indexOfSelectedItem]];
     [hostTextField setStringValue:[dictionary objectForKey:@"host"]];
     [portTextField setStringValue:((NSNumber *)[dictionary objectForKey:@"port"]).stringValue];
+}
+
+#pragma mark - NSOutlineViewDataSource
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item {
+    return NO;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView shouldEditTableColumn:(NSTableColumn *)theColumn item:(id)item {
+    return YES;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView shouldExpandItem:(id)item {
+    return NO;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView shouldCollapseItem:(id)item {
+    return NO;
+}
+
+- (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item {
+    if(item == nil)
+        return 10;
+    
+    return 0;
+}
+
+- (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item {
+    return nil;
+}
+
+- (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
+    return @"Test";
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView setObjectValue:(id)object forTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
+}
+
+- (void)outlineViewSelectionDidChange:(NSNotification *)aNotification {
 }
 
 #pragma mark - actions
