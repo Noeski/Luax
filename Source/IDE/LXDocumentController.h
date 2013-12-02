@@ -8,10 +8,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface LXDocumentController : NSDocumentController<NSOpenSavePanelDelegate> {
-    IBOutlet NSView *accessoryView;
-    IBOutlet NSTextField *nameField;
-}
+@interface LXDocumentController : NSDocumentController<NSOpenSavePanelDelegate>
 - (IBAction)newProject:(id)sender;
 - (IBAction)openProject:(id)sender;
 @end

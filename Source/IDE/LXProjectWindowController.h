@@ -8,11 +8,11 @@
 
 #import <Cocoa/Cocoa.h>
 
-#import "LXProject.h"
+#import "LXProjectFileView.h"
 #import "LXServer.h"
 #import "LXClient.h"
 
-@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate> {
+@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, LXProjectFileViewDelegate> {
     IBOutlet NSComboBox *hostTextField;
     IBOutlet NSTextField *portTextField;
     IBOutlet NSButton *connectButton;
@@ -21,6 +21,7 @@
     IBOutlet NSTextField *connectionLabel;
     
     IBOutlet NSOutlineView *projectOutlineView;
+    IBOutlet NSView *contentView;
 }
 
 @property (nonatomic, strong) LXProject *project;
@@ -30,4 +31,5 @@
 
 - (IBAction)newScript:(id)sender;
 - (IBAction)newGroup:(id)sender;
+- (IBAction)save:(id)sender;
 @end

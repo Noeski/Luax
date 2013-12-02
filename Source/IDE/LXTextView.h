@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-@class LXDocument;
+@class LXProjectFile;
 
 @interface LXAutoCompleteWindow : NSWindow {
     
@@ -63,9 +63,9 @@
     id eventMonitor;
 }
 
-@property (nonatomic, weak) LXDocument *document;
+@property (nonatomic, weak) LXProjectFile *file;
 
-- (id)initWithFrame:(NSRect)frame document:(LXDocument *)document;
+- (id)initWithFrame:(NSRect)frame file:(LXProjectFile *)file;
 
 - (void)setDefaults;
 

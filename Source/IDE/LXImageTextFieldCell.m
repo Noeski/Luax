@@ -10,11 +10,20 @@
 
 @implementation LXImageTextFieldCell
 
+- (id)init {
+    if(self = [super init]) {
+        _cFlags.vCentered = 1;
+    }
+    
+    return self;
+}
+
 - (id)copyWithZone:(NSZone *)zone {
 	LXImageTextFieldCell *cell = (LXImageTextFieldCell *)[super copyWithZone:zone];
 	
 	cell.image = self.image;
 	cell->highlightImage = highlightImage;
+    cell->_cFlags.vCentered = 1;
     
 	return cell;
 }
@@ -77,13 +86,14 @@
 		
 		NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
 		
-		if ([self drawsBackground]) {
+		if([self drawsBackground]) {
 			[[self backgroundColor] set];
 			
 			NSRectFill(imageFrame);
 		}
 		
 		imageFrame.origin.x += 3;
+        imageFrame.origin.y += 3;
 		imageFrame.size = imageSize;
 		
 		if(self.modified) {

@@ -1,5 +1,5 @@
 #import "LXGutterView.h"
-#import "LXDocument.h"
+#import "LXProjectFileView.h"
 
 #define CORNER_RADIUS	5.0
 #define MARKER_HEIGHT	13.0

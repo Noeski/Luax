@@ -1,5 +1,5 @@
 #import "LXTextView.h"
-#import "LXDocument.h"
+#import "LXProject.h"
 #import "LXNode.h"
 #import "LXToken.h"
 #import "NSString+JSON.h"
@@ -53,9 +53,9 @@
 
 @implementation LXTextView
 
-- (id)initWithFrame:(NSRect)frame document:(LXDocument *)document {
+- (id)initWithFrame:(NSRect)frame file:(LXProjectFile *)file {
 	if(self = [super initWithFrame:frame]) {
-        _document = document;
+        _file = file;
         
         undoManager = [[LXTextViewUndoManager alloc] init];
         
@@ -223,7 +223,9 @@
 	NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
 	[self addTrackingArea:trackingArea];
 	
-	lineHeight = [[[self textContainer] layoutManager] defaultLineHeightForFont:font];    
+	lineHeight = [[[self textContainer] layoutManager] defaultLineHeightForFont:font];
+    
+    [self setString:self.file.contents];
 }
 
 - (void)setString:(NSString *)string {
@@ -233,9 +235,9 @@
 }
 
 - (void)recompile:(NSString *)string {
-    [self.document.context compile:string];
+    [self.file.context compile:string];
     
-    for(LXToken *token in self.document.context.parser.tokens) {
+    for(LXToken *token in self.file.context.parser.tokens) {
         switch(token.type) {
             case LX_TK_COMMENT:
             case LX_TK_LONGCOMMENT:
@@ -264,7 +266,7 @@
 - (LXToken *)tokenBeforeRange:(NSRange)range {
     LXToken *closestToken = nil;
     
-    for(LXToken *token in self.document.context.parser.tokens) {
+    for(LXToken *token in self.file.context.parser.tokens) {
         if(range.location <= token.range.location) {
             break;
         }
@@ -278,7 +280,7 @@
 - (LXToken *)tokenAfterRange:(NSRange)range {
     LXToken *closestToken = nil;
     
-    for(LXToken *token in self.document.context.parser.tokens) {
+    for(LXToken *token in self.file.context.parser.tokens) {
         if(token.range.location >= NSMaxRange(range)) {
             closestToken = token;
             break;
@@ -289,7 +291,7 @@
 }
 
 - (LXScope *)scopeAtLocation:(NSInteger)location {
-    return [self.document.context.compiler.globalScope scopeAtLocation:location];
+    return [self.file.context.compiler.globalScope scopeAtLocation:location];
 }
 
 - (void)showAutoCompleteWindow {
@@ -392,7 +394,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 - (void)colorTokensInRange:(NSRange)range {
     [self.layoutManager removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:range];
     
-    for(LXToken *token in self.document.context.parser.tokens) {
+    for(LXToken *token in self.file.context.parser.tokens) {
         if(token.range.location > NSMaxRange(range))
             break;
         
@@ -473,8 +475,8 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 
                 if(scope.type == LXScopeTypeClass ||
                    scope.type == LXScopeTypeFunction) {
-                    for(NSString *key in [self.document.context.compiler.typeMap allKeys]) {
-                        if(![self.document.context.compiler.typeMap[key] isDefined])
+                    for(NSString *key in [self.file.context.compiler.typeMap allKeys]) {
+                        if(![self.file.context.compiler.typeMap[key] isDefined])
                             continue;
                         
                         LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
@@ -1199,7 +1201,6 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     return lineHeight;
 }
 
-
 - (void)setTabWidth {
 	NSMutableString *sizeString = [NSMutableString string];
 	NSInteger numberOfSpaces = 2;
@@ -1270,7 +1271,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         [NSBezierPath fillRect:rect];
     }
     
-    for(LXCompilerError *error in self.document.context.errors) {
+    for(LXCompilerError *error in self.file.context.errors) {
         NSRange range = error.range;
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];

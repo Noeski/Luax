@@ -10,19 +10,38 @@
 #import "NSString+JSON.h"
 
 @interface LXProjectFile()
+@property (nonatomic, weak) LXProject *project;
+@property (nonatomic, weak) LXProjectFile *mutableParent;
 @property (nonatomic, strong) NSString *mutableName;
 @property (nonatomic, strong) NSString *mutablePath;
+@property (nonatomic, strong) NSString *cachedContents;
 @end
 
 @implementation LXProjectFile
 
 - (id)initWithParent:(LXProjectGroup *)parent {
     if(self = [super init]) {
-        _parent = parent;
+        _mutableParent = parent;
         _mutableName = @"New File";
     }
     
     return self;
+}
+
+- (id)initWithParent:(LXProjectGroup *)parent project:(LXProject *)project {
+    if(self = [super init]) {
+        _project = project;
+        _mutableParent = parent;
+        _mutableName = @"New File";
+        
+        _context = [[LXContext alloc] initWithName:nil compiler:project.compiler];
+    }
+    
+    return self;
+}
+
+- (LXProjectFile *)parent {
+    return _mutableParent;
 }
 
 - (NSString *)name {
@@ -30,14 +49,28 @@
 }
 
 - (NSString *)path {
-    return self.mutablePath;
+    return [self.project.path stringByAppendingString:self.mutablePath];
+}
+
+- (NSString *)contents {
+    if(!_cachedContents) {
+        _cachedContents = [NSString stringWithContentsOfFile:self.path encoding:NSUTF8StringEncoding error:nil];
+    }
+
+    return _cachedContents;
+}
+
+- (void)setContents:(NSString *)contents {
+    _cachedContents = contents;
+    
+    [_cachedContents writeToFile:self.path atomically:YES encoding:NSUTF8StringEncoding error:nil];
 }
 
 - (NSDictionary *)save {
-    return @{@"name" : self.name, @"path" : self.path};
+    return @{@"name" : self.name, @"path" : self.mutablePath};
 }
 
-- (void)load:(NSDictionary *)dictionary {
+- (void)load:(NSDictionary *)dictionary project:(LXProject *)project {
     self.mutableName = [dictionary[@"name"] copy];
     self.mutablePath = [dictionary[@"path"] copy];
 }
@@ -74,21 +107,21 @@
     return @{@"name" : self.name, @"children" : children};
 }
 
-- (void)load:(NSDictionary *)dictionary {
-    [super load:dictionary];
+- (void)load:(NSDictionary *)dictionary project:(LXProject *)project {
+    [super load:dictionary project:project];
     
     NSArray *children = dictionary[@"children"];
     
     for(NSDictionary *child in children) {
         if(child[@"children"]) {
             LXProjectGroup *group = [[LXProjectGroup alloc] initWithParent:self];
-            [group load:child];
+            [group load:child project:project];
             
             [self.mutableChildren addObject:group];
         }
         else {
-            LXProjectFile *file = [[LXProjectFile alloc] initWithParent:self];
-            [file load:child];
+            LXProjectFile *file = [[LXProjectFile alloc] initWithParent:self project:project];
+            [file load:child project:project];
             
             [self.mutableChildren addObject:file];
         }
@@ -103,6 +136,7 @@
 - (id)init {
     if(self = [super init]) {
         _root = [[LXProjectGroup alloc] initWithParent:nil];
+        _compiler = [[LXCompiler alloc] init];
     }
     
     return self;
@@ -128,13 +162,13 @@
     for(NSDictionary *child in children) {
         if(child[@"children"]) {
             LXProjectGroup *group = [[LXProjectGroup alloc] initWithParent:self.root];
-            [group load:child];
+            [group load:child project:self];
             
             [self.root.mutableChildren addObject:group];
         }
         else {
-            LXProjectFile *file = [[LXProjectFile alloc] initWithParent:self.root];
-            [file load:child];
+            LXProjectFile *file = [[LXProjectFile alloc] initWithParent:self.root project:self];
+            [file load:child project:self];
             
             [self.root.mutableChildren addObject:file];
         }
@@ -167,17 +201,25 @@
         }
     }
     
-    LXProjectFile *file = [[LXProjectFile alloc] initWithParent:parent];
+    LXProjectFile *file = [[LXProjectFile alloc] initWithParent:parent project:self];
     [parent.mutableChildren insertObject:file atIndex:index];
 
     file.mutableName = [NSString stringWithFormat:@"Untitled%@.lux", highestIndex >= 0 ? @(highestIndex+1) : @""];
-    file.mutablePath = [NSString stringWithFormat:@"%@/Source/%@", self.path, file.name];
-
+    file.mutablePath = [NSString stringWithFormat:@"/Source/%@", file.name];
+    
     [[NSFileManager defaultManager] createFileAtPath:[NSString stringWithFormat:@"%@/Source/%@", self.path, file.name] contents:[NSData data] attributes:nil];
     
     [self save];
     
     return file;
+}
+
+- (void)insertFile:(LXProjectFile *)file parent:(LXProjectGroup *)parent atIndex:(NSInteger)index {
+    [file.parent.mutableChildren removeObject:file];
+    file.mutableParent = parent;
+    [file.parent.mutableChildren insertObject:file atIndex:index];
+    
+    [self save];
 }
 
 - (void)removeFile:(LXProjectFile *)file {
@@ -195,7 +237,7 @@
         [[NSFileManager defaultManager] moveItemAtPath:[NSString stringWithFormat:@"%@/Source/%@", self.path, file.name] toPath:[NSString stringWithFormat:@"%@/Source/%@", self.path, name] error:nil];
         
         file.mutableName = name;
-        file.mutablePath = [NSString stringWithFormat:@"%@/Source/%@", self.path, file.name];
+        file.mutablePath = [NSString stringWithFormat:@"/Source/%@", file.name];
     }
     else {
         file.mutableName = name;

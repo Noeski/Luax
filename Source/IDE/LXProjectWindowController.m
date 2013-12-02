@@ -8,8 +8,9 @@
 
 #import "LXProjectWindowController.h"
 #import "LXImageTextFieldCell.h"
-
 #import "NSString+JSON.h"
+
+#define LOCAL_REORDER_PASTEBOARD_TYPE @"MyCustomOutlineViewPboardType"
 
 @protocol NSOutlineViewDeleteKeyDelegate
 - (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row;
@@ -44,6 +45,8 @@
 @property (nonatomic) NSInteger packetReceivedBytes;
 @property (nonatomic, strong) NSMutableData *pendingData;
 @property (nonatomic, strong) NSMutableData *writeBuffer;
+@property (nonatomic, strong) NSArray *draggedItems;
+@property (nonatomic, strong) NSMutableDictionary *cachedFileViews;
 @end
 
 @implementation LXProjectWindowController
@@ -56,6 +59,7 @@
         _server.delegate = self;
         _pendingData = [[NSMutableData alloc] init];
         _writeBuffer = [[NSMutableData alloc] init];
+        _cachedFileViews = [[NSMutableDictionary alloc] init];
     }
     
     return self;
@@ -69,8 +73,12 @@
     NSTableColumn* tableColumn = [[projectOutlineView tableColumns] objectAtIndex:0];
 	LXImageTextFieldCell* cell = [[LXImageTextFieldCell alloc] init];
 	[cell setEditable:YES];
-	[cell setImage:[NSImage imageNamed:@"scripticon.png"]];
 	[tableColumn setDataCell:cell];
+    
+    [projectOutlineView registerForDraggedTypes:[NSArray arrayWithObjects:LOCAL_REORDER_PASTEBOARD_TYPE,NSTIFFPboardType, NSFilenamesPboardType, nil]];
+    
+    [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:YES];
+    [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];
 }
 
 - (void)setProject:(LXProject *)project {
@@ -269,8 +277,8 @@
 #pragma mark - NSOutlineViewDataSource
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item {
-    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
-        return [[item children] count] > 0;
+    if([item isKindOfClass:[LXProjectGroup class]])
+        return YES;
     
     return NO;
 }
@@ -324,14 +332,205 @@
 }
 
 - (void)outlineViewSelectionDidChange:(NSNotification *)aNotification {
+    LXProjectFile *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+    
+    if([[projectOutlineView selectedRowIndexes] count] == 1 && [item class] == [LXProjectFile class]) {
+        LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+        
+        if(!fileView) {
+            fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item];
+            fileView.delegate = self;
+            self.cachedFileViews[@((NSInteger)item)] = fileView;
+        }
+        
+        [contentView setSubviews:@[fileView]];
+        [fileView resizeViews];
+    }
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row {
     LXProjectFile *item = [projectOutlineView itemAtRow:row];
-    LXProjectGroup *parent = item.parent;
     
     [self.project removeFile:item];
-    [projectOutlineView reloadItem:parent reloadChildren:YES];
+    [projectOutlineView reloadData];
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(LXImageTextFieldCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(LXProjectFile *)item {
+    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+    
+    [cell setModified:fileView.modified];
+    
+    if([item isKindOfClass:[LXProjectGroup class]]) {
+        [cell setImage:[NSImage imageNamed:@"foldericon.png"]];
+    }
+    else {
+        [cell setImage:[NSImage imageNamed:@"scripticon.png"]];
+    }
+}
+
+- (BOOL)outlineView:(NSOutlineView *)outlineView writeItems:(NSArray *)items toPasteboard:(NSPasteboard *)pasteboard {
+    return YES;
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView draggingSession:(NSDraggingSession *)session willBeginAtPoint:(NSPoint)screenPoint forItems:(NSArray *)draggedItems {
+    
+    self.draggedItems = draggedItems;
+    
+    [session.draggingPasteboard setData:[NSData data] forType:LOCAL_REORDER_PASTEBOARD_TYPE];
+}
+
+- (BOOL)treeNode:(LXProjectFile *)treeNode isDescendantOfNode:(LXProjectGroup *)parentNode {
+    while(treeNode != nil) {
+        if(treeNode == parentNode) {
+            return YES;
+        }
+        
+        treeNode = treeNode.parent;
+    }
+    
+    return NO;
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView draggingSession:(NSDraggingSession *)session endedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation {
+    
+    if(operation == NSDragOperationDelete) {
+        NSMutableArray *validDraggedItems = [NSMutableArray array];
+        
+        for(LXProjectFile *file in self.draggedItems) {
+            
+            BOOL isValid = YES;
+            
+            for(LXProjectFile *otherFile in self.draggedItems) {
+                if(file == otherFile || ![otherFile isKindOfClass:[LXProjectGroup class]])
+                    continue;
+                
+                if([self treeNode:file isDescendantOfNode:(LXProjectGroup *)otherFile]) {
+                    isValid = NO;
+                    break;
+                }
+            }
+            
+            if(isValid)
+                [validDraggedItems addObject:file];
+        }
+        
+        [projectOutlineView beginUpdates];
+        
+        [validDraggedItems enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(LXProjectFile *file, NSUInteger index, BOOL *stop) {
+            LXProjectGroup *parent = [file parent];
+            
+            NSInteger childIndex = [parent.children indexOfObject:file];
+            
+            [self.project removeFile:file];
+            
+            [projectOutlineView removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:childIndex] inParent:parent == self.project.root ? nil : parent withAnimation:NSTableViewAnimationEffectFade];
+        }];
+        
+        [projectOutlineView endUpdates];
+    }
+    
+    self.draggedItems = nil;
+}
+
+- (NSDragOperation)outlineView:(NSOutlineView *)ov validateDrop:(id <NSDraggingInfo>)info proposedItem:(id)item proposedChildIndex:(NSInteger)childIndex {
+    NSDragOperation result = NSDragOperationGeneric;
+    NSPasteboard *pasteboard = [info draggingPasteboard];
+    
+    if([[pasteboard types] containsObject:LOCAL_REORDER_PASTEBOARD_TYPE]) {
+        if(result != NSDragOperationNone) {
+            info.animatesToDestination = YES;
+            
+            LXProjectFile *targetNode = item;
+            
+            if([targetNode class] == [LXProjectFile class]) {
+                result = NSDragOperationNone;
+            }
+            else {
+                for(LXProjectFile *draggedNode in self.draggedItems) {
+                    if([draggedNode isKindOfClass:[LXProjectGroup class]] &&
+                       [self treeNode:targetNode isDescendantOfNode:(LXProjectGroup *)draggedNode]) {
+                        result = NSDragOperationNone;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        if([[pasteboard types] containsObject:NSFilenamesPboardType]) {
+            NSArray *files = [pasteboard propertyListForType:NSFilenamesPboardType];
+            
+            if([files count] != 1)
+                result = NSDragOperationNone;
+        }
+        
+        if((NSDragOperationGeneric & [info draggingSourceOperationMask]) == NSDragOperationGeneric) {
+            result = NSDragOperationCopy;
+        }
+    }
+    
+    return result;
+}
+
+- (BOOL)outlineView:(NSOutlineView *)ov acceptDrop:(id <NSDraggingInfo>)info item:(id)item childIndex:(NSInteger)childIndex {
+    NSPasteboard *pasteboard = [info draggingPasteboard];
+    LXProjectGroup *targetNode = item ?  item : self.project.root;
+    
+    if(childIndex == NSOutlineViewDropOnItemIndex) {
+        childIndex = 0;
+    }
+    
+    if([[pasteboard types] containsObject:LOCAL_REORDER_PASTEBOARD_TYPE]) {
+        [projectOutlineView beginUpdates];
+        // We want to enumerate all things in the pasteboard. To do that, we use a generic NSPasteboardItem class
+        NSArray *classes = [NSArray arrayWithObject:[NSPasteboardItem class]];
+        
+        __block NSInteger insertionIndex = childIndex;
+        
+        [self.draggedItems enumerateObjectsUsingBlock:^(id object, NSUInteger index, BOOL *stop) {
+            LXProjectFile *draggedTreeNode = object;
+            LXProjectGroup *oldParent = draggedTreeNode.parent;
+            
+            NSInteger oldIndex = [oldParent.children indexOfObject:draggedTreeNode];
+            
+            [projectOutlineView removeItemsAtIndexes:[NSIndexSet indexSetWithIndex:oldIndex] inParent:oldParent == self.project.root ? nil : oldParent withAnimation:NSTableViewAnimationEffectNone];
+            
+            if(oldParent == targetNode) {
+                if(insertionIndex > oldIndex) {
+                    insertionIndex--; // account for the remove
+                }
+            }
+            
+            [projectOutlineView insertItemsAtIndexes:[NSIndexSet indexSetWithIndex:insertionIndex] inParent:targetNode == self.project.root ? nil : targetNode withAnimation:NSTableViewAnimationEffectGap];
+            
+            [self.project insertFile:draggedTreeNode parent:targetNode atIndex:insertionIndex];
+            
+            insertionIndex++;
+        }];
+        
+        NSInteger outlineColumnIndex = [[projectOutlineView tableColumns] indexOfObject:[projectOutlineView outlineTableColumn]];
+        
+        [info enumerateDraggingItemsWithOptions:0 forView:projectOutlineView classes:classes searchOptions:nil usingBlock:^(NSDraggingItem *draggingItem, NSInteger index, BOOL *stop) {
+            NSTreeNode *draggedTreeNode = [self.draggedItems objectAtIndex:index];
+            
+            NSInteger row = [projectOutlineView rowForItem:draggedTreeNode];
+            
+            draggingItem.draggingFrame = [projectOutlineView frameOfCellAtColumn:outlineColumnIndex row:row];
+        }];
+        
+        [projectOutlineView endUpdates];
+    }
+    else {
+    
+    }
+    
+    return YES;
+}
+
+#pragma mark - LXProjectFileViewDelegate
+
+- (void)fileWasModified:(LXProjectFileView *)file modified:(BOOL)modifier {
+    [projectOutlineView reloadItem:file.file reloadChildren:NO];
 }
 
 #pragma mark - actions
@@ -435,6 +634,13 @@
     [projectOutlineView expandItem:parent];
     [projectOutlineView reloadItem:nil reloadChildren:YES];
     [projectOutlineView editColumn:0 row:[projectOutlineView rowForItem:group] withEvent:nil select:YES];
+}
+
+- (IBAction)save:(id)sender {
+    id item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+    
+    [fileView save];
 }
 
 @end

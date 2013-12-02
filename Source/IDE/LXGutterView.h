@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-@class LXDocument;
+@class LXProjectFileView;
 
 @interface LXBreakpointMarker : NSObject {
 }
@@ -18,7 +18,7 @@
 @interface LXGutterView : NSTextView {	
 }
 
-@property (nonatomic, weak) LXDocument *document;
+@property (nonatomic, weak) LXProjectFileView *document;
 @property (nonatomic, retain) NSMutableArray *breakpointMarkers;
 
 - (LXBreakpointMarker *)markerAtLine:(NSUInteger)line;

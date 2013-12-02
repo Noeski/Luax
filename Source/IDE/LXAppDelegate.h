@@ -7,11 +7,15 @@
 //
 
 #import <Cocoa/Cocoa.h>
-//#import "ConsoleWindowController.h"
 
-@interface LXAppDelegate : NSResponder <NSApplicationDelegate> {
-    //IBOutlet NSWindow *window;
-    //IBOutlet NSView *documentView;
+@interface LXAppDelegate : NSResponder <NSApplicationDelegate, NSOpenSavePanelDelegate> {
+    IBOutlet NSView *accessoryView;
+    IBOutlet NSTextField *nameField;
 }
 
+- (void)newProject;
+- (void)openProject;
+- (void)openProject:(NSURL *)fileURL;
+
++ (LXAppDelegate *)appDelegate;
 @end

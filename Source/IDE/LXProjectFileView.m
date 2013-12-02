@@ -1,13 +1,12 @@
-#import "LXDocument.h"
+#import "LXProjectFileView.h"
 
-@implementation LXDocument
+@implementation LXProjectFileView
 
-- (id)initWithContentView:(NSView *)contentView name:(NSString *)name compiler:(LXCompiler *)compiler {
-	if(self = [super init]) {
-        _name = name;
-        
-        _context = [[LXContext alloc] initWithName:name compiler:compiler];
-        
+- (id)initWithContentView:(NSView *)contentView file:(LXProjectFile *)file {
+	if(self = [super initWithFrame:contentView.bounds]) {
+        [self setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+
+        _file = file;
 		_textScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(40, 0, [contentView bounds].size.width - 40, [contentView bounds].size.height)];
 		NSSize contentSize = [_textScrollView contentSize];
 		[_textScrollView setBorderType:NSNoBorder];
@@ -16,11 +15,12 @@
 		[_textScrollView setAutohidesScrollers:YES];
 		[_textScrollView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 		[[_textScrollView contentView] setAutoresizesSubviews:YES];
-		
+		[self addSubview:_textScrollView];
+        
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewFrameDidChangeNotification object:[_textScrollView contentView]];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewBoundsDidChangeNotification object:[_textScrollView contentView]];
         
-		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) document:self];
+		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file];
         _textView.delegate = self;
 		[_textView setMinSize:contentSize];
 		[_textView setHorizontallyResizable:YES];
@@ -35,6 +35,7 @@
 		[_gutterScrollView setHasHorizontalScroller:NO];
 		[_gutterScrollView setAutoresizingMask:NSViewHeightSizable];
 		[[_gutterScrollView contentView] setAutoresizesSubviews:YES];
+        [self addSubview:_gutterScrollView];
         
 		_gutterTextView = [[LXGutterView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height - 50)];
 		_gutterTextView.document = self;
@@ -44,17 +45,29 @@
 	return self;
 }
 
-- (void)setString:(NSString *)string {
-    self.textView.string = string;
+- (void)save {
+    self.file.contents = self.textView.string;
+     
+    _modified = NO;
+ 
+    if([self.delegate respondsToSelector:@selector(fileWasModified:modified:)]) {
+        [self.delegate fileWasModified:self modified:self.modified];
+    }
 }
 
 - (void)textDidChange:(NSNotification *)notification {
     [self updateLineNumbers];
+
+    _modified = YES;
+    
+    if([self.delegate respondsToSelector:@selector(fileWasModified:modified:)]) {
+        [self.delegate fileWasModified:self modified:self.modified];
+    }
 }
 
-- (void)resizeViewsForSuperView:(NSView*)view {	
-	[self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [view bounds].size.height)];
-	[self.textScrollView setFrame:NSMakeRect(40, 0, [view bounds].size.width - 40, [view bounds].size.height)];
+- (void)resizeViews {	
+	[self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
+	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
 	
 	[self updateLineNumbers];
 }
@@ -280,22 +293,14 @@
 }
 
 - (void)addBreakpoint:(NSUInteger)line {
-    if([self.delegate respondsToSelector:@selector(documentDidAddBreakpoint:line:)]) {
-        [self.delegate documentDidAddBreakpoint:self line:line];
+    if([self.delegate respondsToSelector:@selector(fileDidAddBreakpoint:line:)]) {
+        [self.delegate fileDidAddBreakpoint:self line:line];
     }
 }
 
 - (void)removeBreakpoint:(NSUInteger)line {
-    if([self.delegate respondsToSelector:@selector(documentDidRemoveBreakpoint:line:)]) {
-        [self.delegate documentDidRemoveBreakpoint:self line:line];
-    }
-}
-
-- (void)setWasModified:(BOOL)wasModified {
-    _wasModified = wasModified;
-    
-    if([self.delegate respondsToSelector:@selector(documentWasModified:modified:)]) {
-        [self.delegate documentWasModified:self modified:self.wasModified];
+    if([self.delegate respondsToSelector:@selector(fileDidRemoveBreakpoint:line:)]) {
+        [self.delegate fileDidRemoveBreakpoint:self line:line];
     }
 }
 
