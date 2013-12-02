@@ -32,4 +32,5 @@
 - (IBAction)newScript:(id)sender;
 - (IBAction)newGroup:(id)sender;
 - (IBAction)save:(id)sender;
+- (IBAction)compile:(id)sender;
 @end

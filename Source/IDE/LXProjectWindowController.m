@@ -643,4 +643,12 @@
     [fileView save];
 }
 
+- (IBAction)compile:(id)sender {
+    for(LXProjectFileView *fileView in [self.cachedFileViews allValues]) {
+        [fileView save];
+    }
+    
+    [self.project compile];
+}
+
 @end

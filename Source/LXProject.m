@@ -75,6 +75,20 @@
     self.mutablePath = [dictionary[@"path"] copy];
 }
 
+- (void)compile {
+    [self.context compile:self.contents];
+    
+    LXLuaWriter *writer = [[LXLuaWriter alloc] init];
+    writer.currentSource = self.name;
+    [self.context.block compile:writer];
+    
+    NSString *path = [self.project.path stringByAppendingFormat:@"/Output/%@.lua", [self.name stringByDeletingPathExtension]];
+    [writer.string writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    
+    NSString *mapPath = [self.project.path stringByAppendingFormat:@"/Output/%@.map", [self.name stringByDeletingPathExtension]];
+    [[[writer generateSourceMap] JSONRepresentation] writeToFile:mapPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+}
+
 @end
 
 @interface LXProjectGroup()
@@ -128,6 +142,12 @@
     }
 }
 
+- (void)compile {
+    for(LXProjectFile *file in self.children) {
+        [file compile];
+    }
+}
+
 @end
 
 
@@ -172,6 +192,12 @@
             
             [self.root.mutableChildren addObject:file];
         }
+    }
+}
+
+- (void)compile {
+    for(LXProjectFile *child in self.root.children) {
+        [child compile];
     }
 }
 

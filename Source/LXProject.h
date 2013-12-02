@@ -30,6 +30,7 @@
 
 - (void)save;
 - (void)load:(NSDictionary *)dictionary;
+- (void)compile;
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (LXProjectFile *)insertFile:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (void)insertFile:(LXProjectFile *)file parent:(LXProjectGroup *)parent atIndex:(NSInteger)index;

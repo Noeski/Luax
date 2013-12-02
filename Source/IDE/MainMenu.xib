@@ -119,6 +119,11 @@
                                     <action selector="save:" target="-1" id="xyQ-9D-EUy"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Compile" keyEquivalent="c" id="M1j-iJ-FVK">
+                                <connections>
+                                    <action selector="compile:" target="-1" id="GZF-tk-gDr"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="74">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
