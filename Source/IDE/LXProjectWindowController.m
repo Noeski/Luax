@@ -332,15 +332,15 @@
 }
 
 - (void)outlineViewSelectionDidChange:(NSNotification *)aNotification {
-    LXProjectFile *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+    LXProjectFileReference *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
     
-    if([[projectOutlineView selectedRowIndexes] count] == 1 && [item class] == [LXProjectFile class]) {
-        LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+    if([[projectOutlineView selectedRowIndexes] count] == 1 && [item class] == [LXProjectFileReference class]) {
+        LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
         
         if(!fileView) {
             fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item];
             fileView.delegate = self;
-            self.cachedFileViews[@((NSInteger)item)] = fileView;
+            self.cachedFileViews[@((NSInteger)item.file)] = fileView;
         }
         
         [contentView setSubviews:@[fileView]];
@@ -349,23 +349,36 @@
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row {
-    LXProjectFile *item = [projectOutlineView itemAtRow:row];
+    LXProjectFileReference *item = [projectOutlineView itemAtRow:row];
     
+    [self.cachedFileViews removeObjectForKey:@((NSInteger)item.file)];
     [self.project removeFile:item];
     [projectOutlineView reloadData];
 }
 
-- (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(LXImageTextFieldCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(LXProjectFile *)item {
-    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+- (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(LXImageTextFieldCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(LXProjectFileReference *)item {
+    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
     
     [cell setModified:fileView.modified];
     
     if([item isKindOfClass:[LXProjectGroup class]]) {
         [cell setImage:[NSImage imageNamed:@"foldericon.png"]];
+        [cell setAccessoryImage:nil];
     }
     else {
         [cell setImage:[NSImage imageNamed:@"scripticon.png"]];
+        
+        if([item.file isCompiled]) {
+            [cell setAccessoryImage:[NSImage imageNamed:@"checkicon.png"]];
+        }
+        else if([item.file hasErrors]) {
+            [cell setAccessoryImage:[NSImage imageNamed:@"erroricon.png"]];
+        }
+        else {
+            [cell setAccessoryImage:[NSImage imageNamed:@"warningicon.png"]];
+        }
     }
+    
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView writeItems:(NSArray *)items toPasteboard:(NSPasteboard *)pasteboard {
@@ -379,7 +392,7 @@
     [session.draggingPasteboard setData:[NSData data] forType:LOCAL_REORDER_PASTEBOARD_TYPE];
 }
 
-- (BOOL)treeNode:(LXProjectFile *)treeNode isDescendantOfNode:(LXProjectGroup *)parentNode {
+- (BOOL)treeNode:(LXProjectFileReference *)treeNode isDescendantOfNode:(LXProjectGroup *)parentNode {
     while(treeNode != nil) {
         if(treeNode == parentNode) {
             return YES;
@@ -396,11 +409,11 @@
     if(operation == NSDragOperationDelete) {
         NSMutableArray *validDraggedItems = [NSMutableArray array];
         
-        for(LXProjectFile *file in self.draggedItems) {
+        for(LXProjectFileReference *file in self.draggedItems) {
             
             BOOL isValid = YES;
             
-            for(LXProjectFile *otherFile in self.draggedItems) {
+            for(LXProjectFileReference *otherFile in self.draggedItems) {
                 if(file == otherFile || ![otherFile isKindOfClass:[LXProjectGroup class]])
                     continue;
                 
@@ -416,7 +429,7 @@
         
         [projectOutlineView beginUpdates];
         
-        [validDraggedItems enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(LXProjectFile *file, NSUInteger index, BOOL *stop) {
+        [validDraggedItems enumerateObjectsWithOptions:NSEnumerationReverse usingBlock:^(LXProjectFileReference *file, NSUInteger index, BOOL *stop) {
             LXProjectGroup *parent = [file parent];
             
             NSInteger childIndex = [parent.children indexOfObject:file];
@@ -440,13 +453,13 @@
         if(result != NSDragOperationNone) {
             info.animatesToDestination = YES;
             
-            LXProjectFile *targetNode = item;
+            LXProjectFileReference *targetNode = item;
             
-            if([targetNode class] == [LXProjectFile class]) {
+            if([targetNode class] == [LXProjectFileReference class]) {
                 result = NSDragOperationNone;
             }
             else {
-                for(LXProjectFile *draggedNode in self.draggedItems) {
+                for(LXProjectFileReference *draggedNode in self.draggedItems) {
                     if([draggedNode isKindOfClass:[LXProjectGroup class]] &&
                        [self treeNode:targetNode isDescendantOfNode:(LXProjectGroup *)draggedNode]) {
                         result = NSDragOperationNone;
@@ -488,7 +501,7 @@
         __block NSInteger insertionIndex = childIndex;
         
         [self.draggedItems enumerateObjectsUsingBlock:^(id object, NSUInteger index, BOOL *stop) {
-            LXProjectFile *draggedTreeNode = object;
+            LXProjectFileReference *draggedTreeNode = object;
             LXProjectGroup *oldParent = draggedTreeNode.parent;
             
             NSInteger oldIndex = [oldParent.children indexOfObject:draggedTreeNode];
@@ -596,8 +609,8 @@
         parent = item;
         index = [parent.children count];
     }
-    else if([item isKindOfClass:[LXProjectFile class]]) {
-        parent = [(LXProjectFile *)item parent];
+    else if([item isKindOfClass:[LXProjectFileReference class]]) {
+        parent = [(LXProjectFileReference *)item parent];
         index = [parent.children indexOfObject:item]+1;
     }
     else {
@@ -605,7 +618,7 @@
         index = [parent.children count];
     }
     
-    LXProjectFile *file = [self.project insertFile:parent atIndex:index];
+    LXProjectFileReference *file = [self.project insertFile:parent atIndex:index];
     [projectOutlineView expandItem:parent];
     [projectOutlineView reloadItem:nil reloadChildren:YES];
     [projectOutlineView editColumn:0 row:[projectOutlineView rowForItem:file] withEvent:nil select:YES];
@@ -621,8 +634,8 @@
         parent = item;
         index = [parent.children count];
     }
-    else if([item isKindOfClass:[LXProjectFile class]]) {
-        parent = [(LXProjectFile *)item parent];
+    else if([item isKindOfClass:[LXProjectFileReference class]]) {
+        parent = [(LXProjectFileReference *)item parent];
         index = [parent.children indexOfObject:item]+1;
     }
     else {
@@ -637,8 +650,8 @@
 }
 
 - (IBAction)save:(id)sender {
-    id item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
-    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item)];
+    LXProjectFileReference *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
+    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
     
     [fileView save];
 }
@@ -649,6 +662,7 @@
     }
     
     [self.project compile];
+    [projectOutlineView reloadData];
 }
 
 @end

@@ -2,7 +2,7 @@
 
 @implementation LXProjectFileView
 
-- (id)initWithContentView:(NSView *)contentView file:(LXProjectFile *)file {
+- (id)initWithContentView:(NSView *)contentView file:(LXProjectFileReference *)file {
 	if(self = [super initWithFrame:contentView.bounds]) {
         [self setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 
@@ -20,7 +20,7 @@
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewFrameDidChangeNotification object:[_textScrollView contentView]];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewBoundsDidChangeNotification object:[_textScrollView contentView]];
         
-		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file];
+		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file.file];
         _textView.delegate = self;
 		[_textView setMinSize:contentSize];
 		[_textView setHorizontallyResizable:YES];
@@ -46,12 +46,14 @@
 }
 
 - (void)save {
-    self.file.contents = self.textView.string;
+    if(self.modified) {
+        self.file.file.contents = self.textView.string;
+         
+        _modified = NO;
      
-    _modified = NO;
- 
-    if([self.delegate respondsToSelector:@selector(fileWasModified:modified:)]) {
-        [self.delegate fileWasModified:self modified:self.modified];
+        if([self.delegate respondsToSelector:@selector(fileWasModified:modified:)]) {
+            [self.delegate fileWasModified:self modified:self.modified];
+        }
     }
 }
 

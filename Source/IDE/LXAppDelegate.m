@@ -37,7 +37,7 @@ static __weak LXAppDelegate *instance = nil;
 }
 
 - (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename {
-    [self openProject:[NSURL URLWithString:filename]];
+    [self openProjectWithURL:[NSURL URLWithString:filename]];
     
     return YES;
 }
@@ -88,12 +88,12 @@ static __weak LXAppDelegate *instance = nil;
     
     [panel beginSheetModalForWindow:nil completionHandler:^(NSInteger result){
         if(result == NSFileHandlingPanelOKButton) {
-            [self openProject:[panel URL]];
+            [self openProjectWithURL:[panel URL]];
         }
     }];
 }
 
-- (void)openProject:(NSURL *)fileURL {
+- (void)openProjectWithURL:(NSURL *)fileURL {
     LXProject *project = [LXProject loadProject:fileURL.lastPathComponent path:[fileURL.path substringWithRange:NSMakeRange(0, [fileURL.path length] - ([fileURL.lastPathComponent length]+1))] error:nil];
     
     if(!project) {

@@ -15,7 +15,7 @@
 
 - (void)newProject;
 - (void)openProject;
-- (void)openProject:(NSURL *)fileURL;
+- (void)openProjectWithURL:(NSURL *)fileURL;
 
 + (LXAppDelegate *)appDelegate;
 @end

@@ -15,3 +15,7 @@
 @interface NSMutableString(Base64VLQ)
 - (NSNumber *)decode;
 @end
+
+@interface NSString(MD5)
+- (NSString *)MD5Hash;
+@end

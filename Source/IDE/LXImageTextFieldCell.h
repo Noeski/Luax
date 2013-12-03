@@ -15,6 +15,7 @@
 
 @property (nonatomic, assign) BOOL modified;
 @property (nonatomic, retain) NSImage *image;
+@property (nonatomic, retain) NSImage *accessoryImage;
 
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView;
 - (NSSize)cellSize;

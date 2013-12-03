@@ -22,7 +22,7 @@
 	LXImageTextFieldCell *cell = (LXImageTextFieldCell *)[super copyWithZone:zone];
 	
 	cell.image = self.image;
-	cell->highlightImage = highlightImage;
+    cell.accessoryImage = self.accessoryImage;
     cell->_cFlags.vCentered = 1;
     
 	return cell;
@@ -46,46 +46,35 @@
 	}
 }
 
-- (NSRect)imageFrameForCellFrame:(NSRect)cellFrame {
-	if(self.image != nil) {
-		NSRect imageFrame;
-		
-		imageFrame.size = [self.image size];
-		imageFrame.origin = cellFrame.origin;
-		imageFrame.origin.x += 3;
-		imageFrame.origin.y += ceil((cellFrame.size.height - imageFrame.size.height) / 2);
-		
-		return imageFrame;
-	}
-	else
-        return NSZeroRect;
-}
-
 - (void)editWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)theEvent {
-	NSRect textFrame, imageFrame;
+	NSRect textFrame, imageFrame, accessoryImageFrame;
 	
-	NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [self.image size].width, NSMinXEdge);
-	
-	[super editWithFrame: textFrame inView: controlView editor:textObj delegate:anObject event: theEvent];
+	NSDivideRect(aRect, &imageFrame, &textFrame, 3 + [self.image size].width, NSMinXEdge);
+    NSDivideRect(textFrame, &textFrame, &accessoryImageFrame, textFrame.size.width - (3 + [self.accessoryImage size].width), NSMinXEdge);
+
+	[super editWithFrame:textFrame inView: controlView editor:textObj delegate:anObject event: theEvent];
 }
 
 - (void)selectWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject start:(NSInteger)selStart length:(NSInteger)selLength {
-	NSRect textFrame, imageFrame;
+	NSRect textFrame, imageFrame, accessoryImageFrame;
 	
-	NSDivideRect (aRect, &imageFrame, &textFrame, 3 + [self.image size].width, NSMinXEdge);
-	
-	[super selectWithFrame: textFrame inView: controlView editor:textObj delegate:anObject start:selStart length:selLength];
+	NSDivideRect(aRect, &imageFrame, &textFrame, 3 + [self.image size].width, NSMinXEdge);
+    NSDivideRect(textFrame, &textFrame, &accessoryImageFrame, textFrame.size.width - (3 + [self.accessoryImage size].width), NSMinXEdge);
+
+	[super selectWithFrame:textFrame inView: controlView editor:textObj delegate:anObject start:selStart length:selLength];
 }
 
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
 	if(self.image != nil) {
-		NSSize  imageSize;
-		NSRect  imageFrame;
-		
+		NSSize  imageSize, accessoryImageSize;
+		NSRect  imageFrame, accessoryImageFrame;
+        
 		imageSize = [self.image size];
-		
+        accessoryImageSize = [self.accessoryImage size];
+
 		NSDivideRect(cellFrame, &imageFrame, &cellFrame, 3 + imageSize.width, NSMinXEdge);
-		
+        NSDivideRect(cellFrame, &cellFrame, &accessoryImageFrame, cellFrame.size.width - (3 + accessoryImageSize.width), NSMinXEdge);
+
 		if([self drawsBackground]) {
 			[[self backgroundColor] set];
 			
@@ -95,13 +84,19 @@
 		imageFrame.origin.x += 3;
         imageFrame.origin.y += 3;
 		imageFrame.size = imageSize;
-		
+        
+        accessoryImageFrame.origin.x += 3;
+        accessoryImageFrame.origin.y += 3;
+        accessoryImageFrame.size = accessoryImageSize;
+
 		if(self.modified) {
             [highlightImage drawInRect:imageFrame fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
 		}
 		else {
             [self.image drawInRect:imageFrame fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
 		}
+        
+        [self.accessoryImage drawInRect:accessoryImageFrame fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
 	}
 	
 	[super drawWithFrame:cellFrame inView:controlView];
