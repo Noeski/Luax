@@ -108,8 +108,18 @@
 		index = NSMaxRange([searchString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
 	
-	NSInteger indexNonWrap = [searchString lineRangeForRange:NSMakeRange(index, 0)].location;
-	NSInteger maxRangeVisibleRange = NSMaxRange([textString lineRangeForRange:NSMakeRange(NSMaxRange(visibleRange), 0)]); // Set it to just after the last glyph on the last visible line
+	NSInteger indexNonWrap;
+	NSInteger maxRangeVisibleRange;
+    
+    if(visibleRange.length == 0) {
+        indexNonWrap = 0;
+        maxRangeVisibleRange = -1;
+    }
+    else {
+        indexNonWrap = [searchString lineRangeForRange:NSMakeRange(index, 0)].location;
+        maxRangeVisibleRange = NSMaxRange([textString lineRangeForRange:NSMakeRange(NSMaxRange(visibleRange), 0)]);
+    }
+    
 	NSInteger numberOfGlyphsInTextString = [layoutManager numberOfGlyphs];
 	BOOL oneMoreTime = NO;
     
@@ -139,7 +149,7 @@
     
     CGFloat origin = visibleRect.origin.y;
     NSInteger currentLineHeight = (NSInteger)[self.textView lineHeight];
-
+    
     if(origin < 0.0) {
         while(origin <= 0.0) {
             NSDictionary *fontAttributes = @{NSFontAttributeName : font};

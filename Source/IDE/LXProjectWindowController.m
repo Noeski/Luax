@@ -378,7 +378,6 @@
             [cell setAccessoryImage:[NSImage imageNamed:@"warningicon.png"]];
         }
     }
-    
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView writeItems:(NSArray *)items toPasteboard:(NSPasteboard *)pasteboard {

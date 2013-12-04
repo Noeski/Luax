@@ -44,6 +44,7 @@ static __weak LXAppDelegate *instance = nil;
 
 - (void)newProject {
     LXProjectWindowController *windowController = [[LXProjectWindowController alloc] initWithWindowNibName:@"LXProjectWindowController"];
+    [windowController showWindow:self];
     
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     
@@ -101,7 +102,7 @@ static __weak LXAppDelegate *instance = nil;
     }
     
     LXProjectWindowController *windowController = [[LXProjectWindowController alloc] initWithWindowNibName:@"LXProjectWindowController"];
-    [windowController window];
+    [windowController showWindow:self];
     windowController.project = project;
     [self.windows addObject:windowController];
     

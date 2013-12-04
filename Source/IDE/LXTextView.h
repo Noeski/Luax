@@ -55,11 +55,15 @@
 	NSInteger highlightedLine;
     
     BOOL showingAutoCompleteWindow;
-    NSWindow *window;
+    NSWindow *autoCompleteWindow;
     NSScrollView *autoCompleteScrollView;
     NSTableView *autoCompleteTableView;
     NSTextField *autoCompleteDescriptionView;
     id eventMonitor;
+    
+    BOOL showingErrorWindow;
+    NSWindow *errorWindow;
+    NSTextField *errorLabel;
 }
 
 @property (nonatomic, weak) LXProjectFile *file;

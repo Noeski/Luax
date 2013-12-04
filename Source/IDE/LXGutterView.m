@@ -77,7 +77,6 @@ static NSImage *markerImage = nil;
 		[self setVerticallyResizable:YES];
 		[self setHorizontallyResizable:YES];
 		[self setAutoresizingMask:NSViewHeightSizable];
-		
 		[self setFont:[[NSFontManager sharedFontManager]
                        fontWithFamily:@"Menlo"
                        traits:NSBoldFontMask
@@ -165,6 +164,10 @@ static NSImage *markerImage = nil;
 		
         [self.document addBreakpoint:line];
 	}
+}
+
+- (void)scrollWheel:(NSEvent *)theEvent {
+   //Disable scroll view gesture
 }
 
 @end

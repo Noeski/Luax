@@ -4,6 +4,14 @@
 #import "LXToken.h"
 #import "NSString+JSON.h"
 
+@interface LXErrorView : NSObject
+@property (nonatomic, assign) NSRect frame;
+@property (nonatomic, strong) LXCompilerError *error;
+@end
+
+@implementation LXErrorView
+@end
+
 @implementation LXAutoCompleteWindow
 
 - (BOOL)canBecomeKeyWindow {
@@ -62,15 +70,15 @@
         identifierCharacterSet = [NSCharacterSet characterSetWithCharactersInString:
                                   @"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
         NSRect frame = NSMakeRect(0, 0, 150, 150);
-        window = [[NSWindow alloc] initWithContentRect:frame
+        autoCompleteWindow = [[NSWindow alloc] initWithContentRect:frame
                                              styleMask:NSBorderlessWindowMask
                                                backing:NSBackingStoreBuffered
                                                  defer:NO];
-        window.alphaValue = 0.0f;
-        window.hasShadow = YES;
+        autoCompleteWindow.alphaValue = 0.0f;
+        autoCompleteWindow.hasShadow = YES;
         
-        window.delegate = self;
-        [window setBackgroundColor:[NSColor clearColor]];
+        autoCompleteWindow.delegate = self;
+        [autoCompleteWindow setBackgroundColor:[NSColor clearColor]];
         
         NSFont *font = [[NSFontManager sharedFontManager] fontWithFamily:@"Menlo"
                                                                   traits:0
@@ -79,7 +87,7 @@
         
         NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         [contentView setWantsLayer:YES];
-        [contentView.layer setBackgroundColor:CGColorCreateGenericGray(1, 1)];
+        [contentView.layer setBackgroundColor:[NSColor whiteColor].CGColor];
         autoCompleteScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         autoCompleteTableView = [[NSTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         
@@ -127,7 +135,41 @@
         
         [contentView addSubview:autoCompleteDescriptionView];
         
-        window.contentView = contentView;
+        autoCompleteWindow.contentView = contentView;
+        
+        errorWindow = [[NSWindow alloc] initWithContentRect:frame
+                                                  styleMask:NSBorderlessWindowMask
+                                                    backing:NSBackingStoreBuffered
+                                                      defer:NO];
+        
+        errorWindow.alphaValue = 0.0f;
+        errorWindow.hasShadow = NO;
+        
+        [errorWindow setOpaque:NO];
+        [errorWindow setBackgroundColor:[NSColor clearColor]];
+        
+        contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
+        [contentView setWantsLayer:YES];
+        [contentView.layer setBackgroundColor:[NSColor colorWithDeviceRed:1 green:0 blue:0 alpha:0.3].CGColor];
+        [contentView.layer setCornerRadius:2.0];
+        [contentView.layer setMasksToBounds:YES];
+        errorLabel = [[NSTextField alloc] initWithFrame:contentView.bounds];
+        [errorLabel setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+        [errorLabel setFont:[[NSFontManager sharedFontManager]
+                             fontWithFamily:@"Menlo"
+                             traits:0
+                             weight:0
+                             size:11]];
+        [errorLabel setTextColor:[NSColor blackColor]];
+        [errorLabel setStringValue:@"My Label"];
+        [errorLabel setBezeled:NO];
+        [errorLabel setDrawsBackground:NO];
+        [errorLabel setEditable:NO];
+        [errorLabel setSelectable:NO];
+
+        [contentView addSubview:errorLabel];
+        
+        errorWindow.contentView = contentView;
         
 		[self setDefaults];     
 	}
@@ -219,12 +261,78 @@
 	
 	[self setFont:font];
     
-	NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
-	[self addTrackingArea:trackingArea];
+	//NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
+	//[self addTrackingArea:trackingArea];
 	
 	lineHeight = [[[self textContainer] layoutManager] defaultLineHeightForFont:font];
     
     [self setString:self.file.contents];
+}
+
+- (void)mouseMoved:(NSEvent *)theEvent {
+    [super mouseMoved:theEvent];
+    
+    BOOL found = NO;
+    
+    for(LXCompilerError *error in self.file.context.errors) {
+        NSRange range = error.range;
+        
+        NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        NSRect errorRect = NSMakeRect(rangeRect.origin.x-2, NSMaxY(rangeRect), 4, 4);
+        
+        NSPoint eventLocation = [theEvent locationInWindow];
+        eventLocation = [self convertPoint:eventLocation fromView:nil];
+        
+        if(NSPointInRect(eventLocation, errorRect)) {
+            [errorLabel setStringValue:error.error];
+            
+            NSFont *font = [[NSFontManager sharedFontManager]
+                            fontWithFamily:@"Menlo"
+                            traits:0
+                            weight:0
+                            size:11];
+            
+            NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
+            NSRect textRect = [error.error boundingRectWithSize:self.bounds.size options:NSStringDrawingUsesLineFragmentOrigin attributes:sizeAttribute];
+
+            errorRect.origin.x = MIN(errorRect.origin.x, self.bounds.size.width - (textRect.size.width + 6));
+            errorRect.origin.y = MIN(errorRect.origin.y, self.bounds.size.height - (textRect.size.height + 6));
+
+            NSRect windowRect = [self convertRect:errorRect toView:nil];
+            NSRect screenRect = [[self window] convertRectToScreen:windowRect];
+            
+            [errorWindow setFrame:NSMakeRect(screenRect.origin.x, screenRect.origin.y - (textRect.size.height + 4), textRect.size.width + 6, textRect.size.height + 4) display:YES];
+            
+            if(!showingErrorWindow) {
+                [self.window addChildWindow:errorWindow ordered:NSWindowAbove];
+                [errorWindow setAlphaValue:0.0f];
+                [NSAnimationContext beginGrouping];
+                [[NSAnimationContext currentContext] setDuration:0.1f];
+                [[errorWindow animator] setAlphaValue:1.0f];
+                [NSAnimationContext endGrouping];
+
+                showingErrorWindow = YES;
+            }
+            
+            found = YES;
+            break;
+        }
+    }
+    
+    if(!found && showingErrorWindow) {
+        showingErrorWindow = NO;
+        
+        [NSAnimationContext beginGrouping];
+        __block __unsafe_unretained NSWindow *bself = errorWindow;
+        [[NSAnimationContext currentContext] setDuration:0.1f];
+        [[NSAnimationContext currentContext] setCompletionHandler:^{
+            [bself orderOut:nil];
+            [self.window removeChildWindow:bself];
+        }];
+        
+        [[errorWindow animator] setAlphaValue:0.0f];
+        [NSAnimationContext endGrouping];
+    }
 }
 
 - (void)setString:(NSString *)string {
@@ -237,6 +345,7 @@
     [self.file.context compile:string];
     
     [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:NSMakeRange(0, [string length])];
+    [self.layoutManager removeTemporaryAttribute:NSToolTipAttributeName forCharacterRange:NSMakeRange(0, [string length])];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:NSMakeRange(0, [string length])];
 
     for(LXToken *token in self.file.context.parser.tokens) {
@@ -266,6 +375,7 @@
     
     for(LXCompilerError *error in self.file.context.errors) {
         [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
+        [self.layoutManager addTemporaryAttribute:NSToolTipAttributeName value:error.error forCharacterRange:error.range];
         [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
     }
 }
@@ -305,15 +415,15 @@
     if(!showingAutoCompleteWindow) {
         showingAutoCompleteWindow = YES;
         
-        [self.window addChildWindow:window ordered:NSWindowAbove];
-        [window setAlphaValue:0.0f];
+        [self.window addChildWindow:autoCompleteWindow ordered:NSWindowAbove];
+        [autoCompleteWindow setAlphaValue:0.0f];
         [NSAnimationContext beginGrouping];
         [[NSAnimationContext currentContext] setDuration:0.1f];
-        [[window animator] setAlphaValue:1.0f];
+        [[autoCompleteWindow animator] setAlphaValue:1.0f];
         [NSAnimationContext endGrouping];
         
         eventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSLeftMouseDownMask handler:^(NSEvent *theEvent) {
-            if(theEvent.window != window) {
+            if(theEvent.window != autoCompleteWindow) {
                 [self cancelAutoComplete];
             }
             
@@ -333,14 +443,14 @@
     [NSEvent removeMonitor:eventMonitor];
 
     [NSAnimationContext beginGrouping];
-    __block __unsafe_unretained NSWindow *bself = window;
+    __block __unsafe_unretained NSWindow *bself = autoCompleteWindow;
     [[NSAnimationContext currentContext] setDuration:0.1f];
     [[NSAnimationContext currentContext] setCompletionHandler:^{
         [bself orderOut:nil];
         [self.window removeChildWindow:bself];
     }];
     
-    [[window animator] setAlphaValue:0.0f];
+    [[autoCompleteWindow animator] setAlphaValue:0.0f];
     [NSAnimationContext endGrouping];
 }
 
@@ -674,7 +784,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     
     CGFloat width = [autoCompleteTableView tableColumnWithIdentifier:@"Column1"].width + 3;
     
-    [window setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestStringWidth, windowHeight) display:YES];
+    [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestStringWidth, windowHeight) display:YES];
     [autoCompleteScrollView setFrame:NSMakeRect(0, 20, largestTypeWidth + largestStringWidth, windowHeight - 20)];
     [autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
 }
@@ -887,7 +997,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
             [[autoCompleteTableView tableColumnWithIdentifier:@"Column1"] setWidth:largestTypeWidth];
             [[autoCompleteTableView tableColumnWithIdentifier:@"Column2"] setWidth:largestStringWidth];
 
-            [window setFrame:NSMakeRect(window.frame.origin.x, window.frame.origin.y, largestStringWidth, windowHeight) display:NO];
+            [autoCompleteWindow setFrame:NSMakeRect(autoCompleteWindow.frame.origin.x, autoCompleteWindow.frame.origin.y, largestStringWidth, windowHeight) display:NO];
             [autoCompleteScrollView setFrame:NSMakeRect(0, 20, largestTypeWidth + largestStringWidth, windowHeight - 20)];
             [autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
         }

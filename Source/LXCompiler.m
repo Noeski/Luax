@@ -1,4 +1,4 @@
-//
+ //
 //  LXCompiler.m
 //  LuaX
 //
@@ -409,6 +409,10 @@
 }
 
 - (NSString *)tokenValue:(LXToken *)token {
+    if(token.type == LX_TK_EOS) {
+        return @"end of file";
+    }
+    
     return [self.parser.string substringWithRange:token.range];
 }
 
