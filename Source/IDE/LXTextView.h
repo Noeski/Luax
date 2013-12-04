@@ -36,7 +36,6 @@
     NSUndoManager *undoManager;
     BOOL insideUndoGroup;
     
-    NSMutableArray *errors;
     NSColor *commentsColor, *keywordsColor, *numbersColor, *stringsColor, *functionsColor, *typesColor;
     NSCharacterSet *identifierCharacterSet;
     BOOL insertAutoComplete;

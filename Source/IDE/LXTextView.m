@@ -59,7 +59,6 @@
         
         undoManager = [[LXTextViewUndoManager alloc] init];
         
-        errors = [[NSMutableArray alloc] init];
         identifierCharacterSet = [NSCharacterSet characterSetWithCharactersInString:
                                   @"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
         NSRect frame = NSMakeRect(0, 0, 150, 150);
@@ -237,6 +236,9 @@
 - (void)recompile:(NSString *)string {
     [self.file.context compile:string];
     
+    [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:NSMakeRange(0, [string length])];
+    [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:NSMakeRange(0, [string length])];
+
     for(LXToken *token in self.file.context.parser.tokens) {
         switch(token.type) {
             case LX_TK_COMMENT:
@@ -260,6 +262,11 @@
                     [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
                 }
             }
+    }
+    
+    for(LXCompilerError *error in self.file.context.errors) {
+        [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
+        [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
     }
 }
 

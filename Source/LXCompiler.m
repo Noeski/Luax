@@ -178,8 +178,9 @@
     
     currentTokenIndex = 0;
     
-    self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO];
-    
+    self.scope = [self pushScope:self.compiler.globalScope openScope:NO];
+    self.block = [self parseBlock:self.scope addNewLine:NO];
+    [self popScope];
     //LXLuaWriter *writer = [[LXLuaWriter alloc] init];
     //writer.currentSource = self.name;
     //[self.block compile:writer];
@@ -254,7 +255,15 @@
 
 - (LXToken *)token:(NSInteger *)index {
     while(YES) {
-        if(*index >= [self.parser.tokens count]) {
+        if(*index < 0) {
+            //Not really eof, but bof ;)
+            LXToken *eofToken = [[LXToken alloc] init];
+            eofToken.type = LX_TK_EOS;
+            eofToken.range = NSMakeRange(0, 0);
+            
+            return eofToken;
+        }
+        else if(*index >= [self.parser.tokens count]) {
             LXToken *eofToken = [[LXToken alloc] init];
             eofToken.type = LX_TK_EOS;
             eofToken.range = NSMakeRange([self.parser.string length], 0);
@@ -674,9 +683,9 @@
         token.variable = local;
     }
     else {
-        [self addError:[NSString stringWithFormat:@"Expected 'name' or '(expression)' near: %@", [self tokenValue:token]] range:token.range line:token.startLine column:token.column];
-        
         NSLog(@"%@", [self tokenValue:[self currentToken]]);
+        [self addError:[NSString stringWithFormat:@"Expected 'name' or '(expression)' near: %@", [self tokenValue:token]] range:token.range line:token.startLine column:token.column];
+        [self skipLine];
     }
     
     return expression;

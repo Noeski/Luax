@@ -13,7 +13,7 @@
         [_textScrollView setHasHorizontalScroller:YES];
 		[_textScrollView setHasVerticalScroller:YES];
 		[_textScrollView setAutohidesScrollers:YES];
-		[_textScrollView setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+		[_textScrollView setAutoresizingMask:(NSViewMinXMargin | NSViewMaxXMargin | NSViewWidthSizable | NSViewHeightSizable)];
 		[[_textScrollView contentView] setAutoresizesSubviews:YES];
 		[self addSubview:_textScrollView];
         
@@ -28,7 +28,7 @@
 		[[_textView textContainer] setWidthTracksTextView:NO];
 		
 		[_textScrollView setDocumentView:_textView];
-		
+        
 		_gutterScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height)];
 		[_gutterScrollView setBorderType:NSNoBorder];
 		[_gutterScrollView setHasVerticalScroller:NO];
@@ -43,6 +43,11 @@
     }
 	
 	return self;
+}
+
+- (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
+	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
 }
 
 - (void)save {
@@ -70,7 +75,7 @@
 - (void)resizeViews {	
 	[self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
 	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
-	
+
 	[self updateLineNumbers];
 }
 	
