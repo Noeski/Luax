@@ -86,8 +86,8 @@ static NSImage *markerImage = nil;
     [self setNeedsDisplay:YES];
 }
 
-- (void)setLineNumbers:(NSArray *)lineNumbers {
-    _lineNumbers = lineNumbers;
+- (void)setLineNumberRange:(NSRange)lineNumberRange {
+    _lineNumberRange = lineNumberRange;
     
     [self setNeedsDisplay:YES];
 }
@@ -150,7 +150,10 @@ static NSImage *markerImage = nil;
         }
         
 		[[NSColor lightGrayColor] set];
-		NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(bounds.size.width, self.offset, 0, bounds.size.height - self.offset)];
+        
+        NSInteger offset = self.offset < 0 ? self.offset % 13 + 13 : self.offset;
+        
+		NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(bounds.size.width, -offset, 0, bounds.size.height + offset)];
 		CGFloat dash[2];
 		dash[0] = 1.0;
 		dash[1] = 2.0;

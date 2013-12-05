@@ -539,6 +539,24 @@
     return YES;
 }
 
+#pragma mark - NSSplitViewDelegate 
+
+- (BOOL)splitView:(NSSplitView *)splitView canCollapseSubview:(NSView *)subview {
+    return NO;
+}
+
+- (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
+    return proposedMinimumPosition + 150.0f;
+}
+
+- (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
+    return proposedMinimumPosition - 400.0f;
+}
+
+- (void)splitView:(NSSplitView *)sender resizeSubviewsWithOldSize:(NSSize)oldSize {
+    [sender adjustSubviews];
+}
+
 #pragma mark - LXProjectFileViewDelegate
 
 - (void)fileWasModified:(LXProjectFileView *)file modified:(BOOL)modifier {

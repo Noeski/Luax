@@ -21,7 +21,6 @@
 @property (nonatomic, weak) LXProjectFileView *document;
 @property (nonatomic, assign) NSInteger offset;
 @property (nonatomic, assign) NSRange lineNumberRange;
-@property (nonatomic, strong) NSArray *lineNumbers;
 @property (nonatomic, strong) NSMutableArray *breakpointMarkers;
 
 - (LXBreakpointMarker *)markerAtLine:(NSUInteger)line;

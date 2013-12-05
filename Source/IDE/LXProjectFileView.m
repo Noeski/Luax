@@ -64,6 +64,14 @@
     }
 }
 
+- (void)viewWillMoveToSuperview:(NSView *)newSuperview {
+    if(newSuperview) {
+        self.frame = newSuperview.bounds;
+        
+        [self resizeViews];
+    }
+}
+
 - (void)resizeViews {	
 	[_gutterTextView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
 	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
@@ -122,8 +130,6 @@
 		}
 	}
 	   
-    NSMutableArray *lineNumbers = [NSMutableArray array];
-    
 	NSTextContainer	*container = [self.textView textContainer];
 	NSRange nullRange = NSMakeRange(NSNotFound, 0);
 	NSRectArray	rects;
@@ -153,12 +159,8 @@
                 marker.visible = YES;
 				marker.yPos = NSMinY(rects[0]) - NSMinY(visibleRect);
 			}
-            
-            [lineNumbers addObject:[NSString stringWithFormat:@"%li", lineNumber]];
 		}
-        else {
-            [lineNumbers addObject:[NSString stringWithFormat:@"%d", 0x00B7]];
-            
+        else {            
 			indexNonWrap = index;
 		}
 		
@@ -179,7 +181,6 @@
 		}
 	}
 
-    _gutterTextView.lineNumbers = lineNumbers;
     _gutterTextView.lineNumberRange = lineNumberRange;
     
     NSInteger point = visibleRect.origin.y < 0.0 ? visibleRect.origin.y : (NSInteger)visibleRect.origin.y % currentLineHeight;

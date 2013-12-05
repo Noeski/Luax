@@ -10,6 +10,10 @@
 #import "NSString+JSON.h"
 #import "NSNumber+Base64VLQ.h"
 
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+
 @interface LXProjectFile()
 @property (nonatomic, weak) LXProject *project;
 @property (nonatomic, strong) NSString *mutableName;
@@ -23,7 +27,7 @@
 
 @implementation LXProjectFile
 
-- (id)initWithProject:(LXProject *)project {
+- (id)initWithProject:(LXProject *)project {    
     if(self = [super init]) {
         _project = project;
         _context = [[LXContext alloc] initWithName:nil compiler:project.compiler];

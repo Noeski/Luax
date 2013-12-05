@@ -12,7 +12,7 @@
 #import "LXServer.h"
 #import "LXClient.h"
 
-@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, LXProjectFileViewDelegate> {
+@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectFileViewDelegate> {
     IBOutlet NSComboBox *hostTextField;
     IBOutlet NSTextField *portTextField;
     IBOutlet NSButton *connectButton;
