@@ -29,24 +29,16 @@
 		
 		[_textScrollView setDocumentView:_textView];
         
-		_gutterScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height)];
-		[_gutterScrollView setBorderType:NSNoBorder];
-		[_gutterScrollView setHasVerticalScroller:NO];
-		[_gutterScrollView setHasHorizontalScroller:NO];
-		[_gutterScrollView setAutoresizingMask:NSViewHeightSizable];
-		[[_gutterScrollView contentView] setAutoresizesSubviews:YES];
-        [self addSubview:_gutterScrollView];
-        
-		_gutterTextView = [[LXGutterView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height - 50)];
+		_gutterTextView = [[LXGutterView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height)];
 		_gutterTextView.document = self;
-		[_gutterScrollView setDocumentView:_gutterTextView];
+        [self addSubview:_gutterTextView];
     }
 	
 	return self;
 }
 
 - (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
-    [self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
+    [_gutterTextView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
 	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
 }
 
@@ -73,7 +65,7 @@
 }
 
 - (void)resizeViews {	
-	[self.gutterScrollView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
+	[_gutterTextView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
 	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
 
 	[self updateLineNumbers];
@@ -129,9 +121,9 @@
 			oneMoreTime = YES; // Continue one more time through the loop if the last glyph isn't newline
 		}
 	}
-	
-    NSMutableAttributedString *lineNumbersString = [[NSMutableAttributedString alloc] init];
-        
+	   
+    NSMutableArray *lineNumbers = [NSMutableArray array];
+    
 	NSTextContainer	*container = [self.textView textContainer];
 	NSRange nullRange = NSMakeRange(NSNotFound, 0);
 	NSRectArray	rects;
@@ -141,60 +133,31 @@
         marker.visible = NO;
     }
     
-    NSFont *font = [[NSFontManager sharedFontManager]
-                    fontWithFamily:@"Menlo"
-                    traits:0
-                    weight:0
-                    size:11];
-    
-    CGFloat origin = visibleRect.origin.y;
     NSInteger currentLineHeight = (NSInteger)[self.textView lineHeight];
     
-    if(origin < 0.0) {
-        while(origin <= 0.0) {
-            NSDictionary *fontAttributes = @{NSFontAttributeName : font};
-
-            NSAttributedString *appendedString = [[NSAttributedString alloc] initWithString:@"\n" attributes:fontAttributes];
-            
-            [lineNumbersString appendAttributedString:appendedString];
-            
-            origin += currentLineHeight;
-        }
-    }
+    NSRange lineNumberRange = NSMakeRange(lineNumber, 0);
     
 	while(indexNonWrap <= maxRangeVisibleRange) {
 		if(index == indexNonWrap) {
 			lineNumber++;
+            lineNumberRange.length++;
             
 			LXBreakpointMarker *marker = [_gutterTextView markerAtLine:lineNumber];
-          
-            
-            NSDictionary *fontAttributes = nil;
 
 			if(marker != nil) {
-                fontAttributes = @{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : font};
-
 				rects = [layoutManager rectArrayForCharacterRange:NSMakeRange(index, 0)
-														 withinSelectedCharacterRange:nullRange
-																					inTextContainer:container
-																								rectCount:&rectCount];
+                                     withinSelectedCharacterRange:nullRange
+                                                  inTextContainer:container
+                                                        rectCount:&rectCount];
 				
                 marker.visible = YES;
 				marker.yPos = NSMinY(rects[0]) - NSMinY(visibleRect);
 			}
-            else {
-                fontAttributes = @{NSForegroundColorAttributeName : [NSColor darkGrayColor], NSFontAttributeName : font};
-            }
             
-            NSAttributedString *appendedString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%li\n", lineNumber] attributes:fontAttributes];
-            
-            [lineNumbersString appendAttributedString:appendedString];
-            
+            [lineNumbers addObject:[NSString stringWithFormat:@"%li", lineNumber]];
 		}
         else {
-            NSAttributedString *appendedString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%d\n", 0x00B7] attributes:@{}];
-            
-            [lineNumbersString appendAttributedString:appendedString];
+            [lineNumbers addObject:[NSString stringWithFormat:@"%d", 0x00B7]];
             
 			indexNonWrap = index;
 		}
@@ -215,28 +178,13 @@
 			break;
 		}
 	}
-	
-    if(origin > self.textView.frame.size.height - self.textScrollView.frame.size.height) {
-        while(origin > self.textView.frame.size.height - self.textScrollView.frame.size.height) {
-            NSDictionary *fontAttributes = @{NSFontAttributeName : font};
-            
-            NSAttributedString *appendedString = [[NSAttributedString alloc] initWithString:@"\n" attributes:fontAttributes];
-            
-            [lineNumbersString appendAttributedString:appendedString];
-            
-            origin -= currentLineHeight;
-        }
-    }
 
-	[[[self.gutterScrollView documentView] textStorage] setAttributedString:lineNumbersString];
-	
-	[[self.gutterScrollView contentView] setBoundsOrigin:CGPointZero];
+    _gutterTextView.lineNumbers = lineNumbers;
+    _gutterTextView.lineNumberRange = lineNumberRange;
     
-	if((NSInteger)visibleRect.origin.y != 0 && currentLineHeight != 0) {
-        NSInteger point = visibleRect.origin.y < 0.0 ? ((NSInteger)visibleRect.origin.y % currentLineHeight) + currentLineHeight : (NSInteger)visibleRect.origin.y % currentLineHeight;
-        
-		[[self.gutterScrollView contentView] scrollToPoint:NSMakePoint(0, point)];
-	}
+    NSInteger point = visibleRect.origin.y < 0.0 ? visibleRect.origin.y : (NSInteger)visibleRect.origin.y % currentLineHeight;
+    
+    _gutterTextView.offset = point;
 }
 
 - (NSUInteger)lineNumberForLocation:(NSPoint)point {

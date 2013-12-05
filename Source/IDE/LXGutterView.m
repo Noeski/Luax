@@ -48,7 +48,7 @@ static NSImage *markerImage = nil;
 }
 
 - (NSImage *)markerImage {
-	if (markerImage == nil) {
+	if(markerImage == nil) {
 		NSCustomImageRep *rep;
 		NSSize size = NSMakeSize(40, 13);
 		markerImage = [[NSImage alloc] initWithSize:size];
@@ -64,29 +64,8 @@ static NSImage *markerImage = nil;
 	if (self = [super initWithFrame:frame]) {
 		_breakpointMarkers = [[NSMutableArray alloc] init];
 		
-		[self setContinuousSpellCheckingEnabled:NO];
-		[self setAllowsUndo:NO];
-		[self setAllowsDocumentBackgroundColorChange:NO];
-		[self setRichText:NO];
-		[self setUsesFindPanel:NO];
-		[self setUsesFontPanel:NO];
-		[self setAlignment:NSRightTextAlignment];
-		[self setEditable:NO];
-		[self setSelectable:NO];
-		[[self textContainer] setContainerSize:NSMakeSize(40, FLT_MAX)];
-		[self setVerticallyResizable:YES];
-		[self setHorizontallyResizable:YES];
 		[self setAutoresizingMask:NSViewHeightSizable];
-		[self setFont:[[NSFontManager sharedFontManager]
-                       fontWithFamily:@"Menlo"
-                       traits:NSBoldFontMask
-                       weight:0
-                       size:11]];
-        
-		[self setTextColor:[NSColor colorWithCalibratedWhite:0.4 alpha:1.0]];
-		[self setInsertionPointColor:[NSColor textColor]];
-		[self setBackgroundColor:[NSColor colorWithCalibratedWhite:0.94 alpha:1.0]];
-	}
+    }
     
 	return self;
 }
@@ -101,10 +80,23 @@ static NSImage *markerImage = nil;
 	return nil;
 }
 
+- (void)setOffset:(NSInteger)offset {
+    _offset = offset;
+    
+    [self setNeedsDisplay:YES];
+}
+
+- (void)setLineNumbers:(NSArray *)lineNumbers {
+    _lineNumbers = lineNumbers;
+    
+    [self setNeedsDisplay:YES];
+}
+
 - (void)drawViewBackgroundInRect:(NSRect)rect {
-	[super drawViewBackgroundInRect:rect];
-	
-	NSRect visibleRect = [((NSClipView *)[self superview]) documentVisibleRect];
+	[[NSColor colorWithCalibratedWhite:0.94 alpha:1.0] setFill];
+    [[NSBezierPath bezierPathWithRect:rect] fill];
+    
+	NSRect visibleRect = NSZeroRect;//[((NSClipView *)[self superview]) documentVisibleRect];
     
     for(LXBreakpointMarker *marker in self.breakpointMarkers) {
         if(!marker.visible)
@@ -112,7 +104,7 @@ static NSImage *markerImage = nil;
         
 		markerImage = [marker image];
 		NSSize markerSize = [markerImage size];
-		NSRect markerRect = NSMakeRect(40.0f - [markerImage size].width - 1.0f, marker.yPos + visibleRect.origin.y, markerSize.width, markerSize.height);
+		NSRect markerRect = NSMakeRect(40.0f - [markerImage size].width - 1.0f, self.bounds.size.height - marker.yPos - markerSize.height + visibleRect.origin.y, markerSize.width, markerSize.height);
 		
 		if(NSIntersectsRect(rect, markerRect)) {
 			[markerImage drawInRect:markerRect fromRect:NSMakeRect(0, 0, markerSize.width, markerSize.height) operation:NSCompositeSourceOver fraction:1.0];	
@@ -123,11 +115,42 @@ static NSImage *markerImage = nil;
 - (void)drawRect:(NSRect)rect {
 	[super drawRect:rect];
 	
+    [self drawViewBackgroundInRect:rect];
+    
 	NSRect bounds = [self bounds]; 
 	
 	if([self needsToDrawRect:NSMakeRect(bounds.size.width - 1, 0, 1, bounds.size.height)] == YES) {
+        NSFont *font = [[NSFontManager sharedFontManager]
+                        fontWithFamily:@"Menlo"
+                        traits:0
+                        weight:0
+                        size:8];
+        NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+        [style setAlignment:NSRightTextAlignment];
+        
+        NSMutableDictionary *textAttributes = [NSMutableDictionary dictionaryWithDictionary:@{NSFontAttributeName : font, NSParagraphStyleAttributeName : style}];
+        
+        NSPoint point = NSMakePoint(0, self.bounds.size.height + self.offset - 12);
+        
+        for(NSInteger i = 0; i < self.lineNumberRange.length; ++i) {
+            textAttributes[NSForegroundColorAttributeName] = [NSColor colorWithDeviceWhite:0.4 alpha:1];
+
+            NSInteger lineNumber = self.lineNumberRange.location+i+1;
+            
+            for(LXBreakpointMarker *marker in self.breakpointMarkers) {
+                if(marker.line == lineNumber) {
+                    textAttributes[NSForegroundColorAttributeName] = [NSColor whiteColor];
+                    break;
+                }
+            }
+            
+            NSString *st = [NSString stringWithFormat:@"%ld", lineNumber];
+            [st drawInRect:NSMakeRect(point.x, point.y, self.bounds.size.width-4, 12) withAttributes:textAttributes];
+            point.y -= 13;
+        }
+        
 		[[NSColor lightGrayColor] set];
-		NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(bounds.size.width, 0, 0, bounds.size.height)];
+		NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(bounds.size.width, self.offset, 0, bounds.size.height - self.offset)];
 		CGFloat dash[2];
 		dash[0] = 1.0;
 		dash[1] = 2.0;
@@ -161,7 +184,6 @@ static NSImage *markerImage = nil;
 		[self.breakpointMarkers addObject:marker];
 		
 		[self.document updateLineNumbers];
-		
         [self.document addBreakpoint:line];
 	}
 }
