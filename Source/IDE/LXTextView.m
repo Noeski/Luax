@@ -408,7 +408,7 @@
 }
 
 - (LXScope *)scopeAtLocation:(NSInteger)location {
-    return [self.file.context.compiler.globalScope scopeAtLocation:location];
+    return [self.file.context.scope scopeAtLocation:location];
 }
 
 - (void)showAutoCompleteWindow {
@@ -1040,7 +1040,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     return NO;
 }
 
-- (NSUndoManager *)undoManagerForTextView:(NSTextView *)view {
+- (NSUndoManager *)undoManager {
     return undoManager;
 }
 

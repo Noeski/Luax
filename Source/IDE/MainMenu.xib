@@ -119,11 +119,6 @@
                                     <action selector="save:" target="-1" id="xyQ-9D-EUy"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Compile" keyEquivalent="c" id="M1j-iJ-FVK">
-                                <connections>
-                                    <action selector="compile:" target="-1" id="GZF-tk-gDr"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="74">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
@@ -354,6 +349,28 @@
                             <menuItem title="Customize Toolbar…" id="298">
                                 <connections>
                                     <action selector="runToolbarCustomizationPalette:" target="-1" id="365"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
+                <menuItem title="Build" id="9fW-4s-cgl">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <menu key="submenu" title="Build" id="PgP-HO-vnY">
+                        <items>
+                            <menuItem title="Run" keyEquivalent="r" id="Ffb-F4-Jlz">
+                                <connections>
+                                    <action selector="run:" target="-1" id="I7J-lN-Mkl"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Build" keyEquivalent="b" id="BNY-3z-rLl">
+                                <connections>
+                                    <action selector="compile:" target="-1" id="U4S-4M-82W"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Clean" keyEquivalent="C" id="mm5-9p-XdY">
+                                <connections>
+                                    <action selector="clean:" target="-1" id="DxR-eb-YQh"/>
                                 </connections>
                             </menuItem>
                         </items>

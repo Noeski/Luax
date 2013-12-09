@@ -682,4 +682,19 @@
     [projectOutlineView reloadData];
 }
 
+- (IBAction)clean:(id)sender {
+    [self.project clean];
+    [projectOutlineView reloadData];
+}
+
+- (IBAction)run:(id)sender {
+    for(LXProjectFileView *fileView in [self.cachedFileViews allValues]) {
+        [fileView save];
+    }
+    
+    [self.project run];
+    [projectOutlineView reloadData];
+}
+
+
 @end

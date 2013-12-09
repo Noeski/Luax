@@ -18,7 +18,9 @@
 @property (nonatomic, weak) LXProject *project;
 @property (nonatomic, strong) NSString *mutableName;
 @property (nonatomic, strong) NSString *mutablePath;
+@property (nonatomic, assign) BOOL isMain;
 @property (nonatomic, strong) NSString *cachedContents;
+@property (nonatomic, strong) NSString *cachedCompiledContents;
 @property (nonatomic, strong) NSDate *lastModifiedDate;
 @property (nonatomic, strong) NSDate *lastCompileDate;
 
@@ -59,6 +61,16 @@
     return _cachedContents;
 }
 
+- (NSString *)compiledContents {
+    if(!_cachedCompiledContents) {
+        NSString *path = [self.project.path stringByAppendingFormat:@"/.build/%@.lua", [self.name stringByDeletingPathExtension]];
+
+        _cachedCompiledContents = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+    }
+    
+    return _cachedCompiledContents;
+}
+
 - (void)setContents:(NSString *)contents {
     _cachedContents = contents;
     
@@ -75,7 +87,7 @@
 }
 
 - (NSDictionary *)save {
-    return @{@"uid" : self.uid, @"name" : self.name, @"path" : self.mutablePath, @"modified" : [[LXProjectFile dateFormatter] stringFromDate:self.lastModifiedDate], @"build" : [[LXProjectFile dateFormatter] stringFromDate:self.lastCompileDate]};
+    return [NSDictionary dictionaryWithObjectsAndKeys:self.uid, @"uid", self.name, @"name", self.mutablePath, @"path", [[LXProjectFile dateFormatter] stringFromDate:self.lastModifiedDate], @"modified", [[LXProjectFile dateFormatter] stringFromDate:self.lastCompileDate], @"build", self.isMain ? @(YES) : nil, @"isMain", nil];
 }
 
 - (void)load:(NSDictionary *)dictionary {
@@ -84,12 +96,15 @@
 
     self.mutableName = [dictionary[@"name"] copy];
     self.mutablePath = [dictionary[@"path"] copy];
+    self.isMain = [dictionary[@"isMain"] boolValue];
 }
 
 - (void)compile {
     if([self isCompiled]) {
         return;
     }
+    
+    self.cachedCompiledContents = nil;
     
     [self.context compile:self.contents];
     
@@ -237,6 +252,7 @@
 
 @interface LXProject()
 @property (nonatomic, readonly) NSMutableArray *mutableFiles;
+@property (nonatomic, weak) LXProjectFile *mainFile;
 @end
 
 @implementation LXProject
@@ -282,6 +298,14 @@
         LXProjectFile *projectFile = [[LXProjectFile alloc] initWithProject:self];
         [projectFile load:file];
         [self.mutableFiles addObject:projectFile];
+        
+        if(projectFile.isMain) {
+            if(self.mainFile) {
+                //error
+            }
+            
+            self.mainFile = projectFile;
+        }
     }
     
     NSArray *children = dictionary[@"root"];
@@ -316,6 +340,42 @@
     }
     
     [self save];
+}
+
+- (void)run {
+    [self compile];
+    
+    lua_State *state = luaL_newstate();
+    
+	luaL_openlibs(state);
+    
+    lua_getglobal(state, "package");
+    lua_getfield(state, -1, "path");
+    NSString *path = [NSString stringWithUTF8String:lua_tostring(state, -1)];
+    path = [path stringByAppendingFormat:@";%@/?.lua", [NSString stringWithFormat:@"%@/.build", self.path]];
+    lua_pop(state, 1);
+    lua_pushstring(state, [path UTF8String]);
+    lua_setfield(state, -2, "path" );
+    lua_pop(state, 1 );
+    
+    NSString *source = self.mainFile.compiledContents;
+    
+    int status = luaL_loadbuffer(state, [source UTF8String], [source length], [self.mainFile.name UTF8String]);
+
+    if(status != 0) {
+        const char *error = lua_tostring(state, -1);
+        lua_pop(state, 1);
+        
+        NSLog(@"%s", error);
+    }
+    
+    int top = lua_gettop(state);
+    
+    for(int i = 0; i < top; ++i) {
+        lua_call(state, 0, LUA_MULTRET);
+    }
+    
+    lua_close(state);
 }
 
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index {
@@ -426,6 +486,19 @@
     LXProject *project = [[LXProject alloc] init];
     project.name = name;
     project.path = path;
+    
+    LXProjectFile *file = [[LXProjectFile alloc] initWithProject:project];
+    file.mutableName = @"main.lux";
+    file.mutablePath = [NSString stringWithFormat:@"/Source/%@", file.name];
+    file.isMain = YES;
+    project.mainFile = file;
+    [project.mutableFiles addObject:file];
+    
+    [[NSFileManager defaultManager] createFileAtPath:[NSString stringWithFormat:@"%@/Source/%@", project.path, file.name] contents:[@"function main()\n  print('hello world')\nend\n\nmain()" dataUsingEncoding:NSUTF8StringEncoding] attributes:nil];
+    
+    LXProjectFileReference *fileReference = [[LXProjectFileReference alloc] initWithParent:project.root file:file];
+    [project.root.mutableChildren insertObject:fileReference atIndex:0];
+    
     [project save];
     
     return project;

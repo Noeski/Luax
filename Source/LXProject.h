@@ -16,6 +16,7 @@
 @property (nonatomic, readonly) NSString *path;
 @property (nonatomic, readonly) LXContext *context;
 @property (nonatomic, strong) NSString *contents;
+@property (nonatomic, strong) NSString *compiledContents;
 
 - (BOOL)isCompiled;
 - (BOOL)hasErrors;
@@ -41,6 +42,8 @@
 - (void)save;
 - (void)load:(NSDictionary *)dictionary;
 - (void)compile;
+- (void)clean;
+- (void)run;
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (LXProjectFileReference *)insertFile:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (void)insertFile:(LXProjectFileReference *)file parent:(LXProjectGroup *)parent atIndex:(NSInteger)index;

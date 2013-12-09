@@ -178,12 +178,9 @@
     
     currentTokenIndex = 0;
     
-    self.scope = [self pushScope:self.compiler.globalScope openScope:NO];
-    self.block = [self parseBlock:self.scope addNewLine:NO];
-    [self popScope];
-    //LXLuaWriter *writer = [[LXLuaWriter alloc] init];
-    //writer.currentSource = self.name;
-    //[self.block compile:writer];
+    LXScope *blockScope;
+    self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
+    self.scope = blockScope;
 }
 
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column {
@@ -1858,12 +1855,18 @@
 }
 
 - (LXNode *)parseBlock:(LXScope *)scope addNewLine:(BOOL)addNewLine {
+    LXScope *blockScope = nil;
+    
+    return [self parseBlock:scope addNewLine:YES blockScope:&blockScope];
+}
+
+- (LXNode *)parseBlock:(LXScope *)scope addNewLine:(BOOL)addNewLine blockScope:(LXScope **)blockScope {
     LXToken *token = [self currentToken];
     NSDictionary *closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
     
     LXNode *block = [[LXNode alloc] initWithLine:token.startLine column:token.endLine];
     
-    LXScope *blockScope = [self pushScope:scope openScope:YES];
+    *blockScope = [self pushScope:scope openScope:YES];
     
     BOOL firstStatement = !addNewLine;
     
@@ -1871,7 +1874,7 @@
         if(!firstStatement)
             [block addAnonymousChunk:@"\n"];
 
-        LXNode *statement = [self parseStatement:blockScope];
+        LXNode *statement = [self parseStatement:*blockScope];
         
         [block addChild:statement];
         

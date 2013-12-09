@@ -33,4 +33,6 @@
 - (IBAction)newGroup:(id)sender;
 - (IBAction)save:(id)sender;
 - (IBAction)compile:(id)sender;
+- (IBAction)clean:(id)sender;
+- (IBAction)run:(id)sender;
 @end

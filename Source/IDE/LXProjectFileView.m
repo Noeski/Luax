@@ -270,4 +270,8 @@
     }
 }
 
+- (NSUndoManager *)undoManagerForTextView:(NSTextView *)view {
+    return [self.textView undoManager];
+}
+
 @end
