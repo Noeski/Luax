@@ -1768,6 +1768,8 @@
                     
                     if(![assignmentToken isAssignmentOperator]) {
                         [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                        [self skipLine];
+                        break;
                     }
                     
                     [self consumeToken];
@@ -1840,6 +1842,10 @@
                         
                         ++i;
                     } while(YES);
+                }
+                else {
+                    [self addError:[NSString stringWithFormat:@"Expected ',' or '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                    break;
                 }
             }
             

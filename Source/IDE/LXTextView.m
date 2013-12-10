@@ -61,6 +61,13 @@
 
 @implementation LXTextView
 
+typedef int CGSConnection;
+typedef int CGSWindow;
+extern CGSConnection _CGSDefaultConnection( void );
+extern OSStatus CGSNewCIFilterByName( CGSConnection cid, CFStringRef filterName, void * fid );
+extern OSStatus CGSAddWindowFilter( CGSConnection cid, CGSWindow wid, void * fid, int value );
+extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, CFDictionaryRef filterValues );
+
 - (id)initWithFrame:(NSRect)frame file:(LXProjectFile *)file {
 	if(self = [super initWithFrame:frame]) {
         _file = file;
@@ -148,9 +155,20 @@
         [errorWindow setOpaque:NO];
         [errorWindow setBackgroundColor:[NSColor clearColor]];
         
+        uint32_t compositingFilter;
+        CGSConnection thisConnection = _CGSDefaultConnection();
+        
+        /* Create a CoreImage filter and set it up */
+        CGSNewCIFilterByName(thisConnection, (CFStringRef)@"CIGaussianBlur", &compositingFilter);
+        NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:2.0] forKey:@"inputRadius"];
+        CGSSetCIFilterValuesFromDictionary(thisConnection, compositingFilter, (__bridge CFDictionaryRef)options);
+        
+        /* Now apply the filter to the window */
+        CGSAddWindowFilter(thisConnection, (int)[errorWindow windowNumber], compositingFilter, 1);
+        
         contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         [contentView setWantsLayer:YES];
-        [contentView.layer setBackgroundColor:[NSColor colorWithDeviceRed:1 green:0 blue:0 alpha:0.3].CGColor];
+        [contentView.layer setBackgroundColor:[NSColor colorWithDeviceRed:0.8 green:0.208 blue:0.169 alpha:0.75].CGColor];
         [contentView.layer setCornerRadius:2.0];
         [contentView.layer setMasksToBounds:YES];
         errorLabel = [[NSTextField alloc] initWithFrame:contentView.bounds];
@@ -158,9 +176,10 @@
         [errorLabel setFont:[[NSFontManager sharedFontManager]
                              fontWithFamily:@"Menlo"
                              traits:0
-                             weight:0
+                             weight:6
                              size:11]];
-        [errorLabel setTextColor:[NSColor blackColor]];
+        
+        [errorLabel setTextColor:[NSColor colorWithDeviceRed:0.943 green:0.943 blue:0.943 alpha:1]];
         [errorLabel setStringValue:@"My Label"];
         [errorLabel setBezeled:NO];
         [errorLabel setDrawsBackground:NO];
@@ -246,7 +265,7 @@
 	[self setMaxSize:NSMakeSize(FLT_MAX, FLT_MAX)];
 	[self setAutoresizingMask:NSViewWidthSizable];
 	[self setAllowsUndo:YES];
-	[self setUsesFindPanel:YES];
+	[self setUsesFindPanel:NO];
 	[self setAllowsDocumentBackgroundColorChange:NO];
 	[self setRichText:NO];
 	[self setImportsGraphics:NO];
