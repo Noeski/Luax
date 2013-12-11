@@ -15,11 +15,14 @@
 @property (nonatomic, readonly) NSString *name;
 @property (nonatomic, readonly) NSString *path;
 @property (nonatomic, readonly) LXContext *context;
+@property (nonatomic, readonly) NSDictionary *breakpoints;
 @property (nonatomic, strong) NSString *contents;
 @property (nonatomic, strong) NSString *compiledContents;
 
 - (BOOL)isCompiled;
 - (BOOL)hasErrors;
+- (void)addBreakpoint:(NSInteger)line;
+- (void)removeBreakpoint:(NSInteger)line;
 @end
 
 @interface LXProjectFileReference : NSObject

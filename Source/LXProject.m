@@ -14,11 +14,14 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
+LXProject *project = nil;
+
 @interface LXProjectFile()
 @property (nonatomic, weak) LXProject *project;
 @property (nonatomic, strong) NSString *mutableName;
 @property (nonatomic, strong) NSString *mutablePath;
 @property (nonatomic, assign) BOOL isMain;
+@property (nonatomic, strong) NSMutableDictionary *mutableBreakpoints;
 @property (nonatomic, strong) NSString *cachedContents;
 @property (nonatomic, strong) NSString *cachedCompiledContents;
 @property (nonatomic, strong) NSDate *lastModifiedDate;
@@ -33,6 +36,7 @@
     if(self = [super init]) {
         _project = project;
         _context = [[LXContext alloc] initWithName:nil compiler:project.compiler];
+        _mutableBreakpoints = [[NSMutableDictionary alloc] init];
         _lastModifiedDate = [NSDate date];
         _lastCompileDate = [NSDate dateWithTimeIntervalSince1970:0];
     }
@@ -51,6 +55,10 @@
 
 - (NSString *)path {
     return [self.project.path stringByAppendingString:self.mutablePath];
+}
+
+- (NSDictionary *)breakpoints {
+    return _mutableBreakpoints;
 }
 
 - (NSString *)contents {
@@ -84,6 +92,14 @@
 
 - (BOOL)hasErrors {
     return [self.context.errors count];
+}
+
+- (void)addBreakpoint:(NSInteger)line {
+    self.mutableBreakpoints[@(line)] = @YES;
+}
+
+- (void)removeBreakpoint:(NSInteger)line {
+    [self.mutableBreakpoints removeObjectForKey:@(line)];
 }
 
 - (NSDictionary *)save {
@@ -342,7 +358,13 @@
     [self save];
 }
 
+void breakpointHook(lua_State* L, lua_Debug* dbg) {
+    [project checkBreakpoints:L debug:dbg];
+}
+
 - (void)run {
+    project = self; //
+    
     [self compile];
     
     lua_State *state = luaL_newstate();
@@ -369,6 +391,8 @@
         NSLog(@"%s", error);
     }
     
+    lua_sethook(state, breakpointHook, LUA_MASKLINE, 0);
+
     int top = lua_gettop(state);
     
     for(int i = 0; i < top; ++i) {
@@ -378,6 +402,54 @@
     lua_close(state);
 }
 
+
+- (BOOL)checkBreakpoints:(lua_State *)state debug:(lua_Debug *)debug {
+    NSString *sourceName = nil;
+    
+    for(LXProjectFile *file in self.files) {
+        BOOL breakpoint = file.breakpoints[@(debug->currentline)];
+        
+        if(breakpoint) {
+            if(!sourceName) {
+                lua_getinfo(state, "Sl", debug);
+                
+                sourceName = [[[NSString stringWithFormat:@"%s", debug->source] lastPathComponent] stringByDeletingPathExtension];
+            }
+            
+            if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
+                [self breakLoop:sourceName line:debug->currentline error:NO];
+                return YES;
+            }
+        }
+    }
+    
+    return NO;
+}
+
+- (void)breakLoop:(NSString *)source line:(NSInteger)line error:(BOOL)error {
+	//if(mDebugState == ScriptDebugger::DEBUG_BREAK || mDebugState == ScriptDebugger::DEBUG_ERROR)
+	//	return;
+    
+	//Application::Instance()->pause();
+	
+    //updateStack();
+    
+    do {
+        @autoreleasepool {
+            NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
+                                                untilDate:[NSDate distantFuture]
+                                                   inMode:NSDefaultRunLoopMode
+                                                  dequeue:YES];
+            if(event) {
+                [NSApp sendEvent:event];
+            }
+        }
+    } while(YES);
+        
+    //Application::Instance()->resume();
+}
+
+    
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index {
     LXProjectGroup *group = [[LXProjectGroup alloc] initWithParent:parent];
     [parent.mutableChildren insertObject:group atIndex:index];

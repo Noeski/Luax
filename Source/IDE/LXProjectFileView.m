@@ -259,12 +259,16 @@
 }
 
 - (void)addBreakpoint:(NSUInteger)line {
+    [self.file.file addBreakpoint:line];
+    
     if([self.delegate respondsToSelector:@selector(fileDidAddBreakpoint:line:)]) {
         [self.delegate fileDidAddBreakpoint:self line:line];
     }
 }
 
 - (void)removeBreakpoint:(NSUInteger)line {
+    [self.file.file removeBreakpoint:line];
+
     if([self.delegate respondsToSelector:@selector(fileDidRemoveBreakpoint:line:)]) {
         [self.delegate fileDidRemoveBreakpoint:self line:line];
     }
