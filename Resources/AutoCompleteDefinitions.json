@@ -1,0 +1,52 @@
+{
+  "definitions" : [
+    {
+      "key" : "do",
+      "string" : "do\n  \\mbody\\m\nend",
+      "title" : "do - Block Statement",
+      "description" : "A block statement."
+    },
+    {
+      "key" : "while",
+      "string" : "while \\mexpression\\m do\n  \\mbody\\m\nend",
+      "title" : "while - While Statement",
+      "description" : "a while loop."
+    },
+    {
+      "key" : "repeat",
+      "string" : "repeat\n  \\mbody\\m\nuntil \\mexpression\\m",
+      "title" : "repeat - Repeat Statement",
+      "description" : "A block statement."
+    },
+    {
+      "key" : "if",
+      "string" : "if \\mexpression\\m then\n  \\mbody\\m\nend",
+      "title" : "if - If Statement",
+      "description" : "A block statement."
+    },
+    {
+      "key" : "elseif",
+      "string" : "elseif \\mexpression\\m then",
+      "title" : "elseif - Else If Statement",
+      "description" : "A block statement."
+    },
+    {
+      "key" : "else",
+      "string" : "else",
+      "title" : "else - Else Statement",
+      "description" : "A block statement."
+    },
+    {
+      "key" : "for",
+      "string" : "for \\mvar\\m = \\minitialization\\m, \\mcondition\\m \\m[,increment]\\m do\n  \\mbody\\m\nend",
+      "title" : "for - For Statement",
+      "description" : "A for loop."
+    },
+    {
+      "key" : "for",
+      "string" : "for \\mnamelist\\m in \\mexplist\\m do\n  \\mbody\\m\nend",
+      "title" : "for - For Statement",
+      "description" : "Another for loop."
+    }
+  ]
+}

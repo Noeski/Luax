@@ -345,7 +345,6 @@
     [self.file.context compile:string];
     
     [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:NSMakeRange(0, [string length])];
-    [self.layoutManager removeTemporaryAttribute:NSToolTipAttributeName forCharacterRange:NSMakeRange(0, [string length])];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:NSMakeRange(0, [string length])];
 
     for(LXToken *token in self.file.context.parser.tokens) {
@@ -375,7 +374,6 @@
     
     for(LXCompilerError *error in self.file.context.errors) {
         [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
-        [self.layoutManager addTemporaryAttribute:NSToolTipAttributeName value:error.error forCharacterRange:error.range];
         [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
     }
 }
@@ -610,6 +608,10 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                 else {
                     while(scope) {
                         for(LXVariable *variable in scope.localVariables) {
+                            if(!variable.type.isDefined) {
+                                continue;
+                            }
+                            
                             BOOL found = NO;
                             
                             for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {

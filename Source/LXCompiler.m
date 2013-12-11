@@ -55,8 +55,8 @@
             [context reportErrors];
         }
         else {
-            NSString *path = [context.name stringByDeletingLastPathComponent];
-            NSString *fileName = [[context.name lastPathComponent] stringByDeletingPathExtension];
+            //NSString *path = [context.name stringByDeletingLastPathComponent];
+            //NSString *fileName = [[context.name lastPathComponent] stringByDeletingPathExtension];
             
             //[[context.block toString] writeToFile:[NSString stringWithFormat:@"%@/%@.lua", path, fileName] atomically:YES encoding:NSUTF8StringEncoding error:nil];
         }
@@ -154,10 +154,6 @@
     
     return self;
 }
-
-/*- (LXScope *)scope {
-    return self.block.scope;
-}*/
 
 - (void)compile:(NSString *)string {
     [self.errors removeAllObjects];
@@ -476,6 +472,7 @@
                     
                     if(endBracketToken.type != ']') {
                         [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:endBracketToken]] range:endBracketToken.range line:endBracketToken.startLine column:endBracketToken.column];
+                        break;
                     }
                     
                     [self consumeToken];
@@ -486,6 +483,7 @@
 
                     if(equalsToken.type != '=') {
                         [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:equalsToken]] range:equalsToken.range line:equalsToken.startLine column:equalsToken.column];
+                        break;
                     }
                     
                     [self consumeToken];
@@ -562,7 +560,7 @@
             
             if(nameToken.type != LX_TK_NAME) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
-                
+                [self skipLine];
                 break;
             }
 
@@ -594,6 +592,8 @@
             
             if(endBracketToken.type != ']') {
                 [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:endBracketToken]] range:endBracketToken.range line:endBracketToken.startLine column:endBracketToken.column];
+                [self skipLine];
+                break;
             }
             
             [self consumeToken];
@@ -614,6 +614,7 @@
                 if(endParenToken.type != ',') {
                     if(endParenToken.type != ')') {
                         [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:endParenToken]] range:endParenToken.range line:endParenToken.startLine column:endParenToken.column];
+                        break;
                     }
                 }
                 else {
@@ -659,6 +660,8 @@
         
         if(endParenToken.type != ')') {
             [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:endParenToken]] range:endParenToken.range line:endParenToken.startLine column:endParenToken.column];
+            [self skipLine];
+            return expression;
         }
         
         [self consumeToken];
@@ -1196,6 +1199,7 @@
     
             if(thenToken.type != LX_TK_THEN) {
                 [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:thenToken]] range:thenToken.range line:thenToken.startLine column:thenToken.column];
+                [self skipLine];
             }
         
             [self consumeToken];
@@ -1217,6 +1221,8 @@
                 
                 if(thenToken.type != LX_TK_THEN) {
                     [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:thenToken]] range:thenToken.range line:thenToken.startLine column:thenToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 [self consumeToken];
@@ -1241,6 +1247,7 @@
 
             if(endToken.type != LX_TK_END) {
                 [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                break;
             }
         
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
@@ -1259,7 +1266,9 @@
             LXToken *doToken = [self currentToken];
             
             if(doToken.type != LX_TK_DO) {
-                [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                [self skipLine];
+                break;
             }
             
             [self consumeToken];
@@ -1272,6 +1281,7 @@
             
             if(endToken.type != LX_TK_END) {
                 [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                break;
             }
             
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
@@ -1290,6 +1300,7 @@
             
             if(endToken.type != LX_TK_END) {
                 [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                break;
             }
             
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
@@ -1310,6 +1321,8 @@
             
             if(![nameToken isType]) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' or 'type' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
+                [self skipLine];
+                break;
             }
             
             [self consumeToken];
@@ -1333,6 +1346,8 @@
 
                 if(commaToken.type != ',') {
                     [self addError:[NSString stringWithFormat:@"Expected ',' near: %@", [self tokenValue:commaToken]] range:commaToken.range line:commaToken.startLine column:commaToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 [statement addChunk:@"," line:commaToken.startLine column:commaToken.column];
@@ -1352,7 +1367,9 @@
                 LXToken *doToken = [self currentToken];
                 
                 if(doToken.type != LX_TK_DO) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                    [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 [self consumeToken];
@@ -1368,6 +1385,7 @@
                 
                 if(endToken.type != LX_TK_END) {
                     [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                    break;
                 }
                 
                 [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
@@ -1382,6 +1400,8 @@
 
                 if(nameToken.type != LX_TK_NAME) {
                     [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 NSString *name = [self tokenValue:nameToken];
@@ -1436,6 +1456,8 @@
                 
                 if(inToken.type != LX_TK_IN) {
                     [self addError:[NSString stringWithFormat:@"Expected 'in' near: %@", [self tokenValue:inToken]] range:inToken.range line:inToken.startLine column:inToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 [self consumeToken];
@@ -1461,7 +1483,9 @@
                 LXToken *doToken = [self currentToken];
                 
                 if(doToken.type != LX_TK_DO) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                    [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                    [self skipLine];
+                    break;
                 }
                 
                 [self consumeToken];
@@ -1476,6 +1500,7 @@
                 
                 if(endToken.type != LX_TK_END) {
                     [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                    break;
                 }
                 
                 [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
@@ -1495,6 +1520,8 @@
 
             if(untilToken.type != LX_TK_UNTIL) {
                 [self addError:[NSString stringWithFormat:@"Expected 'until' near: %@", [self tokenValue:untilToken]] range:untilToken.range line:untilToken.startLine column:untilToken.column];
+                [self skipLine];
+                break;
             }
             
             [statement addChunk:@"until" line:untilToken.startLine column:untilToken.column];
@@ -1522,6 +1549,8 @@
             
             if(nameToken.type != LX_TK_NAME) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
+                [self skipLine];
+                break;
             }
             
             [statement addChunk:[self tokenValue:nameToken] line:nameToken.startLine column:nameToken.column];
@@ -1531,6 +1560,8 @@
 
             if(endLabelToken.type != LX_TK_DBCOLON) {
                 [self addError:[NSString stringWithFormat:@"Expected '::' near: %@", [self tokenValue:endLabelToken]] range:endLabelToken.range line:endLabelToken.startLine column:endLabelToken.column];
+                [self skipLine];
+                break;
             }
             
             [self consumeToken];
@@ -1567,7 +1598,6 @@
         case LX_TK_BREAK: {
             [self consumeToken];
             [statement addChunk:@"break" line:current.startLine column:current.column];
-            
             break;
         }
         
@@ -1580,6 +1610,8 @@
             
             if(nameToken.type != LX_TK_NAME) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
+                [self skipLine];
+                break;
             }
             
             [statement addChunk:[self tokenValue:nameToken] line:nameToken.startLine column:nameToken.column];
@@ -1768,6 +1800,8 @@
                     
                     if(![assignmentToken isAssignmentOperator]) {
                         [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                        [self skipLine];
+                        break;
                     }
                     
                     [self consumeToken];

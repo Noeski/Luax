@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 65A8157716629CCC0050D80A /* Luax.app */; };
+		652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */ = {isa = PBXBuildFile; fileRef = 652E835418568B1900342128 /* AutoCompleteDefinitions.json */; };
 		654D74D818371DF800E37009 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 654D74D618371DF800E37009 /* InfoPlist.strings */; };
 		654D750518371E6B00E37009 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74E918371E6B00E37009 /* main.m */; };
 		654D750818371E6B00E37009 /* LXClass.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D74EF18371E6B00E37009 /* LXClass.m */; };
@@ -147,6 +148,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		652E835418568B1900342128 /* AutoCompleteDefinitions.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = AutoCompleteDefinitions.json; sourceTree = "<group>"; };
 		654D74D318371DEC00E37009 /* Luax-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "Luax-Info.plist"; path = "Source/Luax-Info.plist"; sourceTree = SOURCE_ROOT; };
 		654D74D418371DEC00E37009 /* Luax-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Luax-Prefix.pch"; path = "Source/Luax-Prefix.pch"; sourceTree = SOURCE_ROOT; };
 		654D74D718371DF800E37009 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = Source/en.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
@@ -442,6 +444,7 @@
 		65B55889168F8D4500BEA415 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				652E835418568B1900342128 /* AutoCompleteDefinitions.json */,
 				654D75131837248100E37009 /* Main.lux */,
 				659DE1BC184BF06F00627535 /* foldericon.png */,
 				659DE1BA184BE2ED00627535 /* scripticon.png */,
@@ -647,6 +650,7 @@
 				659DE1BB184BE2ED00627535 /* scripticon.png in Resources */,
 				654D75141837248100E37009 /* Main.lux in Resources */,
 				659DE1BD184BF06F00627535 /* foldericon.png in Resources */,
+				652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */,
 				79B95E60184E5B93005486F3 /* erroricon.png in Resources */,
 				79B95E61184E5B93005486F3 /* warningicon.png in Resources */,
 				656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */,
@@ -977,6 +981,7 @@
 				79B95E8718512CEF005486F3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
