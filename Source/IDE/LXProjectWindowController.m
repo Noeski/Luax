@@ -692,8 +692,11 @@
         [fileView save];
     }
     
-    [self.project run];
     [projectOutlineView reloadData];
+    
+    dispatch_after(0, dispatch_get_main_queue(), ^(void){
+        [self.project run];
+    });
 }
 
 
