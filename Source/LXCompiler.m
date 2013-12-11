@@ -1875,6 +1875,10 @@
                         ++i;
                     } while(YES);
                 }
+                else {
+                    [self addError:[NSString stringWithFormat:@"Expected ',' or '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                    break;
+                }
             }
             
             break;
