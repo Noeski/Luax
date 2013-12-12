@@ -70,6 +70,50 @@
     [self write:generated];
 }
 
+- (NSDictionary *)originalPosition:(NSInteger)line column:(NSInteger)column {
+    NSInteger index = [self.mappings indexOfObject:@{@"generated" : @{@"line" : @(line), @"column" : @(column)}} inSortedRange:NSMakeRange(0, [self.mappings count]) options:NSBinarySearchingFirstEqual usingComparator:^NSComparisonResult(NSDictionary *obj1, NSDictionary *obj2) {
+        NSInteger cmp = [obj1[@"generated"][@"line"] integerValue] - [obj2[@"generated"][@"line"] integerValue];
+        
+        if(cmp > 0)
+            return NSOrderedAscending;
+        else if(cmp < 0)
+            return NSOrderedDescending;
+        
+        cmp = [obj1[@"generated"][@"column"] integerValue] - [obj2[@"generated"][@"column"] integerValue];
+        
+        if(cmp > 0)
+            return NSOrderedAscending;
+        else if(cmp < 0)
+            return NSOrderedDescending;
+        
+        return NSOrderedSame;
+    }];
+    
+    return self.mappings[index];
+}
+
+- (NSDictionary *)generatedPosition:(NSInteger)line column:(NSInteger)column {
+    NSInteger index = [self.mappings indexOfObject:@{@"original" : @{@"line" : @(line), @"column" : @(column)}} inSortedRange:NSMakeRange(0, [self.mappings count]) options:NSBinarySearchingFirstEqual usingComparator:^NSComparisonResult(NSDictionary *obj1, NSDictionary *obj2) {
+        NSInteger cmp = [obj1[@"original"][@"line"] integerValue] - [obj2[@"original"][@"line"] integerValue];
+        
+        if(cmp > 0)
+            return NSOrderedAscending;
+        else if(cmp < 0)
+            return NSOrderedDescending;
+        
+        cmp = [obj1[@"original"][@"column"] integerValue] - [obj2[@"original"][@"column"] integerValue];
+        
+        if(cmp > 0)
+            return NSOrderedAscending;
+        else if(cmp < 0)
+            return NSOrderedDescending;
+        
+        return NSOrderedSame;
+    }];
+    
+    return self.mappings[index];
+}
+
 - (NSDictionary *)generateSourceMap {
     NSMutableArray *sourcesArray = [NSMutableArray array];
     NSMutableDictionary *sourcesMap = [NSMutableDictionary dictionary];

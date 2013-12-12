@@ -9,6 +9,13 @@
 #import <Foundation/Foundation.h>
 #import "LXCompiler.h"
 
+@class LXProject;
+@class LXProjectFile;
+@protocol LXProjectDelegate<NSObject>
+@optional
+- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line;
+@end
+
 @class LXProjectGroup;
 @interface LXProjectFile : NSObject
 @property (nonatomic, readonly) NSString *uid;
@@ -36,6 +43,7 @@
 @end
 
 @interface LXProject : NSObject
+@property (nonatomic, weak) id<LXProjectDelegate> delegate;
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) NSString *path;
 @property (nonatomic, readonly) NSArray *files;

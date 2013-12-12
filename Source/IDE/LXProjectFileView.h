@@ -17,12 +17,12 @@
 }
 
 @property (nonatomic, weak) id<LXProjectFileViewDelegate> delegate;
-@property (nonatomic, readonly) LXProjectFileReference *file;
+@property (nonatomic, readonly) LXProjectFile *file;
 @property (nonatomic, readonly) LXTextView *textView;
 @property (nonatomic, readonly) NSScrollView *textScrollView;
 @property (nonatomic, readonly) BOOL modified;
 
-- (id)initWithContentView:(NSView *)contentView file:(LXProjectFileReference *)file;
+- (id)initWithContentView:(NSView *)contentView file:(LXProjectFile *)file;
 
 - (void)save;
 - (void)resizeViews;

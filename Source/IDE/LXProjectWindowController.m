@@ -83,6 +83,7 @@
 
 - (void)setProject:(LXProject *)project {
     _project = project;
+    _project.delegate = self;
     [projectOutlineView reloadData];
     
     self.window.title = project.name;
@@ -338,7 +339,7 @@
         LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
         
         if(!fileView) {
-            fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item];
+            fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item.file];
             fileView.delegate = self;
             self.cachedFileViews[@((NSInteger)item.file)] = fileView;
         }
@@ -555,6 +556,23 @@
 
 - (void)splitView:(NSSplitView *)sender resizeSubviewsWithOldSize:(NSSize)oldSize {
     [sender adjustSubviews];
+}
+
+#pragma mark - LXProjectDelegate 
+
+- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line {
+    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)file)];
+    
+    if(!fileView) {
+        fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:file];
+        fileView.delegate = self;
+        self.cachedFileViews[@((NSInteger)file)] = fileView;
+    }
+    
+    [contentView setSubviews:@[fileView]];
+    [fileView resizeViews];
+    
+    [fileView.textView setHighlightedLine:line];
 }
 
 #pragma mark - LXProjectFileViewDelegate

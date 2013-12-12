@@ -8,11 +8,12 @@
 
 #import <Cocoa/Cocoa.h>
 
+#import "LXProject.h"
 #import "LXProjectFileView.h"
 #import "LXServer.h"
 #import "LXClient.h"
 
-@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectFileViewDelegate> {
+@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectDelegate, LXProjectFileViewDelegate> {
     IBOutlet NSComboBox *hostTextField;
     IBOutlet NSTextField *portTextField;
     IBOutlet NSButton *connectButton;

@@ -419,7 +419,7 @@ lua_State *state;
             }
             
             if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
-                [self breakLoop:sourceName line:debug->currentline error:NO];
+                [self breakLoop:file line:debug->currentline error:NO];
                 return YES;
             }
         }
@@ -428,13 +428,24 @@ lua_State *state;
     return NO;
 }
 
-- (void)breakLoop:(NSString *)source line:(NSInteger)line error:(BOOL)error {
+- (void)breakLoop:(LXProjectFile *)file line:(NSInteger)line error:(BOOL)error {
 	//if(mDebugState == ScriptDebugger::DEBUG_BREAK || mDebugState == ScriptDebugger::DEBUG_ERROR)
 	//	return;
     
 	//Application::Instance()->pause();
-	
-    NSLog(@"Hit breakpoint: %@ - %d", source, line);
+    
+    LXLuaWriter *writer = [[LXLuaWriter alloc] init];
+    writer.currentSource = file.name;
+    [file.context.block compile:writer];
+    
+    NSDictionary *mapping = [writer originalPosition:line column:0];
+    
+    NSLog(@"Mapping: %@", mapping);
+    
+    if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:)]) {
+        [self.delegate project:self file:file didBreakAtLine:line];
+    }
+    
     [self updateStack];
     
     do {

@@ -2,7 +2,7 @@
 
 @implementation LXProjectFileView
 
-- (id)initWithContentView:(NSView *)contentView file:(LXProjectFileReference *)file {
+- (id)initWithContentView:(NSView *)contentView file:(LXProjectFile *)file {
 	if(self = [super initWithFrame:contentView.bounds]) {
         [self setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 
@@ -20,7 +20,7 @@
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewFrameDidChangeNotification object:[_textScrollView contentView]];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewBoundsDidChangeNotification object:[_textScrollView contentView]];
         
-		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file.file];
+		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file];
         _textView.delegate = self;
 		[_textView setMinSize:contentSize];
 		[_textView setHorizontallyResizable:YES];
@@ -44,7 +44,7 @@
 
 - (void)save {
     if(self.modified) {
-        self.file.file.contents = self.textView.string;
+        self.file.contents = self.textView.string;
          
         _modified = NO;
      
@@ -259,7 +259,7 @@
 }
 
 - (void)addBreakpoint:(NSUInteger)line {
-    [self.file.file addBreakpoint:line];
+    [self.file addBreakpoint:line];
     
     if([self.delegate respondsToSelector:@selector(fileDidAddBreakpoint:line:)]) {
         [self.delegate fileDidAddBreakpoint:self line:line];
@@ -267,7 +267,7 @@
 }
 
 - (void)removeBreakpoint:(NSUInteger)line {
-    [self.file.file removeBreakpoint:line];
+    [self.file removeBreakpoint:line];
 
     if([self.delegate respondsToSelector:@selector(fileDidRemoveBreakpoint:line:)]) {
         [self.delegate fileDidRemoveBreakpoint:self line:line];
