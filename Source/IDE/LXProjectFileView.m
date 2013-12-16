@@ -94,7 +94,7 @@
 	NSRect visibleRect = [[self.textScrollView contentView] documentVisibleRect];
 	NSRange visibleRange = [layoutManager glyphRangeForBoundingRect:visibleRect inTextContainer:[self.textView textContainer]];
 	NSString *textString = [self.textView string];
-	NSString *searchString = [textString substringWithRange:NSMakeRange(0,visibleRange.location)];
+	NSString *searchString = [textString substringWithRange:NSMakeRange(0, visibleRange.location)];
 	
     NSInteger index, lineNumber;
     
@@ -180,7 +180,7 @@
 			break;
 		}
 	}
-
+    
     _gutterTextView.lineNumberRange = lineNumberRange;
     
     NSInteger point = visibleRect.origin.y < 0.0 ? visibleRect.origin.y : (NSInteger)visibleRect.origin.y % currentLineHeight;

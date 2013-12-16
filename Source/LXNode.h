@@ -19,9 +19,6 @@
 - (void)write:(NSString *)generated line:(NSInteger)line column:(NSInteger)column;
 - (void)write:(NSString *)generated name:(NSString *)name line:(NSInteger)line column:(NSInteger)column;
 - (NSDictionary *)generateSourceMap;
-
-- (NSDictionary *)originalPosition:(NSInteger)line column:(NSInteger)column;
-- (NSDictionary *)generatedPosition:(NSInteger)line column:(NSInteger)column;
 @end
 
 typedef enum {

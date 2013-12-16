@@ -14,7 +14,16 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-LXProject *project = nil;
+typedef enum {
+    LXDebugStateStopped,
+    LXDebugStateRunning,
+    LXDebugStateBreak,
+    LXDebugStateError,
+    LXDebugStatePause,
+    LXDebugStateStepInto,
+    LXDebugStateStepOver,
+    LXDebugStateStepOut
+} LXDebugState;
 
 @interface LXProjectFile()
 @property (nonatomic, weak) LXProject *project;
@@ -22,8 +31,10 @@ LXProject *project = nil;
 @property (nonatomic, strong) NSString *mutablePath;
 @property (nonatomic, assign) BOOL isMain;
 @property (nonatomic, strong) NSMutableDictionary *mutableBreakpoints;
+@property (nonatomic, strong) NSMutableDictionary *mutableMappedBreakpoints;
 @property (nonatomic, strong) NSString *cachedContents;
 @property (nonatomic, strong) NSString *cachedCompiledContents;
+@property (nonatomic, strong) NSArray *cachedMappings;
 @property (nonatomic, strong) NSDate *lastModifiedDate;
 @property (nonatomic, strong) NSDate *lastCompileDate;
 
@@ -37,6 +48,7 @@ LXProject *project = nil;
         _project = project;
         _context = [[LXContext alloc] initWithName:nil compiler:project.compiler];
         _mutableBreakpoints = [[NSMutableDictionary alloc] init];
+        _mutableMappedBreakpoints = [[NSMutableDictionary alloc] init];
         _lastModifiedDate = [NSDate date];
         _lastCompileDate = [NSDate dateWithTimeIntervalSince1970:0];
     }
@@ -79,6 +91,18 @@ LXProject *project = nil;
     return _cachedCompiledContents;
 }
 
+- (NSArray *)cachedMappings {
+    if(!_cachedMappings) {
+        NSString *path = [self.project.path stringByAppendingFormat:@"/.build/%@.map", [self.name stringByDeletingPathExtension]];
+        NSDictionary *mapContents = [[NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil] JSONValue];
+        
+        if(mapContents)
+            _cachedMappings = [self parseMapping:mapContents[@"mappings"]];
+    }
+    
+    return _cachedMappings;
+}
+
 - (void)setContents:(NSString *)contents {
     _cachedContents = contents;
     
@@ -96,10 +120,18 @@ LXProject *project = nil;
 
 - (void)addBreakpoint:(NSInteger)line {
     self.mutableBreakpoints[@(line)] = @YES;
+    
+    if(self.cachedMappings) {
+        self.mutableMappedBreakpoints[@([self generatedLine:line-1])] = @(line);
+    }
 }
 
 - (void)removeBreakpoint:(NSInteger)line {
     [self.mutableBreakpoints removeObjectForKey:@(line)];
+    
+    if(self.cachedMappings) {
+        [self.mutableMappedBreakpoints removeObjectForKey:@([self generatedLine:line])];
+    }
 }
 
 - (NSDictionary *)save {
@@ -121,6 +153,7 @@ LXProject *project = nil;
     }
     
     self.cachedCompiledContents = nil;
+    self.cachedMappings = nil;
     
     [self.context compile:self.contents];
     
@@ -132,11 +165,19 @@ LXProject *project = nil;
     writer.currentSource = self.name;
     [self.context.block compile:writer];
     
+    self.cachedMappings = writer.mappings;
+    
+    [self.mutableMappedBreakpoints removeAllObjects];
+    
+    for(NSNumber *breakpoint in [self.breakpoints allKeys]) {
+        self.mutableMappedBreakpoints[@([self generatedLine:[breakpoint integerValue]-1])] = breakpoint;
+    }
+    
     NSString *path = [self.project.path stringByAppendingFormat:@"/.build/%@.lua", [self.name stringByDeletingPathExtension]];
     [writer.string writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:nil];
     
     NSString *mapPath = [self.project.path stringByAppendingFormat:@"/.build/%@.map", [self.name stringByDeletingPathExtension]];
-    [[[writer generateSourceMap] JSONRepresentation] writeToFile:mapPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    [[[self generateSourceMap:self.cachedMappings] JSONRepresentation] writeToFile:mapPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
     self.lastCompileDate = [NSDate date];
 }
 
@@ -146,6 +187,213 @@ LXProject *project = nil;
     NSString *mapPath = [self.project.path stringByAppendingFormat:@"/.build/%@.map", [self.name stringByDeletingPathExtension]];
     [[NSFileManager defaultManager] removeItemAtPath:mapPath error:nil];
     self.lastCompileDate = [NSDate dateWithTimeIntervalSince1970:0];
+}
+
+- (NSDictionary *)generateSourceMap:(NSArray *)mappings {
+    NSMutableArray *sourcesArray = [NSMutableArray array];
+    NSMutableDictionary *sourcesMap = [NSMutableDictionary dictionary];
+    NSInteger currentSourceIndex = 0;
+    
+    NSMutableArray *namesArray = [NSMutableArray array];
+    NSMutableDictionary *namesMap = [NSMutableDictionary dictionary];
+    NSInteger currentNameIndex = 0;
+    
+    NSInteger previousGeneratedColumn = 0;
+    NSInteger previousGeneratedLine = 0;
+    NSInteger previousOriginalColumn = 0;
+    NSInteger previousOriginalLine = 0;
+    NSInteger previousSource = 0;
+    NSInteger previousName = 0;
+    
+    NSString *mappingString = @"";
+    
+    for(NSInteger i = 0; i < [mappings count]; ++i) {
+        NSDictionary *mapping = mappings[i];
+        NSInteger generatedLine = [mapping[@"generated"][@"line"] integerValue];
+        NSInteger generatedColumn = [mapping[@"generated"][@"column"] integerValue];
+        NSInteger originalLine = [mapping[@"original"][@"line"] integerValue];
+        NSInteger originalColumn = [mapping[@"original"][@"column"] integerValue];
+        NSString *source = mapping[@"source"];
+        NSString *name = mapping[@"name"];
+        
+        if(generatedLine != previousGeneratedLine) {
+            previousGeneratedColumn = 0;
+            while(generatedLine != previousGeneratedLine) {
+                mappingString = [mappingString stringByAppendingString:@";"];
+                previousGeneratedLine++;
+            }
+        }
+        else {
+            if(i > 0) {
+                NSDictionary *lastMapping = mappings[i-1];
+                
+                if([lastMapping isEqualToDictionary:mapping])
+                    continue;
+                
+                mappingString = [mappingString stringByAppendingString:@","];
+            }
+        }
+        
+        
+        mappingString = [mappingString stringByAppendingString:[@(generatedColumn - previousGeneratedColumn) encode]];
+        
+        previousGeneratedColumn = generatedColumn;
+        
+        NSNumber *sourceIndex = sourcesMap[source];
+        
+        if(!sourceIndex) {
+            sourceIndex = [NSNumber numberWithInteger:currentSourceIndex++];
+            sourcesMap[source] = sourceIndex;
+            
+            [sourcesArray addObject:source];
+        }
+        
+        mappingString = [mappingString stringByAppendingString:[@([sourceIndex integerValue] - previousSource) encode]];
+        previousSource = [sourceIndex integerValue];
+        
+        mappingString = [mappingString stringByAppendingString:[@(originalLine - previousOriginalLine) encode]];
+        
+        previousOriginalLine = originalLine;
+        
+        mappingString = [mappingString stringByAppendingString:[@(originalColumn - previousOriginalColumn) encode]];
+        
+        previousOriginalColumn = originalColumn;
+        
+        if([name length] > 0) {
+            NSNumber *nameIndex = namesMap[name];
+            
+            if(!nameIndex) {
+                nameIndex = [NSNumber numberWithInteger:currentNameIndex++];
+                namesMap[name] = nameIndex;
+                
+                [namesArray addObject:name];
+                
+            }
+            
+            mappingString = [mappingString stringByAppendingString:[@([nameIndex integerValue] - previousName) encode]];
+            previousName = [nameIndex integerValue];
+        }
+    }
+    
+    return @{@"version" : @(3), @"sources" : sourcesArray, @"names" : namesArray, @"mappings" : mappingString};
+}
+
+- (NSArray *)parseMapping:(NSString *)string {
+    NSMutableString *mutableString = [NSMutableString stringWithString:string];
+    NSMutableArray *newMappings = [NSMutableArray array];
+    
+    NSInteger generatedLine = 0;
+    NSInteger previousGeneratedColumn = 0;
+    NSInteger previousOriginalLine = 0;
+    NSInteger previousOriginalColumn = 0;
+    NSInteger previousSource = 0;
+    NSInteger previousName = 0;
+    NSCharacterSet *mappingSeparator = [NSCharacterSet characterSetWithCharactersInString:@",;"];
+    
+    while([mutableString length] > 0) {
+        if([mutableString characterAtIndex:0] == ';') {
+            generatedLine++;
+            [mutableString deleteCharactersInRange:NSMakeRange(0, 1)];
+            previousGeneratedColumn = 0;
+        }
+        else if([string characterAtIndex:0] == ',') {
+            string = [string substringFromIndex:1];
+        }
+        else {
+            NSMutableDictionary *mapping = [NSMutableDictionary dictionary];
+            NSInteger temp;
+            
+            temp = [[mutableString decode] integerValue];
+            previousGeneratedColumn = previousGeneratedColumn + temp;
+            
+            mapping[@"generated"] = @{@"line" : @(generatedLine), @"column" : @(previousGeneratedColumn)};
+            
+            if([mutableString length] > 0 && ![mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
+                // Original source.
+                temp = [[mutableString decode] integerValue];
+                
+                NSInteger source = previousSource + temp;
+                previousSource += temp;
+                
+                if([mutableString length] == 0 || [mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
+                    //error
+                }
+                
+                temp = [[mutableString decode] integerValue];
+                
+                // Original line.
+                NSInteger originalLine = previousOriginalLine + temp;
+                previousOriginalLine = originalLine;
+                
+                if([mutableString length] == 0 || [mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
+                    //error
+                }
+                
+                temp = [[mutableString decode] integerValue];
+                
+                NSInteger originalColumn = previousOriginalColumn + temp;
+                previousOriginalColumn = originalColumn;
+                
+                mapping[@"original"] = @{@"line" : @(originalLine), @"column" : @(originalColumn)};
+                
+                if([mutableString length] > 0 && ![mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
+                    // Original name.
+                    temp = [[mutableString decode] integerValue];
+                    
+                    mapping[@"name"] = @(previousName+temp);
+                    
+                    previousName += temp;
+                }
+            }
+            
+            [newMappings addObject:mapping];
+        }
+    }
+    
+    return newMappings;
+}
+
+id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, NSInteger (^comparator)(id obj1, id obj2)) {
+    NSInteger mid = floor((high - low) / 2) + low;
+    NSInteger cmp = comparator(needle, haystack[mid]);
+    
+    if(cmp == 0) {
+        return haystack[mid];
+    }
+    else if(cmp > 0) {
+        if(high - mid > 1) {
+            return recursiveSearch(mid, high, needle, haystack, comparator);
+        }
+        
+        return haystack[mid];
+    }
+    else {
+        if(mid - low > 1) {
+            return recursiveSearch(low, mid, needle, haystack, comparator);
+        }
+        
+        return low < 0 ? nil : haystack[low];
+    }
+}
+
+- (NSInteger)originalLine:(NSInteger)line {
+    NSDictionary *mapping = recursiveSearch(-1, [self.cachedMappings count], @(line), self.cachedMappings, ^(NSNumber *obj1, NSDictionary *obj2) {
+        NSInteger cmp = [obj1 integerValue] - [obj2[@"generated"][@"line"] integerValue];
+        
+        return cmp;
+    });
+    
+    return [mapping[@"original"][@"line"] integerValue]+1;
+}
+
+- (NSInteger)generatedLine:(NSInteger)line {
+    NSDictionary *mapping = recursiveSearch(-1, [self.cachedMappings count], @(line), self.cachedMappings, ^(NSNumber *obj1, NSDictionary *obj2) {
+        NSInteger cmp = [obj1 integerValue] - [obj2[@"original"][@"line"] integerValue];
+        
+        return cmp;
+    });
+    
+    return [mapping[@"generated"][@"line"] integerValue]+1;
 }
 
 + (NSDateFormatter *)dateFormatter {
@@ -266,7 +514,16 @@ LXProject *project = nil;
 @end
 
 
-@interface LXProject()
+@interface LXProject() {
+    NSOperationQueue *_queue;
+    lua_State *_state;
+    jmp_buf _jmp;
+}
+
+@property (atomic, assign) LXDebugState debugState;
+@property (nonatomic, assign) NSInteger functionLevel;
+@property (nonatomic, assign) NSInteger stopLevel;
+
 @property (nonatomic, readonly) NSMutableArray *mutableFiles;
 @property (nonatomic, weak) LXProjectFile *mainFile;
 @end
@@ -275,6 +532,7 @@ LXProject *project = nil;
 
 - (id)init {
     if(self = [super init]) {
+        _queue = [[NSOperationQueue alloc] init];
         _mutableFiles = [[NSMutableArray alloc] init];
         _root = [[LXProjectGroup alloc] initWithParent:nil];
         _compiler = [[LXCompiler alloc] init];
@@ -359,57 +617,237 @@ LXProject *project = nil;
 }
 
 void breakpointHook(lua_State* L, lua_Debug* dbg) {
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+
     [project checkBreakpoints:L debug:dbg];
 }
 
-lua_State *state;
+void defaultHook(lua_State* L, lua_Debug* dbg) {
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
 
-- (void)run {
-    project = self; //
+    lua_getinfo(L, "Sl", dbg);
+	
+	if(strcmp("C", dbg->what) == 0)
+		return;
     
-    [self compile];
+    NSString *sourceName = [[[NSString stringWithFormat:@"%s", dbg->source] lastPathComponent] stringByDeletingPathExtension];
+    LXProjectFile *sourceFile = nil;
     
-    state = luaL_newstate();
-    
-	luaL_openlibs(state);
-    
-    lua_getglobal(state, "package");
-    lua_getfield(state, -1, "path");
-    NSString *path = [NSString stringWithUTF8String:lua_tostring(state, -1)];
-    path = [path stringByAppendingFormat:@";%@/?.lua", [NSString stringWithFormat:@"%@/.build", self.path]];
-    lua_pop(state, 1);
-    lua_pushstring(state, [path UTF8String]);
-    lua_setfield(state, -2, "path" );
-    lua_pop(state, 1 );
-    
-    NSString *source = self.mainFile.compiledContents;
-    
-    int status = luaL_loadbuffer(state, [source UTF8String], [source length], [self.mainFile.name UTF8String]);
-
-    if(status != 0) {
-        const char *error = lua_tostring(state, -1);
-        lua_pop(state, 1);
-        
-        NSLog(@"%s", error);
+    for(LXProjectFile *file in project.files) {
+        if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
+            sourceFile = file;
+            break;
+        }
     }
     
-    lua_sethook(state, breakpointHook, LUA_MASKLINE, 0);
-
-    int top = lua_gettop(state);
-    
-    for(int i = 0; i < top; ++i) {
-        lua_call(state, 0, LUA_MULTRET);
-    }
-    
-    lua_close(state);
+    [project breakLoop:sourceFile line:[sourceFile originalLine:dbg->currentline-1] error:NO];
 }
 
+void stepOverHook(lua_State* L, lua_Debug* dbg) {
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+
+    switch(dbg->event) {
+		case LUA_HOOKTAILCALL:
+		case LUA_HOOKCALL:
+			project.functionLevel++;
+			break;
+			
+		case LUA_HOOKRET:
+			project.functionLevel--;
+			break;
+			
+		case LUA_HOOKLINE:
+            if([project checkBreakpoints:L debug:dbg])
+                return;
+            
+			if(project.stopLevel >= project.functionLevel) {
+				lua_getinfo(L, "Sl", dbg);
+				
+                NSString *sourceName = [[[NSString stringWithFormat:@"%s", dbg->source] lastPathComponent] stringByDeletingPathExtension];
+                LXProjectFile *sourceFile = nil;
+                
+                for(LXProjectFile *file in project.files) {
+                    if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
+                        sourceFile = file;
+                        break;
+                    }
+                }
+                
+                [project breakLoop:sourceFile line:[sourceFile originalLine:dbg->currentline-1] error:NO];
+			}
+			
+			break;
+	}
+}
+
+void stepOutHook(lua_State* L, lua_Debug* dbg) {
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+
+    switch(dbg->event) {
+		case LUA_HOOKTAILCALL:
+		case LUA_HOOKCALL:
+			project.functionLevel++;
+			break;
+			
+		case LUA_HOOKRET:
+			project.functionLevel--;
+			break;
+			
+		case LUA_HOOKLINE:
+            if([project checkBreakpoints:L debug:dbg])
+                return;
+            
+			if(project.stopLevel > project.functionLevel) {
+				lua_getinfo(L, "Sl", dbg);
+				
+                NSString *sourceName = [[[NSString stringWithFormat:@"%s", dbg->source] lastPathComponent] stringByDeletingPathExtension];
+                LXProjectFile *sourceFile = nil;
+                
+                for(LXProjectFile *file in project.files) {
+                    if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
+                        sourceFile = file;
+                        break;
+                    }
+                }
+                
+                [project breakLoop:sourceFile line:[sourceFile originalLine:dbg->currentline-1] error:NO];
+			}
+			
+			break;
+	}
+}
+
+void stopHook(lua_State* L, lua_Debug* dbg) {
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+
+    longjmp(project->_jmp, 1);
+}
+
+- (void)run {
+    [self compile];
+    
+    if([self isRunning]) {
+        [self stopExecution];
+    }
+    
+    [_queue addOperationWithBlock:^{
+        self.debugState = LXDebugStateRunning;
+
+        _state = luaL_newstate();
+        [LXProject stateMap][@((NSInteger)_state)] = self;
+        
+        luaL_openlibs(_state);
+        
+        lua_getglobal(_state, "package");
+        lua_getfield(_state, -1, "path");
+        NSString *path = [NSString stringWithUTF8String:lua_tostring(_state, -1)];
+        path = [path stringByAppendingFormat:@";%@/?.lua", [NSString stringWithFormat:@"%@/.build", self.path]];
+        lua_pop(_state, 1);
+        lua_pushstring(_state, [path UTF8String]);
+        lua_setfield(_state, -2, "path" );
+        lua_pop(_state, 1 );
+        
+        NSString *source = self.mainFile.compiledContents;
+        
+        int status = luaL_loadbuffer(_state, [source UTF8String], [source length], [self.mainFile.name UTF8String]);
+
+        if(status != 0) {
+            const char *error = lua_tostring(_state, -1);
+            lua_pop(_state, 1);
+            
+            NSLog(@"%s", error);
+        }
+        
+        lua_sethook(_state, breakpointHook, LUA_MASKLINE, 0);
+        
+        int top = lua_gettop(_state);
+        
+        for(int i = 0; i < top; ++i) {
+            if(setjmp(_jmp) != 0)
+                break;
+            
+            lua_call(_state, 0, LUA_MULTRET);
+        }
+        
+        lua_close(_state);
+        
+        [[LXProject stateMap] removeObjectForKey:@((NSInteger)_state)];
+        _state = NULL;
+        
+        self.debugState = LXDebugStateStopped;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([self.delegate respondsToSelector:@selector(projectFinishedRunning:)])
+               [self.delegate projectFinishedRunning:self];
+        });
+    }];
+}
+
+- (void)stopExecution {
+    [self continueExecution:LXDebugStateStopped];
+    [_queue waitUntilAllOperationsAreFinished];
+}
+
+- (void)continueExecution:(LXDebugState)state {
+    if(self.debugState == state)
+        return;
+    
+    self.stopLevel = self.functionLevel;
+    
+    switch(state) {
+        case LXDebugStateRunning:
+            lua_sethook(_state, breakpointHook, LUA_MASKLINE, 0);
+            break;
+        case LXDebugStatePause:
+            lua_sethook(_state, defaultHook, LUA_MASKLINE, 0);
+            break;
+        case LXDebugStateStepInto:
+            lua_sethook(_state, defaultHook, LUA_MASKLINE, 0);
+            break;
+        case LXDebugStateStepOver:
+            lua_sethook(_state, stepOverHook, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, 0);
+            break;
+        case LXDebugStateStepOut:
+            lua_sethook(_state, stepOutHook, LUA_MASKLINE | LUA_MASKCALL | LUA_MASKRET, 0);
+            break;
+        case LXDebugStateStopped:
+            lua_sethook(_state, stopHook, LUA_MASKLINE, 0);
+        default:
+            break;
+    }
+    
+    self.debugState = state;
+}
+
+- (void)continueExecution {
+    [self continueExecution:LXDebugStateRunning];
+}
+
+- (void)pauseExecution {
+    [self continueExecution:LXDebugStatePause];
+}
+
+- (void)stepInto {
+    [self continueExecution:LXDebugStateStepInto];
+}
+
+- (void)stepOver {
+    [self continueExecution:LXDebugStateStepOver];
+}
+
+- (void)stepOut {
+    [self continueExecution:LXDebugStateStepOut];
+}
+
+- (BOOL)isRunning {
+    return self.debugState != LXDebugStateStopped;
+}
 
 - (BOOL)checkBreakpoints:(lua_State *)state debug:(lua_Debug *)debug {
     NSString *sourceName = nil;
     
     for(LXProjectFile *file in self.files) {
-        BOOL breakpoint = file.breakpoints[@(debug->currentline)];
+        NSNumber *breakpoint = file.mutableMappedBreakpoints[@(debug->currentline)];
         
         if(breakpoint) {
             if(!sourceName) {
@@ -419,7 +857,7 @@ lua_State *state;
             }
             
             if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
-                [self breakLoop:file line:debug->currentline error:NO];
+                [self breakLoop:file line:[breakpoint integerValue] error:NO];
                 return YES;
             }
         }
@@ -429,36 +867,35 @@ lua_State *state;
 }
 
 - (void)breakLoop:(LXProjectFile *)file line:(NSInteger)line error:(BOOL)error {
-	//if(mDebugState == ScriptDebugger::DEBUG_BREAK || mDebugState == ScriptDebugger::DEBUG_ERROR)
-	//	return;
+    LXDebugState state = self.debugState;
+    
+	if(state == LXDebugStateBreak || state == LXDebugStateError)
+		return;
     
 	//Application::Instance()->pause();
     
-    LXLuaWriter *writer = [[LXLuaWriter alloc] init];
-    writer.currentSource = file.name;
-    [file.context.block compile:writer];
-    
-    NSDictionary *mapping = [writer originalPosition:line column:0];
-    
-    NSLog(@"Mapping: %@", mapping);
-    
-    if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:)]) {
-        [self.delegate project:self file:file didBreakAtLine:line];
+    if(error) {
+        self.debugState = LXDebugStateError;
     }
+    else {
+        self.debugState = LXDebugStateBreak;
+    }
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:)]) {
+            [self.delegate project:self file:file didBreakAtLine:line];
+        }
+    });
     
     [self updateStack];
     
     do {
-        @autoreleasepool {
-            NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
-                                                untilDate:[NSDate distantFuture]
-                                                   inMode:NSDefaultRunLoopMode
-                                                  dequeue:YES];
-            if(event) {
-                [NSApp sendEvent:event];
-            }
-        }
-    } while(YES);
+        usleep(100000);
+        
+        state = self.debugState;
+    }
+    while(state == LXDebugStateBreak ||
+          state == LXDebugStateError);
         
     //Application::Instance()->resume();
 }
@@ -594,13 +1031,13 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
     for(; true; ++stackDepth) {
         lua_Debug ar;
         
-        bool ok = lua_getstack(state, stackDepth, &ar);
+        bool ok = lua_getstack(_state, stackDepth, &ar);
         
         if(!ok)
             break;
         
-        lua_getinfo(state, "funSl", &ar);
-        int funcidx = lua_gettop(state);
+        lua_getinfo(_state, "funSl", &ar);
+        int funcidx = lua_gettop(_state);
         
         NSMutableDictionary *callValue = [NSMutableDictionary dictionary];
         
@@ -631,7 +1068,7 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
         NSMutableArray *locals = [NSMutableArray array];
         
         for(int i = 1; true; ++i) {
-            const char *key = lua_getlocal(state, &ar, i);
+            const char *key = lua_getlocal(_state, &ar, i);
             if(key == NULL)
                 break;
             
@@ -640,10 +1077,10 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
             value[@"where"] = @(stackDepth);
             value[@"index"] = @(i);
             
-            lua_toValue(value, state, lua_gettop(state), tables, tablesVisited);
+            lua_toValue(value, _state, lua_gettop(_state), tables, tablesVisited);
             
             [locals addObject:value];
-            lua_pop(state, 1);
+            lua_pop(_state, 1);
         }
         
         callValue[@"locals"] = locals;
@@ -651,7 +1088,7 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
         NSMutableArray *upvalues = [NSMutableArray array];
         
         for(int i = 1; true; ++i) {
-            const char *key = lua_getupvalue(state, funcidx, i);
+            const char *key = lua_getupvalue(_state, funcidx, i);
             if(key == NULL)
                 break;
             
@@ -660,15 +1097,15 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
             value[@"where"] = @(stackDepth);
             value[@"index"] = @(i);
             
-            lua_toValue(value, state, -1, tables, tablesVisited);
+            lua_toValue(value, _state, -1, tables, tablesVisited);
             
             [upvalues addObject:value];
-            lua_pop(state, 1);
+            lua_pop(_state, 1);
         }
         
         callValue[@"upvalues"] = upvalues;
         
-        lua_pop(state, 1);
+        lua_pop(_state, 1);
         
         [stack addObject:callValue];
         
@@ -680,17 +1117,26 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
     NSMutableDictionary *globals = [NSMutableDictionary dictionary];
     globals[@"name"] = @"_G";
     
-    lua_getglobal(state, "_G");
-    lua_toValue(globals, state, -1, tables, tablesVisited);
+    lua_getglobal(_state, "_G");
+    lua_toValue(globals, _state, -1, tables, tablesVisited);
     
-    lua_pop(state, 1);
+    lua_pop(_state, 1);
     
     root[@"globals"] = globals;
     root[@"tables"] = tables;
     
-    NSLog(@"root: %@", root);
+    //NSLog(@"root: %@", root);
 }
 
++ (NSMutableDictionary *)stateMap {
+    static NSMutableDictionary *stateMap = nil;
+    
+    if(!stateMap) {
+        stateMap = [[NSMutableDictionary alloc] init];
+    }
+    
+    return stateMap;
+}
 
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index {
     LXProjectGroup *group = [[LXProjectGroup alloc] initWithParent:parent];

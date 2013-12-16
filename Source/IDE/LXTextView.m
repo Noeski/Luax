@@ -270,7 +270,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 	[self setRichText:NO];
 	[self setImportsGraphics:NO];
 	[self setUsesFontPanel:NO];
-	
+	[self setTextContainerInset:NSMakeSize(5, 0)];
 	[self setContinuousSpellCheckingEnabled:NO];
 	[self setGrammarCheckingEnabled:NO];
 	
@@ -288,6 +288,12 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
     [self setString:self.file.contents];
 }
 
+- (NSPoint)textContainerOrigin {
+    NSPoint origin = [super textContainerOrigin];
+    NSPoint newOrigin = NSMakePoint(origin.x + 5.0f, origin.y);
+    return newOrigin;
+}
+
 - (void)mouseMoved:(NSEvent *)theEvent {
     [super mouseMoved:theEvent];
     
@@ -297,6 +303,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         NSRange range = error.range;
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
         NSRect errorRect = NSMakeRect(rangeRect.origin.x-2, NSMaxY(rangeRect), 4, 4);
         
         NSPoint eventLocation = [theEvent locationInWindow];
@@ -565,6 +572,28 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     [undoManager endUndoGrouping];
 }
 
+BOOL LXLocationInRange(NSInteger location, NSRange range) {
+    if(location < range.location || location > NSMaxRange(range))
+        return NO;
+    
+    return YES;
+}
+
+- (NSInteger)lineForLocation:(NSInteger)location {
+    NSInteger numberOfLines, index, stringLength = [[self string] length];
+    
+    for(index = 0, numberOfLines = 0; index < stringLength; numberOfLines++) {
+        NSRange range = [[self string] lineRangeForRange:NSMakeRange(index, 0)];
+        
+        if(NSLocationInRange(location, range))
+            break;
+        
+        index = NSMaxRange(range);
+    }
+    
+    return numberOfLines;
+}
+
 - (void)updateAutoComplete:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {
     unichar ch = 0;
     
@@ -591,14 +620,14 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     else {
         if([identifierCharacterSet characterIsMember:ch]) {
             NSInteger startIndex = affectedCharRange.location-1;
-            
-            while(startIndex >= 0) {
-                ch = [[self string] characterAtIndex:startIndex];
+
+            LXToken *previousToken = [self tokenBeforeRange:affectedCharRange];
+            if(LXLocationInRange(affectedCharRange.location, previousToken.range)) {
+                if(![previousToken isType] && ![previousToken isKeyword])
+                    return;
                 
-                if(![identifierCharacterSet characterIsMember:ch])
-                    break;
-                
-                startIndex--;
+                startIndex = previousToken.range.location-1;
+                previousToken = [self tokenBeforeRange:previousToken.range];
             }
             
             NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
@@ -658,20 +687,24 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
                     }
                     
                     //
-                    for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-                        BOOL found = NO;
-                        
-                        for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-                            if([otherDefinition.key isEqualToString:definition.key]) {
-                                found = YES;
-                                break;
+                    
+                    NSInteger line = [self lineForLocation:affectedCharRange.location];
+                    if(line != previousToken.endLine) {
+                        for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
+                            BOOL found = NO;
+                            
+                            for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                                if([otherDefinition.key isEqualToString:definition.key]) {
+                                    found = YES;
+                                    break;
+                                }
                             }
+                            
+                            if(found)
+                                continue;
+                            
+                            [autoCompleteDefinitions addObject:definition];
                         }
-                        
-                        if(found)
-                            continue;
-                        
-                        [autoCompleteDefinitions addObject:definition];
                     }
                 }
                 
@@ -732,7 +765,6 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         else {
             
         }
-        
     }
 }
 
@@ -1095,6 +1127,9 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 }
 
 - (void)setSelectedRange:(NSRange)charRange affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag {
+    //if(settingAutoComplete)
+    //   [self cancelAutoComplete]; TODO cancel setting autocomplete
+    
     if(insertAutoComplete && !settingAutoCompleteRange) {
         [self cancelAutoComplete];
     }
@@ -1395,9 +1430,32 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     return aRect;
 }
 
+- (void)drawScope:(LXScope *)scope {
+    NSUInteger rectCount;
+    NSRectArray rects = [[self layoutManager] rectArrayForCharacterRange:scope.range withinSelectedCharacterRange:NSMakeRange(NSNotFound, 0) inTextContainer:[self textContainer] rectCount:&rectCount];
+    
+    [[NSColor colorWithDeviceRed:0.9-scope.scopeLevel*0.05 green:0.9-scope.scopeLevel*0.05 blue:0.9-scope.scopeLevel*0.05 alpha:1.0] set];
+    
+    for(NSUInteger i = 0; i < rectCount; ++i) {
+        NSRect rect = rects[i];
+        
+        if(rect.origin.x == 5)
+            [NSBezierPath fillRect:NSMakeRect(1, rect.origin.y, 5, rect.size.height)];
+        
+            //[NSBezierPath strokeLineFromPoint:NSMakePoint(rect.origin.x, rect.origin.y) toPoint:NSMakePoint(rect.origin.x, NSMaxY(rect))];
+    }
+    
+    for(LXScope *child in scope.children) {
+        [self drawScope:child];
+    }
+}
+
 - (void)drawViewBackgroundInRect:(NSRect)rect {
     [super drawViewBackgroundInRect:rect];
 	
+    LXScope *scope = self.file.context.scope;
+    [self drawScope:scope];
+    
     NSUInteger rectCount;
     NSRectArray rects = [[self layoutManager] rectArrayForCharacterRange:[self selectedRange] withinSelectedCharacterRange:NSMakeRange(NSNotFound, 0) inTextContainer:[self textContainer] rectCount:&rectCount];
     
@@ -1405,7 +1463,8 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 
     for(NSUInteger i = 0; i < rectCount; ++i) {
         NSRect rect = rects[i];
-        
+        rect = NSOffsetRect(rect, [self textContainerOrigin].x, [self textContainerOrigin].y);
+
         [NSBezierPath fillRect:rect];
     }
     
@@ -1413,6 +1472,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         NSRange range = error.range;
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
         NSBezierPath *path = [NSBezierPath bezierPath];
         [path moveToPoint:NSMakePoint(rangeRect.origin.x, NSMaxY(rangeRect))];
         [path lineToPoint:NSMakePoint(rangeRect.origin.x+2, NSMaxY(rangeRect)+2)];
@@ -1426,6 +1486,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         NSRange range = [value rangeValue];
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
         rangeRect = NSInsetRect(rangeRect, -3, 0);
         
         if(NSIntersectsRect(rect, rangeRect)) {

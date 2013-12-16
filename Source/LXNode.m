@@ -70,26 +70,26 @@
     [self write:generated];
 }
 
-- (NSDictionary *)originalPosition:(NSInteger)line column:(NSInteger)column {
-    NSInteger index = [self.mappings indexOfObject:@{@"generated" : @{@"line" : @(line), @"column" : @(column)}} inSortedRange:NSMakeRange(0, [self.mappings count]) options:NSBinarySearchingFirstEqual usingComparator:^NSComparisonResult(NSDictionary *obj1, NSDictionary *obj2) {
+/*- (NSDictionary *)originalPosition:(NSInteger)line column:(NSInteger)column {
+    NSDictionary *mapping = recursiveSearch(-1, [self.mappings count], @{@"generated" : @{@"line" : @(line), @"column" : @(column)}}, self.mappings, ^(NSDictionary *obj1, NSDictionary *obj2) {
         NSInteger cmp = [obj1[@"generated"][@"line"] integerValue] - [obj2[@"generated"][@"line"] integerValue];
         
         if(cmp > 0)
-            return NSOrderedAscending;
+            return cmp;
         else if(cmp < 0)
-            return NSOrderedDescending;
+            return cmp;
         
         cmp = [obj1[@"generated"][@"column"] integerValue] - [obj2[@"generated"][@"column"] integerValue];
         
         if(cmp > 0)
-            return NSOrderedAscending;
+            return cmp;
         else if(cmp < 0)
-            return NSOrderedDescending;
+            return cmp;
         
-        return NSOrderedSame;
-    }];
+        return cmp;
+    });
     
-    return self.mappings[index];
+    return mapping;
 }
 
 - (NSDictionary *)generatedPosition:(NSInteger)line column:(NSInteger)column {
@@ -112,7 +112,7 @@
     }];
     
     return self.mappings[index];
-}
+}*/
 
 - (NSDictionary *)generateSourceMap {
     NSMutableArray *sourcesArray = [NSMutableArray array];

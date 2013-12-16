@@ -13,6 +13,9 @@
 #import "LXServer.h"
 #import "LXClient.h"
 
+@interface LXOutlineView : NSOutlineView
+@end
+
 @interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectDelegate, LXProjectFileViewDelegate> {
     IBOutlet NSComboBox *hostTextField;
     IBOutlet NSTextField *portTextField;
@@ -23,6 +26,10 @@
     
     IBOutlet NSOutlineView *projectOutlineView;
     IBOutlet NSView *contentView;
+    IBOutlet NSButton *continueButton;
+    IBOutlet NSButton *stepOverButton;
+    IBOutlet NSButton *stepIntoButton;
+    IBOutlet NSButton *stepOutButton;
 }
 
 @property (nonatomic, strong) LXProject *project;
@@ -36,4 +43,11 @@
 - (IBAction)compile:(id)sender;
 - (IBAction)clean:(id)sender;
 - (IBAction)run:(id)sender;
+- (IBAction)stopExecution:(id)sender;
+- (IBAction)continueExecution:(id)sender;
+- (IBAction)pauseExecution:(id)sender;
+- (IBAction)stepInto:(id)sender;
+- (IBAction)stepOver:(id)sender;
+- (IBAction)stepOut:(id)sender;
+
 @end

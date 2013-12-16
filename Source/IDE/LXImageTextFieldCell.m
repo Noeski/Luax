@@ -64,6 +64,10 @@
 	[super selectWithFrame:textFrame inView: controlView editor:textObj delegate:anObject start:selStart length:selLength];
 }
 
+- (NSColor *)highlightColorWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
+    return nil;
+}
+
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
 	if(self.image != nil) {
 		NSSize  imageSize, accessoryImageSize;

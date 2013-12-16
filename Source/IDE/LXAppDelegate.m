@@ -34,6 +34,11 @@ static __weak LXAppDelegate *instance = nil;
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
+    NSArray *recentDocumentURLs = [[LXDocumentController sharedDocumentController] recentDocumentURLs];
+    
+    if([recentDocumentURLs count]) {
+        [self openProjectWithURL:recentDocumentURLs.firstObject];
+    }
 }
 
 - (BOOL)application:(NSApplication *)sender openFile:(NSString *)filename {

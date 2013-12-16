@@ -10,6 +10,63 @@
 #import "LXImageTextFieldCell.h"
 #import "NSString+JSON.h"
 
+@implementation LXOutlineView
+
+- (void)highlightSelectionInClipRect:(NSRect)theClipRect {
+    NSGradient *gradient;
+    NSColor *pathColor;
+    
+    // if the view is focused, use highlight color, otherwise use the out-of-focus highlight color
+    if (self == [[self window] firstResponder] && [[self window] isMainWindow] && [[self window] isKeyWindow]) {
+        gradient = [[NSGradient alloc] initWithColorsAndLocations:
+                     [NSColor colorWithCalibratedRed:0.000 green:0.686 blue:0.914 alpha:1], 0.0,
+                     [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 1.0, nil];
+        
+        pathColor = [NSColor colorWithDeviceRed:(float)48/255 green:(float)95/255 blue:(float)152/255 alpha:1.0];
+    }
+    else {
+        gradient = [[NSGradient alloc] initWithColorsAndLocations:
+                     [NSColor colorWithDeviceRed:(float)190/255 green:(float)190/255 blue:(float)190/255 alpha:1.0], 0.0,
+                     [NSColor colorWithDeviceRed:(float)150/255 green:(float)150/255 blue:(float)150/255 alpha:1.0], 1.0, nil];
+        
+        pathColor = [NSColor colorWithDeviceRed:(float)150/255 green:(float)150/255 blue:(float)150/255 alpha:1.0];
+    }
+    
+    NSRange aVisibleRowIndexes = [self rowsInRect:theClipRect];
+    NSIndexSet *aSelectedRowIndexes = [self selectedRowIndexes];
+    NSMutableArray *rects = [NSMutableArray array];
+    BOOL firstRect = YES;
+    NSRect currentRect = NSZeroRect;
+    
+    for(NSInteger i = aVisibleRowIndexes.location; i < NSMaxRange(aVisibleRowIndexes); ++i) {
+        if([aSelectedRowIndexes containsIndex:i]) {
+            if(firstRect) {
+                currentRect = NSInsetRect([self rectOfRow:i], 1, 1);
+                firstRect = NO;
+            }
+            else {
+                currentRect = NSUnionRect(currentRect, NSInsetRect([self rectOfRow:i], 1, 1));
+            }
+        }
+        else if(!firstRect) {
+            [rects addObject:[NSValue valueWithRect:currentRect]];
+            currentRect = NSZeroRect;
+            firstRect = YES;
+        }
+    }
+    
+    if(!firstRect) {
+        [rects addObject:[NSValue valueWithRect:currentRect]];
+    }
+    
+    for(NSValue *value in rects) {
+        NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:value.rectValue xRadius:4.0 yRadius:4.0];
+        
+        [gradient drawInBezierPath:path angle:90];
+    }
+}
+
+@end
 #define LOCAL_REORDER_PASTEBOARD_TYPE @"MyCustomOutlineViewPboardType"
 
 @protocol NSOutlineViewDeleteKeyDelegate
@@ -555,10 +612,22 @@
 }
 
 - (void)splitView:(NSSplitView *)sender resizeSubviewsWithOldSize:(NSSize)oldSize {
-    [sender adjustSubviews];
+    CGFloat dividerThickness = [sender dividerThickness];
+    NSRect frame = [sender frame];
+    
+    NSView *leftView = [sender subviews][0];
+    NSView *rightView = [sender subviews][1];
+    
+    CGFloat rightWidth = MAX(frame.size.width-leftView.frame.size.width-dividerThickness, 400.0f);
+    CGFloat leftWidth = frame.size.width-rightWidth-dividerThickness;
+    
+    leftView.frame = NSMakeRect(0, 0, leftWidth, frame.size.height);
+    rightView.frame = NSMakeRect(leftWidth+dividerThickness, 0, rightWidth, frame.size.height);
+    
+    //[sender adjustSubviews];
 }
 
-#pragma mark - LXProjectDelegate 
+#pragma mark - LXProjectDelegate
 
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line {
     LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)file)];
@@ -573,15 +642,38 @@
     [fileView resizeViews];
     
     [fileView.textView setHighlightedLine:line];
+    
+    [continueButton setEnabled:YES];
+    [continueButton setAction:@selector(continueExecution:)];
+    [stepOverButton setEnabled:YES];
+    [stepIntoButton setEnabled:YES];
+    [stepOutButton setEnabled:YES];
+}
+
+- (void)projectFinishedRunning:(LXProject *)project {
+    [self clearHighlightedLines];
+    
+    [continueButton setEnabled:NO];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
 }
 
 #pragma mark - LXProjectFileViewDelegate
 
 - (void)fileWasModified:(LXProjectFileView *)file modified:(BOOL)modifier {
     [projectOutlineView reloadItem:file.file reloadChildren:NO];
+    [projectOutlineView setNeedsDisplay];
 }
 
 #pragma mark - actions
+
+- (BOOL)validateMenuItem:(NSMenuItem *)menuItem {
+    if([menuItem.title isEqualToString:@"Stop"])
+        return [self.project isRunning];
+    
+    return YES;
+}
 
 - (IBAction)connect:(id)sender {
     self.connecting = YES;
@@ -711,11 +803,73 @@
     }
     
     [projectOutlineView reloadData];
+    [self clearHighlightedLines];
+    [self.project run];
     
-    dispatch_after(0, dispatch_get_main_queue(), ^(void){
-        [self.project run];
-    });
+    [continueButton setEnabled:YES];
+    [continueButton setAction:@selector(pauseExecution:)];
 }
 
+- (void)clearHighlightedLines {
+    for(LXProjectFileView *fileView in [self.cachedFileViews allValues]) {
+        [fileView.textView setHighlightedLine:-1];
+    }
+}
+
+- (IBAction)stopExecution:(id)sender {
+    [self clearHighlightedLines];
+    [self.project stopExecution];
+}
+
+- (IBAction)continueExecution:(id)sender {
+    [self clearHighlightedLines];
+    [self.project continueExecution];
+    
+    [continueButton setEnabled:YES];
+    [continueButton setAction:@selector(pauseExecution:)];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)pauseExecution:(id)sender {
+    [self clearHighlightedLines];
+    [self.project pauseExecution];
+    
+    [continueButton setEnabled:NO];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)stepInto:(id)sender {
+    [self clearHighlightedLines];
+    [self.project stepInto];
+    
+    [continueButton setEnabled:NO];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)stepOver:(id)sender {
+    [self clearHighlightedLines];
+    [self.project stepOver];
+    
+    [continueButton setEnabled:NO];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)stepOut:(id)sender {
+    [self clearHighlightedLines];
+    [self.project stepOut];
+    
+    [continueButton setEnabled:NO];
+    [stepOverButton setEnabled:NO];
+    [stepIntoButton setEnabled:NO];
+    [stepOutButton setEnabled:NO];
+}
 
 @end

@@ -373,6 +373,13 @@
                                     <action selector="clean:" target="-1" id="DxR-eb-YQh"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="bKq-M7-MN6"/>
+                            <menuItem title="Stop" id="K47-CM-sWi">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="stopExecution:" target="-1" id="FFs-IB-uy6"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

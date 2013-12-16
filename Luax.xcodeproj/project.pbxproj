@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		651E8D14185BE5A900E4476B /* resume_co.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D0F185BE5A900E4476B /* resume_co.png */; };
+		651E8D15185BE5A900E4476B /* stepinto_co.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D10185BE5A900E4476B /* stepinto_co.png */; };
+		651E8D16185BE5A900E4476B /* stepover_co.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D11185BE5A900E4476B /* stepover_co.png */; };
+		651E8D17185BE5A900E4476B /* stepreturn_co.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D12185BE5A900E4476B /* stepreturn_co.png */; };
+		651E8D18185BE5A900E4476B /* suspend_co.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D13185BE5A900E4476B /* suspend_co.png */; };
+		651E8D1A185BEEE600E4476B /* Untitled-1.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D19185BEEE600E4476B /* Untitled-1.png */; };
+		651E8D1C185BF27E00E4476B /* Untitled-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1B185BF27E00E4476B /* Untitled-2.png */; };
+		651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1D185BF6EB00E4476B /* Untitled-3.png */; };
+		651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1E185BF6EB00E4476B /* Untitled-4.png */; };
 		65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 65A8157716629CCC0050D80A /* Luax.app */; };
 		652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */ = {isa = PBXBuildFile; fileRef = 652E835418568B1900342128 /* AutoCompleteDefinitions.json */; };
 		654D74D818371DF800E37009 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 654D74D618371DF800E37009 /* InfoPlist.strings */; };
@@ -148,6 +157,15 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		651E8D0F185BE5A900E4476B /* resume_co.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = resume_co.png; sourceTree = "<group>"; };
+		651E8D10185BE5A900E4476B /* stepinto_co.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stepinto_co.png; sourceTree = "<group>"; };
+		651E8D11185BE5A900E4476B /* stepover_co.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stepover_co.png; sourceTree = "<group>"; };
+		651E8D12185BE5A900E4476B /* stepreturn_co.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stepreturn_co.png; sourceTree = "<group>"; };
+		651E8D13185BE5A900E4476B /* suspend_co.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = suspend_co.png; sourceTree = "<group>"; };
+		651E8D19185BEEE600E4476B /* Untitled-1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-1.png"; sourceTree = "<group>"; };
+		651E8D1B185BF27E00E4476B /* Untitled-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-2.png"; sourceTree = "<group>"; };
+		651E8D1D185BF6EB00E4476B /* Untitled-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-3.png"; sourceTree = "<group>"; };
+		651E8D1E185BF6EB00E4476B /* Untitled-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-4.png"; sourceTree = "<group>"; };
 		652E835418568B1900342128 /* AutoCompleteDefinitions.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = AutoCompleteDefinitions.json; sourceTree = "<group>"; };
 		654D74D318371DEC00E37009 /* Luax-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "Luax-Info.plist"; path = "Source/Luax-Info.plist"; sourceTree = SOURCE_ROOT; };
 		654D74D418371DEC00E37009 /* Luax-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Luax-Prefix.pch"; path = "Source/Luax-Prefix.pch"; sourceTree = SOURCE_ROOT; };
@@ -451,6 +469,15 @@
 				79B95E5C184E5B93005486F3 /* checkicon.png */,
 				79B95E5D184E5B93005486F3 /* erroricon.png */,
 				79B95E5E184E5B93005486F3 /* warningicon.png */,
+				651E8D0F185BE5A900E4476B /* resume_co.png */,
+				651E8D10185BE5A900E4476B /* stepinto_co.png */,
+				651E8D11185BE5A900E4476B /* stepover_co.png */,
+				651E8D12185BE5A900E4476B /* stepreturn_co.png */,
+				651E8D13185BE5A900E4476B /* suspend_co.png */,
+				651E8D19185BEEE600E4476B /* Untitled-1.png */,
+				651E8D1B185BF27E00E4476B /* Untitled-2.png */,
+				651E8D1D185BF6EB00E4476B /* Untitled-3.png */,
+				651E8D1E185BF6EB00E4476B /* Untitled-4.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -648,15 +675,24 @@
 			files = (
 				654D74D818371DF800E37009 /* InfoPlist.strings in Resources */,
 				659DE1BB184BE2ED00627535 /* scripticon.png in Resources */,
+				651E8D15185BE5A900E4476B /* stepinto_co.png in Resources */,
 				654D75141837248100E37009 /* Main.lux in Resources */,
+				651E8D1A185BEEE600E4476B /* Untitled-1.png in Resources */,
+				651E8D1C185BF27E00E4476B /* Untitled-2.png in Resources */,
+				651E8D18185BE5A900E4476B /* suspend_co.png in Resources */,
 				659DE1BD184BF06F00627535 /* foldericon.png in Resources */,
 				652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */,
 				79B95E60184E5B93005486F3 /* erroricon.png in Resources */,
 				79B95E61184E5B93005486F3 /* warningicon.png in Resources */,
+				651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */,
 				656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */,
+				651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */,
 				656AD27A183ADD0200E691D6 /* MainMenu.xib in Resources */,
 				656AD2A31842741200E691D6 /* LXProjectWindowController.xib in Resources */,
+				651E8D17185BE5A900E4476B /* stepreturn_co.png in Resources */,
+				651E8D14185BE5A900E4476B /* resume_co.png in Resources */,
 				79B95E5F184E5B93005486F3 /* checkicon.png in Resources */,
+				651E8D16185BE5A900E4476B /* stepover_co.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

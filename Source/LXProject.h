@@ -14,6 +14,7 @@
 @protocol LXProjectDelegate<NSObject>
 @optional
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line;
+- (void)projectFinishedRunning:(LXProject *)project;
 @end
 
 @class LXProjectGroup;
@@ -55,6 +56,13 @@
 - (void)compile;
 - (void)clean;
 - (void)run;
+- (void)stopExecution;
+- (void)continueExecution;
+- (void)pauseExecution;
+- (void)stepInto;
+- (void)stepOver;
+- (void)stepOut;
+- (BOOL)isRunning;
 - (LXProjectGroup *)insertGroup:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (LXProjectFileReference *)insertFile:(LXProjectGroup *)parent atIndex:(NSInteger)index;
 - (void)insertFile:(LXProjectFileReference *)file parent:(LXProjectGroup *)parent atIndex:(NSInteger)index;
