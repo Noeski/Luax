@@ -23,5 +23,16 @@
     }
 }
 
+- (BOOL)isFunction {
+    return NO;
+}
+
+@end
+
+@implementation LXFunction
+
+- (BOOL)isFunction {
+    return YES;
+}
 
 @end

@@ -585,7 +585,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     for(index = 0, numberOfLines = 0; index < stringLength; numberOfLines++) {
         NSRange range = [[self string] lineRangeForRange:NSMakeRange(index, 0)];
         
-        if(NSLocationInRange(location, range))
+        if(LXLocationInRange(location, range))
             break;
         
         index = NSMaxRange(range);

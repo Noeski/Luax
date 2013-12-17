@@ -37,7 +37,7 @@ static __weak LXAppDelegate *instance = nil;
     NSArray *recentDocumentURLs = [[LXDocumentController sharedDocumentController] recentDocumentURLs];
     
     if([recentDocumentURLs count]) {
-        [self openProjectWithURL:recentDocumentURLs.firstObject];
+        [self openProjectWithURL:recentDocumentURLs[0]];
     }
 }
 

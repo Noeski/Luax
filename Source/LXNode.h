@@ -42,6 +42,7 @@ typedef enum {
 - (LXVariable *)localVariable:(NSString *)name;
 - (LXVariable *)variable:(NSString *)name;
 - (LXVariable *)createVariable:(NSString *)name type:(LXClass *)type;
+- (LXFunction *)createFunction:(NSString *)name;
 - (void)removeVariable:(LXVariable *)variable;
 - (LXScope *)scopeAtLocation:(NSInteger)location;
 - (void)removeScope:(LXScope *)scope;
@@ -53,7 +54,7 @@ typedef enum {
 @property (nonatomic, readonly) NSString *chunk;
 @property (nonatomic, readonly) NSString *name;
 @property (nonatomic, readonly) NSArray *children;
-@property (nonatomic, readonly) LXVariable *variable;
+@property (nonatomic, strong) LXVariable *variable;
 
 - (id)initWithName:(NSString *)name line:(NSInteger)line column:(NSInteger)column;
 - (id)initWithChunk:(NSString *)chunk line:(NSInteger)line column:(NSInteger)column;

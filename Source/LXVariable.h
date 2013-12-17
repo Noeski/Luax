@@ -14,6 +14,12 @@
 @property (nonatomic, assign) BOOL isGlobal;
 @property (nonatomic, assign) BOOL isMember;
 @property (nonatomic, readonly) BOOL isDefined;
+@property (nonatomic, readonly) BOOL isFunction;
 
 - (NSString *)autoCompleteString;
+@end
+
+@interface LXFunction : LXVariable
+@property (nonatomic, strong) NSArray *returnTypes;
+@property (nonatomic, strong) NSArray *arguments;
 @end

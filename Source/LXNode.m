@@ -345,6 +345,17 @@
     return variable;
 }
 
+- (LXFunction *)createFunction:(NSString *)name {
+    LXFunction *function = [[LXFunction alloc] init];
+    function.name = name;
+    function.type = [LXClassFunction classFunction];
+    function.isGlobal = [self isGlobalScope];
+    
+    [self.localVariables addObject:function];
+    
+    return function;
+}
+
 - (void)removeVariable:(LXVariable *)variable {
     [self.localVariables removeObject:variable];
 }

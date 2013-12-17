@@ -451,7 +451,7 @@
         }
         
         case LX_TK_FUNCTION: {
-            [expression addChild:[self parseFunction:scope anonymous:YES isLocal:YES]];
+            [expression addChild:[self parseFunction:scope anonymous:YES isLocal:YES function:NULL]];
             break;
         }
         
@@ -545,10 +545,12 @@
 
 - (LXNode *)parseSuffixedExpression:(LXScope *)scope onlyDotColon:(BOOL)onlyDotColon {
     LXNode *expression = [self parsePrimaryExpression:scope];
+    LXNode *lastExpression = expression;
     
     do {
         LXToken *token = [self currentToken];
-        
+        LXNode *expression = [[LXNode alloc] initWithLine:token.startLine column:token.column];
+
         if(token.type == '.' ||
            token.type == ':') {
             [self consumeToken];
@@ -567,20 +569,18 @@
             [self consumeToken];
             [expression addNamedChunk:name line:nameToken.startLine column:nameToken.column];
             
-            /*LXVariable *variable = ((LXNodeExpression *)expression).scriptVariable;
+            LXVariable *variable = lastExpression.variable;
             
             if(variable.isDefined && variable.type.isDefined) {
                 for(LXVariable *v in variable.type.variables) {
-                    if([v.name isEqualToString:memberExpression.value]) {
-                        [self currentToken].variable = v;
-                        [self currentToken].isMember = YES;
-                        memberExpression.scriptVariable = v;
+                    if([v.name isEqualToString:name]) {
+                        nameToken.variable = v;
+                        nameToken.isMember = YES;
+                        expression.variable = v;
                         break;
                     }
                 }
             }
-            else {
-            }*/
         }
         else if(!onlyDotColon && token.type == '[') {
             [self consumeToken];
@@ -627,6 +627,12 @@
             [self consumeToken];
             
             [expression addChunk:@")" line:endParenToken.startLine column:endParenToken.column];
+            
+            if(lastExpression.variable.isFunction) {
+                LXFunction *function = (LXFunction *)lastExpression.variable;
+                
+                //expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+            }
         }
         else if(!onlyDotColon && token.type == LX_TK_STRING) {
             [self consumeToken];
@@ -639,6 +645,9 @@
         else {
             break;
         }
+        
+        [lastExpression addChild:expression];
+        lastExpression = expression;
     }
     while(YES);
     
@@ -674,17 +683,18 @@
         NSString *name = [self tokenValue:token];
         [expression addNamedChunk:name line:token.startLine column:token.column];
 
-        LXVariable *local = [scope variable:name];
+        LXVariable *variable = [scope variable:name];
         
-        if(local) {
+        if(variable) {
             //variableExpression.local = YES;
         }
         else {
-            local = [self.compiler.globalScope createVariable:name type:nil];
-            [definedVariables addObject:local];
+            variable = [self.compiler.globalScope createVariable:name type:nil];
+            [definedVariables addObject:variable];
         }
         
-        token.variable = local;
+        token.variable = variable;
+        expression.variable = variable;
     }
     else {
         NSLog(@"%@", [self tokenValue:[self currentToken]]);
@@ -758,11 +768,11 @@
     return [self parseSubExpression:scope level:0];
 }
 
-- (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal {
+- (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXFunction **)functionPtr {
     LXToken *functionToken = [self consumeToken];
-    LXNode *function = [[LXNode alloc] initWithLine:functionToken.startLine column:functionToken.column];
+    LXNode *node = [[LXNode alloc] initWithLine:functionToken.startLine column:functionToken.column];
 
-    [function addChunk:@"function" line:functionToken.startLine column:functionToken.column];
+    [node addChunk:@"function" line:functionToken.startLine column:functionToken.column];
     
     LXScope *functionScope = [self pushScope:scope openScope:NO];
     functionScope.type = LXScopeTypeFunction;
@@ -829,35 +839,34 @@
            }
     }
     
+    LXFunction *function = nil;
+    
     if(!anonymous) {
         LXToken *nameToken = [self currentToken];
         
         if(nameToken.type == LX_TK_NAME) {
             [self consumeToken];
             
-            NSString *name = [self tokenValue:nameToken];
-            [function addAnonymousChunk:@" "];
-            [function addNamedChunk:name line:nameToken.startLine column:nameToken.column];
-
-            LXVariable *variable = nil;
+            NSString *functionName = [self tokenValue:nameToken];
+            [node addAnonymousChunk:@" "];
+            [node addNamedChunk:functionName line:nameToken.startLine column:nameToken.column];
             
             if(isLocal) {
-                variable = [scope localVariable:name];
+                function = (LXFunction *)[scope localVariable:functionName];
                 
-                if(variable) {
+                if(function) {
                     //ERROR
                 }
                 else {
-                    variable = [scope createVariable:name type:[self findType:@"Function"]];
+                    function = [scope createFunction:functionName];
                 }
             }
             else {
-                variable = [self.compiler.globalScope createVariable:name type:[self findType:@"Function"]];
-                [definedVariables addObject:name];
+                function = [self.compiler.globalScope createFunction:functionName];
+                [definedVariables addObject:functionName];
             }
             
-            
-            nameToken.variable = variable;
+            nameToken.variable = function;
             
             LXToken *token = [self currentToken];
             
@@ -865,10 +874,10 @@
                   token.type == ':') {
                 [self consumeToken];
                 
-                [function addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
+                [node addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
                 
                 nameToken = [self currentToken];
-                name = [self tokenValue:nameToken];
+                functionName = [self tokenValue:nameToken];
                 
                 if(nameToken.type != LX_TK_NAME) {
                     [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
@@ -877,7 +886,7 @@
                 }
                 
                 [self consumeToken];
-                [function addNamedChunk:name line:nameToken.startLine column:nameToken.column];
+                [node addNamedChunk:functionName line:nameToken.startLine column:nameToken.column];
                 
                 token = [self currentToken];
                 
@@ -903,7 +912,7 @@
         }
         
         [self consumeToken];
-        [function addChunk:@"(" line:current.startLine column:current.column];
+        [node addChunk:@"(" line:current.startLine column:current.column];
     }
     else {
         if(checkingReturnType && hasReturnType) {
@@ -912,8 +921,8 @@
             if(current.type != '(') {
                 if([returnTypes count] == 0) {
                     hasEmptyReturnType = YES;
-                    [function addChunk:@"(" line:leftParenToken.startLine column:leftParenToken.column];
-                    [function addChunk:@")" line:rightParenToken.startLine column:rightParenToken.column];
+                    [node addChunk:@"(" line:leftParenToken.startLine column:leftParenToken.column];
+                    [node addChunk:@")" line:rightParenToken.startLine column:rightParenToken.column];
                 }
                 else {
                     [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:current]] range:current.range line:current.startLine column:current.column];
@@ -921,11 +930,11 @@
             }
             else {
                 [self consumeToken];
-                [function addChunk:@"(" line:current.startLine column:current.column];
+                [node addChunk:@"(" line:current.startLine column:current.column];
             }
         }
         else {
-            [function addChunk:@"(" line:current.startLine column:current.column];
+            [node addChunk:@"(" line:current.startLine column:current.column];
         }
     }
     
@@ -956,13 +965,13 @@
             [arguments addObject:variable];
             
             [self consumeToken];
-            [function addNamedChunk:name line:nameToken.startLine column:nameToken.column];
+            [node addNamedChunk:name line:nameToken.startLine column:nameToken.column];
 
             current = [self currentToken];
             
             if(current.type == ',') {
                 [self consumeToken];
-                [function addChunk:@"," line:current.startLine column:current.column];
+                [node addChunk:@"," line:current.startLine column:current.column];
             }
             else {
                 break;
@@ -972,7 +981,7 @@
             isVarArg = YES;
 
             [self consumeToken];
-            [function addChunk:@"..." line:current.startLine column:current.column];
+            [node addChunk:@"..." line:current.startLine column:current.column];
 
             break;
         }
@@ -989,11 +998,11 @@
             [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:current]] range:current.range line:current.startLine column:current.column];
         }
         
-        [function addChunk:@")" line:current.startLine column:current.column];
+        [node addChunk:@")" line:current.startLine column:current.column];
         [self consumeToken];
     }
     
-    [function addChild:[self parseBlock:functionScope]];
+    [node addChild:[self parseBlock:functionScope]];
     [self popScope];
     
     LXToken *endToken = [self currentToken];
@@ -1002,10 +1011,16 @@
         [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
     }
     
-    [function addChunk:@"end" line:endToken.startLine column:endToken.column];
+    [node addChunk:@"end" line:endToken.startLine column:endToken.column];
     [self consumeToken];
 
-    return function;
+    function.returnTypes = returnTypes;
+    function.arguments = arguments;
+    
+    if(functionPtr)
+        *functionPtr = function;
+    
+    return node;
 }
 
 - (LXNode *)parseClassStatement:(LXScope *)scope {
@@ -1141,9 +1156,11 @@
             for(NSNumber *index in functionIndices) {
                 currentTokenIndex = index.integerValue;
                 
-                LXNode *functionExpression = [self parseFunction:classScope anonymous:NO isLocal:YES];
+                LXFunction *function;
+                [self parseFunction:classScope anonymous:NO isLocal:YES function:&function];
                 
-                [functions addObject:functionExpression];
+                if(function)
+                    [variables addObject:function];
             }
             
             currentTokenIndex = endIndex;
@@ -1332,7 +1349,7 @@
                 
                 [statement addNamedChunk:name line:nameToken.startLine column:nameToken.column];
 
-                LXClass *variableType = [self findType:@"Number"];
+                LXClass *variableType =  [LXClassNumber classNumber];
                 LXVariable *variable = [forScope createVariable:name type:variableType];
                 
                 nameToken.variable = variable;
@@ -1534,7 +1551,7 @@
         }
         
         case LX_TK_FUNCTION:
-            [statement addChild:[self parseFunction:scope anonymous:NO isLocal:isLocal]];
+            [statement addChild:[self parseFunction:scope anonymous:NO isLocal:isLocal function:NULL]];
             break;
         
         case LX_TK_CLASS:
