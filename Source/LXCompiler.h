@@ -38,6 +38,7 @@
 @property (nonatomic, strong) LXScope *scope;
 @property (nonatomic, strong) LXNode *block;
 @property (nonatomic, strong) NSMutableArray *errors;
+@property (nonatomic, strong) NSMutableArray *autocompleteScopes;
 
 - (id)initWithName:(NSString *)name compiler:(LXCompiler *)compiler;
 

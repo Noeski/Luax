@@ -9,6 +9,7 @@
 #import "LXCompiler.h"
 #import "LXParser.h"
 #import "LXToken.h"
+#import "LXAutocompleteScope.h"
 #import "NSString+JSON.h"
 
 @implementation LXCompilerError
@@ -132,7 +133,6 @@
     NSMutableArray *scopeStack;
     NSMutableArray *definedTypes;
     NSMutableArray *definedVariables;
-
     NSInteger currentTokenIndex;
 }
 
@@ -150,6 +150,7 @@
         scopeStack = [[NSMutableArray alloc] init];
         definedTypes = [[NSMutableArray alloc] init];
         definedVariables = [[NSMutableArray alloc] init];
+        _autocompleteScopes = [[NSMutableArray alloc] init];
     }
     
     return self;
@@ -167,12 +168,15 @@
     }
     
     [definedTypes removeAllObjects];
+    [_autocompleteScopes removeAllObjects];
     
     [self.compiler.globalScope removeScope:self.scope];
     
     [self.parser parse:string];
     
     currentTokenIndex = 0;
+    
+    [self pushAutocompleteScope:0];
     
     LXScope *blockScope;
     self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
@@ -244,6 +248,18 @@
 
 - (LXScope *)currentScope {
     return [scopeStack lastObject];
+}
+
+LXAutocompleteScope *currentAutocomplete = nil;
+
+- (void)pushAutocompleteScope:(NSInteger)location {
+    if(currentAutocomplete) {
+        currentAutocomplete.range = NSMakeRange(currentAutocomplete.range.location, location - currentAutocomplete.range.location);
+        [_autocompleteScopes addObject:currentAutocomplete];
+    }
+    
+    currentAutocomplete = [[LXAutocompleteScope alloc] init];
+    currentAutocomplete.range = NSMakeRange(location, 0);
 }
 
 - (LXToken *)token:(NSInteger *)index {

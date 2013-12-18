@@ -1,6 +1,7 @@
 #import "LXTextView.h"
 #import "LXProject.h"
 #import "LXNode.h"
+#import "LXAutocompleteScope.h"
 #import "LXToken.h"
 #import "NSString+JSON.h"
 
@@ -1480,6 +1481,14 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [path closePath];
         [[NSColor colorWithDeviceRed:0.8 green:0.0 blue:0.0 alpha:1.0] set];
         [path fill];
+    }
+
+    for(LXAutocompleteScope *scope in self.file.context.autocompleteScopes) {
+        NSRange range = scope.range;
+        NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
+        rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
+        [scope.color setFill];
+        [NSBezierPath fillRect:rangeRect];
     }
     
     for(NSValue *value in autoCompleteMarkers) {
