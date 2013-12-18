@@ -584,15 +584,17 @@ LXAutocompleteScope *currentAutocomplete = nil;
 
             [self consumeToken];
             [expression addNamedChunk:name line:nameToken.startLine column:nameToken.column];
+            expression.assignable = YES;
             
-            LXVariable *variable = lastExpression.variable;
+            LXClass *type = lastExpression.type;
             
-            if(variable.isDefined && variable.type.isDefined) {
-                for(LXVariable *v in variable.type.variables) {
+            if(type.isDefined) {
+                for(LXVariable *v in type.variables) {
                     if([v.name isEqualToString:name]) {
                         nameToken.variable = v;
                         nameToken.isMember = YES;
                         expression.variable = v;
+                        expression.type = v.type;
                         break;
                     }
                 }
@@ -614,6 +616,7 @@ LXAutocompleteScope *currentAutocomplete = nil;
             
             [self consumeToken];
             [expression addChunk:@"]" line:endBracketToken.startLine column:endBracketToken.column];
+            expression.assignable = YES;
         }
         else if(!onlyDotColon && token.type == '(') {
             [self consumeToken];
@@ -643,20 +646,35 @@ LXAutocompleteScope *currentAutocomplete = nil;
             [self consumeToken];
             
             [expression addChunk:@")" line:endParenToken.startLine column:endParenToken.column];
+            expression.assignable = NO;
             
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
                 
-                //expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
             }
         }
         else if(!onlyDotColon && token.type == LX_TK_STRING) {
             [self consumeToken];
             
             [expression addChunk:[self tokenValue:token] line:token.startLine column:token.column];
+            expression.assignable = NO;
+
+            if(lastExpression.variable.isFunction) {
+                LXFunction *function = (LXFunction *)lastExpression.variable;
+                
+                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
+            }
         }
         else if(!onlyDotColon && token.type == '{') {
             [expression addChild:[self parseExpression:scope]];
+            expression.assignable = NO;
+
+            if(lastExpression.variable.isFunction) {
+                LXFunction *function = (LXFunction *)lastExpression.variable;
+                
+                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
+            }
         }
         else {
             break;
@@ -666,6 +684,8 @@ LXAutocompleteScope *currentAutocomplete = nil;
         lastExpression = expression;
     }
     while(YES);
+    
+    expression.assignable = lastExpression.assignable;
     
     return expression;
 }
@@ -692,6 +712,8 @@ LXAutocompleteScope *currentAutocomplete = nil;
         [self consumeToken];
         
         [expression addChunk:@")" line:endParenToken.startLine column:endParenToken.column];
+        //TODO: find expression type?
+        expression.assignable = NO;
     }
     else if(token.type == LX_TK_NAME) {
         [self consumeToken];
@@ -711,6 +733,8 @@ LXAutocompleteScope *currentAutocomplete = nil;
         
         token.variable = variable;
         expression.variable = variable;
+        expression.type = variable.type;
+        expression.assignable = YES;
     }
     else {
         NSLog(@"%@", [self tokenValue:[self currentToken]]);
@@ -1817,6 +1841,10 @@ LXAutocompleteScope *currentAutocomplete = nil;
                 LXToken *assignmentToken = [self currentToken];
                 
                 if(assignmentToken.type == ',' || [assignmentToken isAssignmentOperator]) {
+                    if(!declaration.assignable) {
+                        [self addError:[NSString stringWithFormat:@"Unexpected assignment token near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                    }
+                    
                     NSMutableArray *declarations = [NSMutableArray array];
                     [declarations addObject:declaration];
                     
@@ -1908,9 +1936,9 @@ LXAutocompleteScope *currentAutocomplete = nil;
                         ++i;
                     } while(YES);
                 }
-                else {
-                    /*[self addError:[NSString stringWithFormat:@"Expected ',' or '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
-                    break;*/
+                else if(declaration.assignable) {
+                    [self addError:[NSString stringWithFormat:@"Expected ',' or '=' near: %@", [self tokenValue:assignmentToken]] range:assignmentToken.range line:assignmentToken.startLine column:assignmentToken.column];
+                    break;
                 }
             }
             
