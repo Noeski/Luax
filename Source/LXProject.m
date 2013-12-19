@@ -130,7 +130,7 @@ typedef enum {
     [self.mutableBreakpoints removeObjectForKey:@(line)];
     
     if(self.cachedMappings) {
-        [self.mutableMappedBreakpoints removeObjectForKey:@([self generatedLine:line])];
+        [self.mutableMappedBreakpoints removeObjectForKey:@([self generatedLine:line-1])];
     }
 }
 
@@ -312,7 +312,7 @@ typedef enum {
                 // Original source.
                 temp = [[mutableString decode] integerValue];
                 
-                NSInteger source = previousSource + temp;
+                //NSInteger source = previousSource + temp;
                 previousSource += temp;
                 
                 if([mutableString length] == 0 || [mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
@@ -616,6 +616,57 @@ id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, 
     [self save];
 }
 
+int luaError(lua_State *L) {
+	NSString *error;
+	
+	if (lua_type(L, -1) == LUA_TSTRING)
+		error = [NSString stringWithFormat:@"%s", luaL_checkstring(L, -1)];
+	else if (lua_type(L, -1) == LUA_TNUMBER)
+		error = [NSString stringWithFormat:@"Lua error %d", (int)luaL_checknumber(L, -1)];
+	else
+		error = @"<UNKNOWN LUA ERROR>";
+    
+	if([error hasPrefix:@"[string"]) {
+        NSInteger firstQuoteIndex = [error rangeOfString:@"\""].location+1;
+        NSInteger secondQuoteIndex = [error rangeOfString:@"\"" options:0 range:NSMakeRange(firstQuoteIndex, [error length]-firstQuoteIndex)].location;
+        
+        NSString *sourceName = [[error substringWithRange:NSMakeRange(firstQuoteIndex, secondQuoteIndex-firstQuoteIndex)] stringByDeletingPathExtension];
+        
+		NSInteger firstColonIndex = [error rangeOfString:@":" options:0 range:NSMakeRange(secondQuoteIndex, [error length]-secondQuoteIndex)].location+1;
+		NSInteger secondColonIndex = [error rangeOfString:@":" options:0 range:NSMakeRange(firstColonIndex, [error length]-firstColonIndex)].location;
+		
+		NSInteger line = [[error substringWithRange:NSMakeRange(firstColonIndex, secondColonIndex-firstColonIndex)] integerValue];
+		
+        //NSString *errorString = [NSString stringWithFormat:@"Error: %@", error];
+        
+        LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+        LXProjectFile *sourceFile = nil;
+        
+        for(LXProjectFile *file in project.files) {
+            if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
+                sourceFile = file;
+                break;
+            }
+        }
+        
+        [project breakLoop:sourceFile line:[sourceFile originalLine:line-1] error:YES];
+	}
+	
+	return 1;
+}
+
+int luaCall(lua_State *L, int nargs, int nresults) {
+	int	base = lua_gettop(L) - nargs;
+	lua_pushcfunction(L, luaError);
+	lua_insert(L, base);
+    
+	int	res = lua_pcall(L, nargs, nresults, base);
+    
+	lua_remove(L, base);
+	
+	return res;
+}
+
 void breakpointHook(lua_State* L, lua_Debug* dbg) {
     LXProject *project = [LXProject stateMap][@((NSInteger)L)];
 
@@ -766,7 +817,7 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
             if(setjmp(_jmp) != 0)
                 break;
             
-            lua_call(_state, 0, LUA_MULTRET);
+            luaCall(_state, 0, LUA_MULTRET);
         }
         
         lua_close(_state);
@@ -872,8 +923,6 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
 	if(state == LXDebugStateBreak || state == LXDebugStateError)
 		return;
     
-	//Application::Instance()->pause();
-    
     if(error) {
         self.debugState = LXDebugStateError;
     }
@@ -882,8 +931,8 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:)]) {
-            [self.delegate project:self file:file didBreakAtLine:line];
+        if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:error:)]) {
+            [self.delegate project:self file:file didBreakAtLine:line error:error];
         }
     });
     
@@ -896,8 +945,6 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     }
     while(state == LXDebugStateBreak ||
           state == LXDebugStateError);
-        
-    //Application::Instance()->resume();
 }
 
 NSString *lua_toKey(lua_State* state, int stack_index) {
@@ -1025,8 +1072,8 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
     int stackDepth = 0;
     
     //We are inside our error handler function so skip it
-    //if(mDebugState == DEBUG_ERROR)
-    //    stackDepth++;
+    if(self.debugState == LXDebugStateError)
+        stackDepth++;
     
     for(; true; ++stackDepth) {
         lua_Debug ar;
@@ -1124,8 +1171,6 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
     
     root[@"globals"] = globals;
     root[@"tables"] = tables;
-    
-    //NSLog(@"root: %@", root);
 }
 
 + (NSMutableDictionary *)stateMap {

@@ -1,7 +1,6 @@
 #import "LXTextView.h"
 #import "LXProject.h"
 #import "LXNode.h"
-#import "LXAutocompleteScope.h"
 #import "LXToken.h"
 #import "NSString+JSON.h"
 
@@ -1128,6 +1127,14 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (void)setSelectedRange:(NSRange)charRange affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag {
+    if(charRange.length == 0) {
+        LXToken *token = [self tokenBeforeRange:charRange];
+        
+        if(token.completionType == LXTokenCompletionTypeType) {
+            NSLog(@"%@", token.variableType.name);
+        }
+    }
+    
     //if(settingAutoComplete)
     //   [self cancelAutoComplete]; TODO cancel setting autocomplete
     
@@ -1356,10 +1363,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 		}
 	}
 	
-	if (shouldShiftText) {
-		//[[SMLTextMenuController sharedInstance] shiftRightAction:nil];
-	}
-	else {
+	if(!shouldShiftText) {
 		NSMutableString *spacesString = [NSMutableString string];
 		NSInteger numberOfSpacesPerTab = 2;
 
@@ -1482,14 +1486,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [[NSColor colorWithDeviceRed:0.8 green:0.0 blue:0.0 alpha:1.0] set];
         [path fill];
     }
-
-    for(LXAutocompleteScope *scope in self.file.context.autocompleteScopes) {
-        NSRange range = scope.range;
-        NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
-        rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
-        [scope.color setFill];
-        [NSBezierPath fillRect:rangeRect];
-    }
     
     for(NSValue *value in autoCompleteMarkers) {
         NSRange range = [value rangeValue];
@@ -1541,15 +1537,17 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (BOOL)resignFirstResponder {
-    if (![super resignFirstResponder]) {
+    if(![super resignFirstResponder]) {
         return NO;
-    } else {
+    }
+    else {
         [self setSelectedRange:NSMakeRange(NSNotFound, 0)];
+        
         return YES;
     }
 }
 
-- (NSString *)stringForLine:(int)line {
+- (NSString *)stringForLine:(NSInteger)line {
 	NSInteger index;
 	NSString *completeString = [self string];
 	NSInteger completeStringLength = [completeString length];
@@ -1565,7 +1563,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     return @"";
 }
 
-- (void)scrollToLine:(int)line {
+- (void)scrollToLine:(NSInteger)line {
     NSInteger lineNumber;
 	NSInteger index;
 	NSString *completeString = [self string];
@@ -1587,7 +1585,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 	[self scrollRangeToVisible:[completeString lineRangeForRange:NSMakeRange(index, 0)]];
 }
 
-- (void)setHighlightedLine:(int)line {
+- (void)setHighlightedLine:(NSInteger)line {
 	highlightedLine = line;
     
 	if(highlightedLine == -1) {

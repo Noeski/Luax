@@ -629,7 +629,7 @@
 
 #pragma mark - LXProjectDelegate
 
-- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line {
+- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error {
     LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)file)];
     
     if(!fileView) {
@@ -642,6 +642,13 @@
     [fileView resizeViews];
     
     [fileView.textView setHighlightedLine:line];
+    
+    if(error) {
+        [fileView.textView setHighlightedLineColor:[NSColor redColor] background:[NSColor colorWithDeviceRed:1.0f green:0.8f blue:0.8f alpha:1.0f]];
+    }
+    else {
+        [fileView.textView setHighlightedLineColor:[NSColor blueColor] background:[NSColor colorWithDeviceRed:0.8f green:0.8f blue:1.0f alpha:1.0f]];
+    }
     
     [continueButton setEnabled:YES];
     [continueButton setAction:@selector(continueExecution:)];

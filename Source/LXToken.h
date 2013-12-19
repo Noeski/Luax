@@ -27,6 +27,10 @@ typedef enum {
     LX_TK_ERROR
 } LXTokenType;
 
+typedef enum {
+    LXTokenCompletionTypeType = 1
+} LXTokenCompletionType;
+
 @interface LXToken : NSObject 
 @property (nonatomic) LXTokenType type;
 @property (nonatomic) NSRange range;
@@ -37,6 +41,7 @@ typedef enum {
 @property (nonatomic, strong) LXClass *variableType;
 @property (nonatomic, strong) LXScope *scope;
 @property (nonatomic) BOOL isMember;
+@property (nonatomic, assign) LXTokenCompletionType completionType;
 
 - (BOOL)isKeyword;
 - (BOOL)isType;

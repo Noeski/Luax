@@ -9,7 +9,6 @@
 #import "LXCompiler.h"
 #import "LXParser.h"
 #import "LXToken.h"
-#import "LXAutocompleteScope.h"
 #import "NSString+JSON.h"
 
 @implementation LXCompilerError
@@ -150,7 +149,6 @@
         scopeStack = [[NSMutableArray alloc] init];
         definedTypes = [[NSMutableArray alloc] init];
         definedVariables = [[NSMutableArray alloc] init];
-        _autocompleteScopes = [[NSMutableArray alloc] init];
     }
     
     return self;
@@ -168,16 +166,13 @@
     }
     
     [definedTypes removeAllObjects];
-    [_autocompleteScopes removeAllObjects];
     
     [self.compiler.globalScope removeScope:self.scope];
     
     [self.parser parse:string];
     
     currentTokenIndex = 0;
-    
-    [self pushAutocompleteScope:0];
-    
+        
     LXScope *blockScope;
     self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
     self.scope = blockScope;
@@ -250,18 +245,6 @@
     return [scopeStack lastObject];
 }
 
-LXAutocompleteScope *currentAutocomplete = nil;
-
-- (void)pushAutocompleteScope:(NSInteger)location {
-    if(currentAutocomplete) {
-        currentAutocomplete.range = NSMakeRange(currentAutocomplete.range.location, location - currentAutocomplete.range.location);
-        [_autocompleteScopes addObject:currentAutocomplete];
-    }
-    
-    currentAutocomplete = [[LXAutocompleteScope alloc] init];
-    currentAutocomplete.range = NSMakeRange(location, 0);
-}
-
 - (LXToken *)token:(NSInteger *)index {
     while(YES) {
         if(*index < 0) {
@@ -326,49 +309,6 @@ LXAutocompleteScope *currentAutocomplete = nil;
     }
     
     return NO;
-}
-
-- (void)matchToken:(LXTokenType)type {
-    NSInteger index = currentTokenIndex;
-    
-    LXToken *token = [self token:&index];
-    
-    NSMutableArray *tokenStack = [NSMutableArray arrayWithObject:@(type)];
-    
-    while(token.type != LX_TK_EOS && [tokenStack count]) {
-        NSInteger topToken = [[tokenStack lastObject] integerValue];
-        
-        if(topToken == '(') {
-            if(token.type == '(') {
-                [tokenStack addObject:@(token.type)];
-            }
-            else if(token.type == ')') {
-                [tokenStack removeLastObject];
-            }
-        }
-        else if(topToken == '[') {
-            if(token.type == '[') {
-                [tokenStack addObject:@(token.type)];
-            }
-            else if(token.type == ']') {
-                [tokenStack removeLastObject];
-            }
-        }
-        else if(topToken == '{') {
-            if(token.type == '{') {
-                [tokenStack addObject:@(token.type)];
-            }
-            else if(token.type == '}') {
-                [tokenStack removeLastObject];
-            }
-        }
-        
-        ++index;
-        
-        token = [self token:&index];
-    }
-    
-    currentTokenIndex = index;
 }
 
 - (void)closeBlock:(LXTokenType)type {
@@ -569,6 +509,8 @@ LXAutocompleteScope *currentAutocomplete = nil;
 
         if(token.type == '.' ||
            token.type == ':') {
+            token.completionType = LXTokenCompletionTypeType;
+            token.variableType = lastExpression.variable.type;
             [self consumeToken];
             
             [expression addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
@@ -586,7 +528,7 @@ LXAutocompleteScope *currentAutocomplete = nil;
             [expression addNamedChunk:name line:nameToken.startLine column:nameToken.column];
             expression.assignable = YES;
             
-            LXClass *type = lastExpression.type;
+            LXClass *type = lastExpression.variable.type;
             
             if(type.isDefined) {
                 for(LXVariable *v in type.variables) {
@@ -594,7 +536,6 @@ LXAutocompleteScope *currentAutocomplete = nil;
                         nameToken.variable = v;
                         nameToken.isMember = YES;
                         expression.variable = v;
-                        expression.type = v.type;
                         break;
                     }
                 }
@@ -651,7 +592,7 @@ LXAutocompleteScope *currentAutocomplete = nil;
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
                 
-                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
             }
         }
         else if(!onlyDotColon && token.type == LX_TK_STRING) {
@@ -663,7 +604,7 @@ LXAutocompleteScope *currentAutocomplete = nil;
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
                 
-                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
             }
         }
         else if(!onlyDotColon && token.type == '{') {
@@ -673,7 +614,7 @@ LXAutocompleteScope *currentAutocomplete = nil;
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
                 
-                expression.type = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
             }
         }
         else {
@@ -723,17 +664,13 @@ LXAutocompleteScope *currentAutocomplete = nil;
 
         LXVariable *variable = [scope variable:name];
         
-        if(variable) {
-            //variableExpression.local = YES;
-        }
-        else {
+        if(!variable) {
             variable = [self.compiler.globalScope createVariable:name type:nil];
             [definedVariables addObject:variable];
         }
         
         token.variable = variable;
         expression.variable = variable;
-        expression.type = variable.type;
         expression.assignable = YES;
     }
     else {
@@ -809,6 +746,8 @@ LXAutocompleteScope *currentAutocomplete = nil;
 }
 
 - (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXFunction **)functionPtr {
+    int x = 100;
+    
     LXToken *functionToken = [self consumeToken];
     LXNode *node = [[LXNode alloc] initWithLine:functionToken.startLine column:functionToken.column];
 
@@ -847,7 +786,12 @@ LXAutocompleteScope *currentAutocomplete = nil;
                        LXClass *variableType = [self findType:type];
                        current.variableType = variableType;
                        
-                       [returnTypes addObject:[self findType:type]];
+                       LXVariable *variable = [[LXVariable alloc] init];
+                       variable.type = variableType;
+                       variable.isGlobal = NO;
+                       variable.isMember = NO;
+                       
+                       [returnTypes addObject:variable];
                        
                        current = [self currentToken];
                        

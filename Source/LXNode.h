@@ -55,7 +55,6 @@ typedef enum {
 @property (nonatomic, readonly) NSString *name;
 @property (nonatomic, readonly) NSArray *children;
 @property (nonatomic, strong) LXVariable *variable;
-@property (nonatomic, strong) LXClass *type;
 @property (nonatomic, assign) BOOL assignable;
 
 - (id)initWithName:(NSString *)name line:(NSInteger)line column:(NSInteger)column;

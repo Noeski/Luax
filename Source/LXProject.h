@@ -13,7 +13,7 @@
 @class LXProjectFile;
 @protocol LXProjectDelegate<NSObject>
 @optional
-- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line;
+- (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error;
 - (void)projectFinishedRunning:(LXProject *)project;
 @end
 

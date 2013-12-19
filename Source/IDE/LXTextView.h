@@ -75,9 +75,9 @@
 - (NSInteger)lineHeight;
 
 - (void)setTabWidth;
-- (NSString *)stringForLine:(int)line;
-- (void)scrollToLine:(int)line;
-- (void)setHighlightedLine:(int)line;
+- (NSString *)stringForLine:(NSInteger)line;
+- (void)scrollToLine:(NSInteger)line;
+- (void)setHighlightedLine:(NSInteger)line;
 - (void)setHighlightedLineColor:(NSColor *)color background:(NSColor *)background;
 
 @end

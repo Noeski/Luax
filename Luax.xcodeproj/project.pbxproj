@@ -16,7 +16,6 @@
 		651E8D1C185BF27E00E4476B /* Untitled-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1B185BF27E00E4476B /* Untitled-2.png */; };
 		651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1D185BF6EB00E4476B /* Untitled-3.png */; };
 		651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1E185BF6EB00E4476B /* Untitled-4.png */; };
-		651E8D231861330B00E4476B /* LXAutocompleteScope.m in Sources */ = {isa = PBXBuildFile; fileRef = 651E8D221861330B00E4476B /* LXAutocompleteScope.m */; };
 		65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 65A8157716629CCC0050D80A /* Luax.app */; };
 		652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */ = {isa = PBXBuildFile; fileRef = 652E835418568B1900342128 /* AutoCompleteDefinitions.json */; };
 		654D74D818371DF800E37009 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 654D74D618371DF800E37009 /* InfoPlist.strings */; };
@@ -167,8 +166,6 @@
 		651E8D1B185BF27E00E4476B /* Untitled-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-2.png"; sourceTree = "<group>"; };
 		651E8D1D185BF6EB00E4476B /* Untitled-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-3.png"; sourceTree = "<group>"; };
 		651E8D1E185BF6EB00E4476B /* Untitled-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-4.png"; sourceTree = "<group>"; };
-		651E8D211861330B00E4476B /* LXAutocompleteScope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXAutocompleteScope.h; path = Source/IDE/LXAutocompleteScope.h; sourceTree = SOURCE_ROOT; };
-		651E8D221861330B00E4476B /* LXAutocompleteScope.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXAutocompleteScope.m; path = Source/IDE/LXAutocompleteScope.m; sourceTree = SOURCE_ROOT; };
 		652E835418568B1900342128 /* AutoCompleteDefinitions.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = AutoCompleteDefinitions.json; sourceTree = "<group>"; };
 		654D74D318371DEC00E37009 /* Luax-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "Luax-Info.plist"; path = "Source/Luax-Info.plist"; sourceTree = SOURCE_ROOT; };
 		654D74D418371DEC00E37009 /* Luax-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Luax-Prefix.pch"; path = "Source/Luax-Prefix.pch"; sourceTree = SOURCE_ROOT; };
@@ -326,8 +323,6 @@
 		654D751218371F4500E37009 /* Compiler */ = {
 			isa = PBXGroup;
 			children = (
-				651E8D211861330B00E4476B /* LXAutocompleteScope.h */,
-				651E8D221861330B00E4476B /* LXAutocompleteScope.m */,
 				654D74FA18371E6B00E37009 /* LXToken.h */,
 				654D74FB18371E6B00E37009 /* LXToken.m */,
 				654D74EE18371E6B00E37009 /* LXClass.h */,
@@ -733,7 +728,6 @@
 				656AD2AB1842B42700E691D6 /* LXDocumentController.m in Sources */,
 				654D75361838018700E37009 /* LXParser.m in Sources */,
 				659DE1B91844C65700627535 /* LXImageTextFieldCell.m in Sources */,
-				651E8D231861330B00E4476B /* LXAutocompleteScope.m in Sources */,
 				656AD29918426CFC00E691D6 /* LXClient.m in Sources */,
 				79B95E7D18512214005486F3 /* NSView+BackgroundColor.m in Sources */,
 				656AD29B18426CFC00E691D6 /* LXServer.m in Sources */,
