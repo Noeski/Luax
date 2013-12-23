@@ -7,6 +7,8 @@
 //
 
 #import "LXProject.h"
+#import "LXLuaCallStackIndex.h"
+#import "LXLuaVariable.h"
 #import "NSString+JSON.h"
 #import "NSNumber+Base64VLQ.h"
 
@@ -637,10 +639,12 @@ int luaError(lua_State *L) {
 		
 		NSInteger line = [[error substringWithRange:NSMakeRange(firstColonIndex, secondColonIndex-firstColonIndex)] integerValue];
 		
-        //NSString *errorString = [NSString stringWithFormat:@"Error: %@", error];
+        NSString *errorString = [NSString stringWithFormat:@"Error: %@", error];
         
         LXProject *project = [LXProject stateMap][@((NSInteger)L)];
         LXProjectFile *sourceFile = nil;
+        
+        [project logMessage:errorString];
         
         for(LXProjectFile *file in project.files) {
             if([[file.name stringByDeletingPathExtension] isEqualToString:sourceName]) {
@@ -665,6 +669,37 @@ int luaCall(lua_State *L, int nargs, int nresults) {
 	lua_remove(L, base);
 	
 	return res;
+}
+
+static int luaPrint(lua_State* L) {
+	int nArgs = lua_gettop(L);
+	int i;
+	
+	lua_getglobal(L, "tostring");
+	NSString *ret = @"";
+	
+	for(i = 1; i <= nArgs; i++) {
+		const char *s;
+		lua_pushvalue(L, -1);
+		lua_pushvalue(L, i);
+		lua_call(L, 1, 1);
+		s = lua_tostring(L, -1);
+		
+		if(s == NULL)
+			return luaL_error(L, LUA_QL("tostring") " must return a string to ", LUA_QL("print"));
+		
+		if(i > 1) ret = [ret stringByAppendingString:@"\t"];
+		
+        ret = [ret stringByAppendingFormat:@"%s", s];
+		lua_pop(L, 1);
+	};
+	
+	lua_pop(L, 1);
+    
+    LXProject *project = [LXProject stateMap][@((NSInteger)L)];
+    [project logMessage:ret];
+    
+	return 0;
 }
 
 void breakpointHook(lua_State* L, lua_Debug* dbg) {
@@ -788,7 +823,7 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
         [LXProject stateMap][@((NSInteger)_state)] = self;
         
         luaL_openlibs(_state);
-        
+        lua_register(_state, "print", luaPrint);
         lua_getglobal(_state, "package");
         lua_getfield(_state, -1, "path");
         NSString *path = [NSString stringWithUTF8String:lua_tostring(_state, -1)];
@@ -930,14 +965,14 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
         self.debugState = LXDebugStateBreak;
     }
     
+    [self updateStack];
+
     dispatch_async(dispatch_get_main_queue(), ^{
         if([self.delegate respondsToSelector:@selector(project:file:didBreakAtLine:error:)]) {
             [self.delegate project:self file:file didBreakAtLine:line error:error];
         }
     });
-    
-    [self updateStack];
-    
+        
     do {
         usleep(100000);
         
@@ -945,6 +980,14 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     }
     while(state == LXDebugStateBreak ||
           state == LXDebugStateError);
+}
+
+- (void)logMessage:(NSString *)message {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if([self.delegate respondsToSelector:@selector(project:didLogMessage:)]) {
+            [self.delegate project:self didLogMessage:message];
+        }
+    });
 }
 
 NSString *lua_toKey(lua_State* state, int stack_index) {
@@ -975,32 +1018,32 @@ NSString *lua_toKey(lua_State* state, int stack_index) {
 	}
 }
 
-void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_index, NSMutableArray *tables, NSMutableDictionary* tablesVisited) {
-	if(stack_index < 0) {
-		stack_index = lua_gettop(state)+(stack_index+1);
+void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArray *tables, NSMutableDictionary* tablesVisited) {
+	if(index < 0) {
+		index = lua_gettop(state)+(index+1);
 	}
     
-	switch(lua_type(state, stack_index)) {
+	switch(lua_type(state, index)) {
         case LUA_TBOOLEAN: {
-            valueMap[@"type"] = @"boolean";
-            valueMap[@"value"] = @(lua_toboolean(state, stack_index));
+            value.type = LXLuaVariableTypeBoolean;
+            value.value = @(lua_toboolean(state, index));
             break;
 		}
 		case LUA_TNUMBER: {
-            valueMap[@"type"] = @"number";
-            valueMap[@"value"] = @(lua_tonumber(state, stack_index));
+            value.type = LXLuaVariableTypeNumber;
+            value.value = @(lua_tonumber(state, index));
             break;
 		}
         case LUA_TSTRING: {
-            valueMap[@"type"] = @"string";
-            valueMap[@"value"] = [NSString stringWithFormat:@"%s", lua_tostring(state, stack_index)];
+            value.type = LXLuaVariableTypeString;
+            value.value = [NSString stringWithFormat:@"%s", lua_tostring(state, index)];
             break;
 		}
 		case LUA_TTABLE: {
-            valueMap[@"type"] = @"table";
+            value.type = LXLuaVariableTypeTable;
             
-			size_t ptr = (size_t)lua_topointer(state, stack_index);
-            valueMap[@"value"] = @(ptr);
+			size_t ptr = (size_t)lua_topointer(state, index);
+            value.value = @(ptr);
 
 			if(!tablesVisited[@(ptr)]) {
 				tablesVisited[@(ptr)] = @YES;
@@ -1012,11 +1055,11 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
                 
                 lua_pushnil(state);
                 
-				while(lua_next(state, stack_index) != 0) {
-                    NSMutableDictionary *tableValue = [NSMutableDictionary dictionary];
+				while(lua_next(state, index) != 0) {
+                    LXLuaVariable *tableValue = [[LXLuaVariable alloc] init];
 
                     NSString *key = lua_toKey(state, -2);
-                    tableValue[@"name"] = key;
+                    tableValue.key = key;
                     
                     lua_toValue(tableValue, state, -1, tables, tablesVisited);
 					
@@ -1033,36 +1076,34 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
             break;
 		}
         case LUA_TFUNCTION: {
-            valueMap[@"type"] = @"function";
-            valueMap[@"value"] = @((size_t)lua_topointer(state, stack_index));
+            value.type = LXLuaVariableTypeFunction;
+            value.value = @((size_t)lua_topointer(state, index));
             break;
         }
         case LUA_TUSERDATA: {
-            valueMap[@"type"] = @"userdata";
-            valueMap[@"value"] = @((size_t)lua_topointer(state, stack_index));
+            value.type = LXLuaVariableTypeUserdata;
+            value.value = @((size_t)lua_topointer(state, index));
             break;
         }
         case LUA_TTHREAD: {
-            valueMap[@"type"] = @"thread";
-            valueMap[@"value"] = @((size_t)lua_topointer(state, stack_index));
+            value.type = LXLuaVariableTypeThread;
+            value.value = @((size_t)lua_topointer(state, index));
             break;
         }
         case LUA_TLIGHTUSERDATA: {
-            valueMap[@"type"] = @"lightuserdata";
-            valueMap[@"value"] = @((size_t)lua_topointer(state, stack_index));
+            value.type = LXLuaVariableTypeLightuserdata;
+            value.value = @((size_t)lua_topointer(state, index));
             break;
         }
 		case LUA_TNIL:
 		default: {
-            valueMap[@"type"] = @"nil";
+            value.type = LXLuaVariableTypeNil;
             break;
 		}
 	}    
 }
 
 - (void)updateStack {
-    NSMutableDictionary *root = [NSMutableDictionary dictionary];
-    
     int callStackSize = 0;
     
     NSMutableArray *stack = [NSMutableArray array];
@@ -1085,9 +1126,7 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
         
         lua_getinfo(_state, "funSl", &ar);
         int funcidx = lua_gettop(_state);
-        
-        NSMutableDictionary *callValue = [NSMutableDictionary dictionary];
-        
+                
         NSString *source;
         
         if(strcmp(ar.source, "=[C]") == 0) {
@@ -1106,71 +1145,115 @@ void lua_toValue(NSMutableDictionary *valueMap, lua_State* state, int stack_inde
             function = @"<anon>";
         }
         
-        callValue[@"source"] = source;
-        callValue[@"function"] = function;
-        callValue[@"line"] = @(ar.currentline);
-        callValue[@"firstline"] = @(ar.linedefined);
-        callValue[@"lastline"] = @(ar.lastlinedefined);
-
-        NSMutableArray *locals = [NSMutableArray array];
+        LXProjectFile *sourceFile = nil;
+        
+        for(LXProjectFile *file in self.files) {
+            if([[file.name stringByDeletingPathExtension] isEqualToString:[source stringByDeletingPathExtension]]) {
+                sourceFile = file;
+                break;
+            }
+        }
+        
+        LXLuaCallStackIndex *index = [[LXLuaCallStackIndex alloc] init];
+        index.source = source;
+        index.line = ar.currentline;
+        index.firstLine = ar.linedefined;
+        index.lastLine = ar.lastlinedefined;
+        index.function = function;
+        index.originalLine = [sourceFile originalLine:ar.currentline-1];
+    
+        NSMutableArray *localVariables = [NSMutableArray array];
         
         for(int i = 1; true; ++i) {
             const char *key = lua_getlocal(_state, &ar, i);
             if(key == NULL)
                 break;
             
-            NSMutableDictionary *value = [NSMutableDictionary dictionary];
-            value[@"name"] = [NSString stringWithFormat:@"%s", key];
-            value[@"where"] = @(stackDepth);
-            value[@"index"] = @(i);
+            LXLuaVariable *variable = [[LXLuaVariable alloc] init];
+            variable.scope = LXLuaVariableScopeLocal;
+            variable.where = stackDepth;
+            variable.index = i;
+            variable.key = [NSString stringWithFormat:@"%s", key];
             
-            lua_toValue(value, _state, lua_gettop(_state), tables, tablesVisited);
+            lua_toValue(variable, _state, lua_gettop(_state), tables, tablesVisited);
+
+            [localVariables addObject:variable];
             
-            [locals addObject:value];
             lua_pop(_state, 1);
         }
         
-        callValue[@"locals"] = locals;
+        index.localVariables = [localVariables sortedArrayUsingComparator:^NSComparisonResult(LXLuaVariable *a, LXLuaVariable *b) {
+            return [a.key compare:b.key];
+        }];
         
-        NSMutableArray *upvalues = [NSMutableArray array];
+        NSMutableArray *upVariables = [NSMutableArray array];
         
         for(int i = 1; true; ++i) {
             const char *key = lua_getupvalue(_state, funcidx, i);
             if(key == NULL)
                 break;
             
-            NSMutableDictionary *value = [NSMutableDictionary dictionary];
-            value[@"name"] = [NSString stringWithFormat:@"%s", key];
-            value[@"where"] = @(stackDepth);
-            value[@"index"] = @(i);
+            LXLuaVariable *variable = [[LXLuaVariable alloc] init];
+            variable.scope = LXLuaVariableScopeUpvalue;
+            variable.where = stackDepth;
+            variable.index = i;
+            variable.key = [NSString stringWithFormat:@"%s", key];
             
-            lua_toValue(value, _state, -1, tables, tablesVisited);
+            lua_toValue(variable, _state, lua_gettop(_state), tables, tablesVisited);
             
-            [upvalues addObject:value];
+            [upVariables addObject:variable];
+            
             lua_pop(_state, 1);
         }
         
-        callValue[@"upvalues"] = upvalues;
+        index.upVariables = [upVariables sortedArrayUsingComparator:^NSComparisonResult(LXLuaVariable *a, LXLuaVariable *b) {
+            return [a.key compare:b.key];
+        }];
         
         lua_pop(_state, 1);
         
-        [stack addObject:callValue];
+        [stack addObject:index];
         
         callStackSize++;
     }
     
-    root[@"stack"] = stack;
+    _callStack = stack;
     
-    NSMutableDictionary *globals = [NSMutableDictionary dictionary];
-    globals[@"name"] = @"_G";
+    NSMutableDictionary *tablesDictionary = [NSMutableDictionary dictionary];
+    
+    for(NSDictionary *table in tables) {
+        NSNumber *ptr = [table objectForKey:@"ptr"];
+        NSArray *values = [table objectForKey:@"values"];
+        
+        NSArray *sortedTable = [values sortedArrayUsingComparator:^NSComparisonResult(LXLuaVariable *a, LXLuaVariable *b) {
+            return [a.key compare:b.key];
+        }];
+        
+        [tablesDictionary setObject:sortedTable forKey:ptr];
+    }
+    
+    _tablesDictionary = tablesDictionary;
+    
+    LXLuaVariable *globals = [[LXLuaVariable alloc] init];
+    globals.key = @"_G";
     
     lua_getglobal(_state, "_G");
     lua_toValue(globals, _state, -1, tables, tablesVisited);
-    
     lua_pop(_state, 1);
     
-    root[@"globals"] = globals;
-    root[@"tables"] = tables;
+    NSArray *children = [tablesDictionary objectForKey:globals.value];
+    NSMutableArray *newChildren = [NSMutableArray arrayWithCapacity:[children count]];
+    
+    for(LXLuaVariable *global in children) {
+        LXLuaVariable *variable = [global copy];
+        
+        [newChildren addObject:variable];
+    }
+    
+    globals.children = newChildren;
+    globals.scope = LXLuaVariableScopeGlobal;
+    
+    _globalTable = globals;
 }
 
 + (NSMutableDictionary *)stateMap {

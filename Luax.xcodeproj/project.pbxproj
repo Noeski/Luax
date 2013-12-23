@@ -16,6 +16,9 @@
 		651E8D1C185BF27E00E4476B /* Untitled-2.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1B185BF27E00E4476B /* Untitled-2.png */; };
 		651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1D185BF6EB00E4476B /* Untitled-3.png */; };
 		651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */ = {isa = PBXBuildFile; fileRef = 651E8D1E185BF6EB00E4476B /* Untitled-4.png */; };
+		651E8D261864A55700E4476B /* LXLuaCallStackIndex.m in Sources */ = {isa = PBXBuildFile; fileRef = 651E8D251864A55700E4476B /* LXLuaCallStackIndex.m */; };
+		651E8D291864A57700E4476B /* LXLuaVariable.m in Sources */ = {isa = PBXBuildFile; fileRef = 651E8D281864A57700E4476B /* LXLuaVariable.m */; };
+		651E8D2C1864B60300E4476B /* LXLuaVariableCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 651E8D2B1864B60300E4476B /* LXLuaVariableCell.m */; };
 		65274AA616BF1BBE005A26E1 /* Luax.app in CopyFiles */ = {isa = PBXBuildFile; fileRef = 65A8157716629CCC0050D80A /* Luax.app */; };
 		652E835518568B1900342128 /* AutoCompleteDefinitions.json in Resources */ = {isa = PBXBuildFile; fileRef = 652E835418568B1900342128 /* AutoCompleteDefinitions.json */; };
 		654D74D818371DF800E37009 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 654D74D618371DF800E37009 /* InfoPlist.strings */; };
@@ -50,7 +53,8 @@
 		656AD2A818429D9500E691D6 /* LXProject.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2A718429D9500E691D6 /* LXProject.m */; };
 		656AD2AB1842B42700E691D6 /* LXDocumentController.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD2AA1842B42700E691D6 /* LXDocumentController.m */; };
 		656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */; };
-		659DE1B91844C65700627535 /* LXImageTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 659DE1B81844C65700627535 /* LXImageTextFieldCell.m */; };
+		6570AE111867B2050084BD25 /* hide.png in Resources */ = {isa = PBXBuildFile; fileRef = 6570AE101867B2050084BD25 /* hide.png */; };
+		659DE1B91844C65700627535 /* LXTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 659DE1B81844C65700627535 /* LXTextFieldCell.m */; };
 		659DE1BB184BE2ED00627535 /* scripticon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BA184BE2ED00627535 /* scripticon.png */; };
 		659DE1BD184BF06F00627535 /* foldericon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BC184BF06F00627535 /* foldericon.png */; };
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
@@ -166,6 +170,12 @@
 		651E8D1B185BF27E00E4476B /* Untitled-2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-2.png"; sourceTree = "<group>"; };
 		651E8D1D185BF6EB00E4476B /* Untitled-3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-3.png"; sourceTree = "<group>"; };
 		651E8D1E185BF6EB00E4476B /* Untitled-4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Untitled-4.png"; sourceTree = "<group>"; };
+		651E8D241864A55700E4476B /* LXLuaCallStackIndex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXLuaCallStackIndex.h; path = Source/IDE/LXLuaCallStackIndex.h; sourceTree = SOURCE_ROOT; };
+		651E8D251864A55700E4476B /* LXLuaCallStackIndex.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXLuaCallStackIndex.m; path = Source/IDE/LXLuaCallStackIndex.m; sourceTree = SOURCE_ROOT; };
+		651E8D271864A57700E4476B /* LXLuaVariable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXLuaVariable.h; path = Source/IDE/LXLuaVariable.h; sourceTree = SOURCE_ROOT; };
+		651E8D281864A57700E4476B /* LXLuaVariable.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXLuaVariable.m; path = Source/IDE/LXLuaVariable.m; sourceTree = SOURCE_ROOT; };
+		651E8D2A1864B60300E4476B /* LXLuaVariableCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXLuaVariableCell.h; path = Source/IDE/LXLuaVariableCell.h; sourceTree = SOURCE_ROOT; };
+		651E8D2B1864B60300E4476B /* LXLuaVariableCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXLuaVariableCell.m; path = Source/IDE/LXLuaVariableCell.m; sourceTree = SOURCE_ROOT; };
 		652E835418568B1900342128 /* AutoCompleteDefinitions.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = AutoCompleteDefinitions.json; sourceTree = "<group>"; };
 		654D74D318371DEC00E37009 /* Luax-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "Luax-Info.plist"; path = "Source/Luax-Info.plist"; sourceTree = SOURCE_ROOT; };
 		654D74D418371DEC00E37009 /* Luax-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "Luax-Prefix.pch"; path = "Source/Luax-Prefix.pch"; sourceTree = SOURCE_ROOT; };
@@ -210,8 +220,9 @@
 		656AD2A91842B42700E691D6 /* LXDocumentController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXDocumentController.h; path = Source/IDE/LXDocumentController.h; sourceTree = SOURCE_ROOT; };
 		656AD2AA1842B42700E691D6 /* LXDocumentController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXDocumentController.m; path = Source/IDE/LXDocumentController.m; sourceTree = SOURCE_ROOT; };
 		656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = LXProjectAccessoryView.xib; path = Source/IDE/LXProjectAccessoryView.xib; sourceTree = SOURCE_ROOT; };
-		659DE1B71844C65700627535 /* LXImageTextFieldCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXImageTextFieldCell.h; path = Source/IDE/LXImageTextFieldCell.h; sourceTree = SOURCE_ROOT; };
-		659DE1B81844C65700627535 /* LXImageTextFieldCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXImageTextFieldCell.m; path = Source/IDE/LXImageTextFieldCell.m; sourceTree = SOURCE_ROOT; };
+		6570AE101867B2050084BD25 /* hide.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hide.png; sourceTree = "<group>"; };
+		659DE1B71844C65700627535 /* LXTextFieldCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXTextFieldCell.h; path = Source/IDE/LXTextFieldCell.h; sourceTree = SOURCE_ROOT; };
+		659DE1B81844C65700627535 /* LXTextFieldCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXTextFieldCell.m; path = Source/IDE/LXTextFieldCell.m; sourceTree = SOURCE_ROOT; };
 		659DE1BA184BE2ED00627535 /* scripticon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = scripticon.png; sourceTree = "<group>"; };
 		659DE1BC184BF06F00627535 /* foldericon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = foldericon.png; sourceTree = "<group>"; };
 		65A8157716629CCC0050D80A /* Luax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luax.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -344,6 +355,10 @@
 			isa = PBXGroup;
 			children = (
 				656AD29218426CE400E691D6 /* Networking */,
+				651E8D271864A57700E4476B /* LXLuaVariable.h */,
+				651E8D281864A57700E4476B /* LXLuaVariable.m */,
+				651E8D241864A55700E4476B /* LXLuaCallStackIndex.h */,
+				651E8D251864A55700E4476B /* LXLuaCallStackIndex.m */,
 				656AD2A618429D9500E691D6 /* LXProject.h */,
 				656AD2A718429D9500E691D6 /* LXProject.m */,
 				656AD279183ADD0200E691D6 /* MainMenu.xib */,
@@ -357,8 +372,10 @@
 				79C7A08B183BFFC500AB0A7C /* LXProjectFileView.m */,
 				656AD2A91842B42700E691D6 /* LXDocumentController.h */,
 				656AD2AA1842B42700E691D6 /* LXDocumentController.m */,
-				659DE1B71844C65700627535 /* LXImageTextFieldCell.h */,
-				659DE1B81844C65700627535 /* LXImageTextFieldCell.m */,
+				659DE1B71844C65700627535 /* LXTextFieldCell.h */,
+				659DE1B81844C65700627535 /* LXTextFieldCell.m */,
+				651E8D2A1864B60300E4476B /* LXLuaVariableCell.h */,
+				651E8D2B1864B60300E4476B /* LXLuaVariableCell.m */,
 				656AD29F1842741200E691D6 /* LXProjectWindowController.h */,
 				656AD2A01842741200E691D6 /* LXProjectWindowController.m */,
 				656AD2A11842741200E691D6 /* LXProjectWindowController.xib */,
@@ -462,6 +479,7 @@
 		65B55889168F8D4500BEA415 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				6570AE101867B2050084BD25 /* hide.png */,
 				652E835418568B1900342128 /* AutoCompleteDefinitions.json */,
 				654D75131837248100E37009 /* Main.lux */,
 				659DE1BC184BF06F00627535 /* foldericon.png */,
@@ -685,6 +703,7 @@
 				79B95E60184E5B93005486F3 /* erroricon.png in Resources */,
 				79B95E61184E5B93005486F3 /* warningicon.png in Resources */,
 				651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */,
+				6570AE111867B2050084BD25 /* hide.png in Resources */,
 				656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */,
 				651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */,
 				656AD27A183ADD0200E691D6 /* MainMenu.xib in Resources */,
@@ -720,14 +739,17 @@
 			files = (
 				656AD285183ADF0D00E691D6 /* LXTextView.m in Sources */,
 				654D750818371E6B00E37009 /* LXClass.m in Sources */,
+				651E8D291864A57700E4476B /* LXLuaVariable.m in Sources */,
 				654D750F18371E6B00E37009 /* LXVariable.m in Sources */,
 				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
+				651E8D261864A55700E4476B /* LXLuaCallStackIndex.m in Sources */,
 				656AD290183FF9A400E691D6 /* NSNumber+Base64VLQ.m in Sources */,
 				656AD29A18426CFC00E691D6 /* LXPacket.m in Sources */,
 				656AD2A21842741200E691D6 /* LXProjectWindowController.m in Sources */,
 				656AD2AB1842B42700E691D6 /* LXDocumentController.m in Sources */,
+				651E8D2C1864B60300E4476B /* LXLuaVariableCell.m in Sources */,
 				654D75361838018700E37009 /* LXParser.m in Sources */,
-				659DE1B91844C65700627535 /* LXImageTextFieldCell.m in Sources */,
+				659DE1B91844C65700627535 /* LXTextFieldCell.m in Sources */,
 				656AD29918426CFC00E691D6 /* LXClient.m in Sources */,
 				79B95E7D18512214005486F3 /* NSView+BackgroundColor.m in Sources */,
 				656AD29B18426CFC00E691D6 /* LXServer.m in Sources */,

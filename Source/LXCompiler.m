@@ -1639,6 +1639,9 @@
                 
                 [self consumeToken];
                 NSString *name = [self tokenValue:nameToken];
+                
+                if(isLocal)
+                    [statement addAnonymousChunk:@"local "];
                 [statement addNamedChunk:name line:nameToken.startLine column:nameToken.column];
 
                 LXVariable *variable = nil;
@@ -1685,21 +1688,9 @@
                     
                     nameToken = [self currentToken];
 
-                    if(![nameToken isType]) {
-                        [self addError:[NSString stringWithFormat:@"Expected 'name' or 'type' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
+                    if(nameToken.type != LX_TK_NAME) {
+                        [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.startLine column:nameToken.column];
                         break;
-                    }
-                    
-                    if([self nextToken].type == LX_TK_NAME) {
-                        LXToken *typeToken = nameToken;
-                        type = [self tokenValue:typeToken];
-                        
-                        variableType = [self findType:type];
-                        typeToken.variableType = variableType;
-                        
-                        [self consumeToken];
-                        
-                        nameToken = [self currentToken];
                     }
                     
                     [self consumeToken];
@@ -1769,12 +1760,12 @@
                 }
                 
                 for(NSInteger i = index; i < [typeList count]; ++i) {
+                    if(i > 0)
+                        [statement addAnonymousChunk:@","];
+
                     LXClass *type = typeList[i];
                     
-                    [statement addChild:type.defaultExpression];
-                    
-                    if(i < [typeList count]-1)
-                        [statement addAnonymousChunk:@","];
+                    [statement addChild:type.defaultExpression];                    
                 }
             }
             else {

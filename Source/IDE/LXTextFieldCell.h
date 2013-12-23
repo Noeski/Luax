@@ -1,5 +1,5 @@
 //
-//  LXImageTextFieldCell.h
+//  LXTextFieldCell.h
 //  Luax
 //
 //  Created by Noah Hilt on 11/26/13.
@@ -8,12 +8,13 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface LXImageTextFieldCell : NSTextFieldCell {
+@interface LXTextFieldCell : NSTextFieldCell {
 @private
 	NSImage *highlightImage;
 }
 
 @property (nonatomic, assign) BOOL modified;
+@property (nonatomic, assign) BOOL selected;
 @property (nonatomic, retain) NSImage *image;
 @property (nonatomic, retain) NSImage *accessoryImage;
 

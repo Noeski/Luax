@@ -13,7 +13,13 @@
 #import "LXServer.h"
 #import "LXClient.h"
 
+@interface LXTableView : NSTableView
+@end
+
 @interface LXOutlineView : NSOutlineView
+@end
+
+@interface LXSplitView : NSSplitView
 @end
 
 @interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectDelegate, LXProjectFileViewDelegate> {
@@ -26,10 +32,20 @@
     
     IBOutlet NSOutlineView *projectOutlineView;
     IBOutlet NSView *contentView;
+    IBOutlet NSButton *showDebugContainerButton;
     IBOutlet NSButton *continueButton;
     IBOutlet NSButton *stepOverButton;
     IBOutlet NSButton *stepIntoButton;
     IBOutlet NSButton *stepOutButton;
+    IBOutlet NSTextView *logView;
+    IBOutlet NSTableView *callStackView;
+    IBOutlet NSOutlineView *localVariablesView;
+    IBOutlet NSView *debugContainerView;
+    IBOutlet NSSplitView *horizontalSplitView;
+    IBOutlet NSSplitView *verticalSplitView;
+
+    BOOL showLocals;
+    NSButton *showTemporariesButton;
 }
 
 @property (nonatomic, strong) LXProject *project;
@@ -49,5 +65,6 @@
 - (IBAction)stepInto:(id)sender;
 - (IBAction)stepOver:(id)sender;
 - (IBAction)stepOut:(id)sender;
+- (IBAction)showHideDebugContainer:(id)sender;
 
 @end

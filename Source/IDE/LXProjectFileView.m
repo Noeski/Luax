@@ -10,6 +10,7 @@
 		_textScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(40, 0, [contentView bounds].size.width - 40, [contentView bounds].size.height)];
 		NSSize contentSize = [_textScrollView contentSize];
 		[_textScrollView setBorderType:NSNoBorder];
+        [_textScrollView setScrollerKnobStyle:NSScrollerKnobStyleLight];
         [_textScrollView setHasHorizontalScroller:YES];
 		[_textScrollView setHasVerticalScroller:YES];
 		[_textScrollView setAutohidesScrollers:YES];

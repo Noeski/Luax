@@ -7,29 +7,27 @@
 //
 
 #import "LXProjectWindowController.h"
-#import "LXImageTextFieldCell.h"
+#import "LXTextFieldCell.h"
+#import "LXLuaVariableCell.h"
+#import "LXLuaCallStackIndex.h"
+#import "LXLuaVariable.h"
 #import "NSString+JSON.h"
 
-@implementation LXOutlineView
+@implementation LXTableView
 
 - (void)highlightSelectionInClipRect:(NSRect)theClipRect {
     NSGradient *gradient;
-    NSColor *pathColor;
     
-    // if the view is focused, use highlight color, otherwise use the out-of-focus highlight color
-    if (self == [[self window] firstResponder] && [[self window] isMainWindow] && [[self window] isKeyWindow]) {
+    if(self == [[self window] firstResponder] && [[self window] isMainWindow] && [[self window] isKeyWindow]) {
         gradient = [[NSGradient alloc] initWithColorsAndLocations:
-                     [NSColor colorWithCalibratedRed:0.000 green:0.686 blue:0.914 alpha:1], 0.0,
-                     [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 1.0, nil];
-        
-        pathColor = [NSColor colorWithDeviceRed:(float)48/255 green:(float)95/255 blue:(float)152/255 alpha:1.0];
+                    [NSColor colorWithCalibratedRed:0.000 green:0.686 blue:0.914 alpha:1], 0.0,
+                    [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 1.0, nil];
     }
     else {
         gradient = [[NSGradient alloc] initWithColorsAndLocations:
-                     [NSColor colorWithDeviceRed:(float)190/255 green:(float)190/255 blue:(float)190/255 alpha:1.0], 0.0,
-                     [NSColor colorWithDeviceRed:(float)150/255 green:(float)150/255 blue:(float)150/255 alpha:1.0], 1.0, nil];
+                    [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 0.0,
+                    [NSColor colorWithCalibratedRed:0.000 green:0.286 blue:0.514 alpha:1], 1.0, nil];
         
-        pathColor = [NSColor colorWithDeviceRed:(float)150/255 green:(float)150/255 blue:(float)150/255 alpha:1.0];
     }
     
     NSRange aVisibleRowIndexes = [self rowsInRect:theClipRect];
@@ -41,11 +39,11 @@
     for(NSInteger i = aVisibleRowIndexes.location; i < NSMaxRange(aVisibleRowIndexes); ++i) {
         if([aSelectedRowIndexes containsIndex:i]) {
             if(firstRect) {
-                currentRect = NSInsetRect([self rectOfRow:i], 1, 1);
+                currentRect = [self rectOfRow:i];
                 firstRect = NO;
             }
             else {
-                currentRect = NSUnionRect(currentRect, NSInsetRect([self rectOfRow:i], 1, 1));
+                currentRect = NSUnionRect(currentRect, [self rectOfRow:i]);
             }
         }
         else if(!firstRect) {
@@ -60,13 +58,75 @@
     }
     
     for(NSValue *value in rects) {
-        NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:value.rectValue xRadius:4.0 yRadius:4.0];
+        NSBezierPath *path = [NSBezierPath bezierPathWithRect:value.rectValue];
         
         [gradient drawInBezierPath:path angle:90];
     }
 }
 
 @end
+
+@implementation LXOutlineView
+
+- (void)highlightSelectionInClipRect:(NSRect)theClipRect {
+    NSGradient *gradient;
+    
+    if(self == [[self window] firstResponder] && [[self window] isMainWindow] && [[self window] isKeyWindow]) {
+        gradient = [[NSGradient alloc] initWithColorsAndLocations:
+                     [NSColor colorWithCalibratedRed:0.000 green:0.686 blue:0.914 alpha:1], 0.0,
+                     [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 1.0, nil];
+    }
+    else {
+        gradient = [[NSGradient alloc] initWithColorsAndLocations:
+                    [NSColor colorWithCalibratedRed:0.000 green:0.486 blue:0.714 alpha:1], 0.0,
+                    [NSColor colorWithCalibratedRed:0.000 green:0.286 blue:0.514 alpha:1], 1.0, nil];
+        
+    }
+    
+    NSRange aVisibleRowIndexes = [self rowsInRect:theClipRect];
+    NSIndexSet *aSelectedRowIndexes = [self selectedRowIndexes];
+    NSMutableArray *rects = [NSMutableArray array];
+    BOOL firstRect = YES;
+    NSRect currentRect = NSZeroRect;
+    
+    for(NSInteger i = aVisibleRowIndexes.location; i < NSMaxRange(aVisibleRowIndexes); ++i) {
+        if([aSelectedRowIndexes containsIndex:i]) {
+            if(firstRect) {
+                currentRect = [self rectOfRow:i];
+                firstRect = NO;
+            }
+            else {
+                currentRect = NSUnionRect(currentRect, [self rectOfRow:i]);
+            }
+        }
+        else if(!firstRect) {
+            [rects addObject:[NSValue valueWithRect:currentRect]];
+            currentRect = NSZeroRect;
+            firstRect = YES;
+        }
+    }
+    
+    if(!firstRect) {
+        [rects addObject:[NSValue valueWithRect:currentRect]];
+    }
+    
+    for(NSValue *value in rects) {
+        NSBezierPath *path = [NSBezierPath bezierPathWithRect:value.rectValue];
+        
+        [gradient drawInBezierPath:path angle:90];
+    }
+}
+
+@end
+
+@implementation LXSplitView
+
+- (NSColor *)dividerColor {
+    return [NSColor colorWithCalibratedWhite:0.18 alpha:1];
+}
+
+@end
+
 #define LOCAL_REORDER_PASTEBOARD_TYPE @"MyCustomOutlineViewPboardType"
 
 @protocol NSOutlineViewDeleteKeyDelegate
@@ -104,6 +164,8 @@
 @property (nonatomic, strong) NSMutableData *writeBuffer;
 @property (nonatomic, strong) NSArray *draggedItems;
 @property (nonatomic, strong) NSMutableDictionary *cachedFileViews;
+@property (nonatomic, strong) NSArray *localVariables;
+@property (nonatomic, strong) LXLuaVariable *globalTable;
 @end
 
 @implementation LXProjectWindowController
@@ -128,14 +190,25 @@
     [hostTextField reloadData];
     
     NSTableColumn* tableColumn = [[projectOutlineView tableColumns] objectAtIndex:0];
-	LXImageTextFieldCell* cell = [[LXImageTextFieldCell alloc] init];
+	LXTextFieldCell* cell = [[LXTextFieldCell alloc] init];
 	[cell setEditable:YES];
 	[tableColumn setDataCell:cell];
+    
+    tableColumn = [[callStackView tableColumns] objectAtIndex:0];
+	cell = [[LXTextFieldCell alloc] init];
+	[tableColumn setDataCell:cell];
+    
+    tableColumn = [[localVariablesView tableColumns] objectAtIndex:0];
+	LXLuaVariableCell *variableCell = [[LXLuaVariableCell alloc] init];
+	[variableCell setEditable:YES];
+	[tableColumn setDataCell:variableCell];
     
     [projectOutlineView registerForDraggedTypes:[NSArray arrayWithObjects:LOCAL_REORDER_PASTEBOARD_TYPE,NSTIFFPboardType, NSFilenamesPboardType, nil]];
     
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:YES];
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];
+    
+    showLocals = YES;
 }
 
 - (void)setProject:(LXProject *)project {
@@ -144,6 +217,41 @@
     [projectOutlineView reloadData];
     
     self.window.title = project.name;
+}
+
+- (void)reloadLocalVariables {
+    [localVariablesView reloadData];
+    for(LXLuaVariable *variable in self.localVariables) {
+        if(showTemporariesButton.state == NSOffState && [variable isTemporary])
+            continue;
+        
+        [self initExpansions:variable];
+    }
+}
+
+- (void)reloadGlobalVariables {
+    [localVariablesView reloadData];
+    for(LXLuaVariable *variable in self.globalTable.children) {
+        [self initExpansions:variable];
+    }
+}
+
+- (void)setLocalVariables:(NSArray *)locals {
+	_localVariables = locals;
+	
+	if(showLocals) {
+		[self reloadLocalVariables];
+    }
+}
+
+- (void)setGlobalTable:(LXLuaVariable *)globalTable {
+    if(globalTable != _globalTable) {
+        _globalTable = globalTable;
+    }
+    
+    if(!showLocals) {
+        [self reloadGlobalVariables];
+    }
 }
 
 #pragma mark -LXServerDelegate
@@ -334,9 +442,41 @@
 
 #pragma mark - NSOutlineViewDataSource
 
+- (void)initExpansions:(LXLuaVariable *)variable {
+    BOOL expanded = variable.expanded;
+    
+    if([variable.children count] > 0) {
+        [localVariablesView expandItem:variable];
+        
+        for(LXLuaVariable *child in variable.children) {
+            [self initExpansions:child];
+        }
+        
+        if(!expanded) {
+            [localVariablesView collapseItem:variable];
+        }
+    }
+    else if(expanded) {
+        [localVariablesView expandItem:variable];
+    }
+}
+
 - (BOOL)outlineView:(NSOutlineView *)outlineView isItemExpandable:(id)item {
-    if([item isKindOfClass:[LXProjectGroup class]])
-        return YES;
+    if(outlineView == localVariablesView) {
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            
+            if(var.type == LXLuaVariableTypeTable) {
+                NSArray *children = var.children ? var.children : [self.project.tablesDictionary objectForKey:var.value];
+                
+                return ([children count] > 0);
+            }
+        }
+    }
+    else if(outlineView == projectOutlineView) {
+        if([item isKindOfClass:[LXProjectGroup class]])
+            return YES;
+    }
     
     return NO;
 }
@@ -346,94 +486,242 @@
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldExpandItem:(id)item {
-    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+    if(outlineView == localVariablesView) {
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            var.expanded = YES;
+        }
+        
         return YES;
+    }
+    else if(outlineView == projectOutlineView) {
+        if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+            return YES;
+    }
     
     return NO;
 }
 
 - (BOOL)outlineView:(NSOutlineView *)outlineView shouldCollapseItem:(id)item {
-    if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+    if(outlineView == localVariablesView) {
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            
+            BOOL visible = YES;
+            LXLuaVariable *parent = var.parent;
+            
+            while(parent != nil) {
+                if(!parent.expanded) {
+                    visible = NO;
+                    break;
+                }
+                
+                parent = parent.parent;
+            }
+            
+            if(visible) {
+                var.expanded = NO;
+            }
+        }
+        
         return YES;
+    }
+    else if(outlineView == projectOutlineView) {
+        if(item == nil || [item isKindOfClass:[LXProjectGroup class]])
+            return YES;
+    }
     
     return NO;
 }
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item {
-    if(item == nil)
-        return [self.project.root.children count];
-    
-    if([item isKindOfClass:[LXProjectGroup class]]) {
-        return [[item children] count];
+    if(outlineView == localVariablesView) {
+        if(item == nil) {
+            if(showLocals) {
+                if(showTemporariesButton.state == NSOnState) {
+                    return [self.localVariables count];
+                }
+                else {
+                    NSInteger count = 0;
+                    
+                    for(LXLuaVariable *var in self.localVariables) {
+                        if(![var isTemporary])
+                            count++;
+                    }
+                    
+                    return count;
+                }
+            }
+            else {
+                return [self.globalTable.children count];
+            }
+        }
+        else if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            
+            if(var.type == LXLuaVariableTypeTable) {
+                NSArray *children = var.children ? var.children : [self.project.tablesDictionary objectForKey:var.value];
+                
+                return [children count];
+            }
+        }
+    }
+    else if(outlineView == projectOutlineView) {
+        if(item == nil)
+            return [self.project.root.children count];
+        
+        if([item isKindOfClass:[LXProjectGroup class]]) {
+            return [[item children] count];
+        }
     }
     
     return 0;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView child:(NSInteger)index ofItem:(id)item {
-    if(item == nil)
-        return self.project.root.children[index];
-    
-    if([item isKindOfClass:[LXProjectGroup class]]) {
-        return [item children][index];
+    if(outlineView == localVariablesView) {
+        if(item == nil) {
+            if(showLocals) {
+                if(showTemporariesButton.state == NSOnState) {
+                    return [self.localVariables objectAtIndex:index];
+                }
+                else {
+                    NSInteger count = 0;
+                    
+                    for(LXLuaVariable *var in self.localVariables) {
+                        if(![var isTemporary]) {
+                            if(count == index)
+                                return var;
+                            
+                            count++;
+                        }
+                    }
+                }
+            }
+            else {
+                return [self.globalTable.children objectAtIndex:index];
+            }
+        }
+        
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            
+            if(var.type == LXLuaVariableTypeTable) {
+                if(!var.children) {
+                    NSArray *children = [self.project.tablesDictionary objectForKey:var.value];
+                    NSArray *childrenCopy = [[NSArray alloc] initWithArray:children copyItems:YES];
+                    var.children = childrenCopy;
+                }
+                
+                return [var.children objectAtIndex:index];
+            }
+        }
+    }
+    else if(outlineView == projectOutlineView) {
+        if(item == nil)
+            return self.project.root.children[index];
+
+        if([item isKindOfClass:[LXProjectGroup class]]) {
+            return [item children][index];
+        }
     }
 
     return nil;
 }
 
 - (id)outlineView:(NSOutlineView *)outlineView objectValueForTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
-    return [item name];
+    if(outlineView == localVariablesView) {
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            
+            return var;
+        }
+    }
+    else if(outlineView == projectOutlineView) {
+        return [item name];
+    }
+    
+    return nil;
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView setObjectValue:(id)object forTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
-    [self.project setFileName:item name:object];
+    if(outlineView == localVariablesView) {
+        
+    }
+    else if(outlineView == projectOutlineView) {
+        [self.project setFileName:item name:object];
+    }
 }
 
 - (void)outlineViewSelectionDidChange:(NSNotification *)aNotification {
-    LXProjectFileReference *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
-    
-    if([[projectOutlineView selectedRowIndexes] count] == 1 && [item class] == [LXProjectFileReference class]) {
-        LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
+    if(aNotification.object == projectOutlineView) {
+        LXProjectFileReference *item = [projectOutlineView itemAtRow:[projectOutlineView selectedRow]];
         
-        if(!fileView) {
-            fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item.file];
-            fileView.delegate = self;
-            self.cachedFileViews[@((NSInteger)item.file)] = fileView;
+        if([[projectOutlineView selectedRowIndexes] count] == 1 && [item class] == [LXProjectFileReference class]) {
+            LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
+            
+            if(!fileView) {
+                fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:item.file];
+                fileView.delegate = self;
+                self.cachedFileViews[@((NSInteger)item.file)] = fileView;
+            }
+            
+            [contentView setSubviews:@[fileView]];
+            [fileView resizeViews];
         }
-        
-        [contentView setSubviews:@[fileView]];
-        [fileView resizeViews];
     }
 }
 
 - (void)outlineView:(NSOutlineView *)outlineView deleteRow:(NSInteger)row {
-    LXProjectFileReference *item = [projectOutlineView itemAtRow:row];
-    
-    [self.cachedFileViews removeObjectForKey:@((NSInteger)item.file)];
-    [self.project removeFile:item];
-    [projectOutlineView reloadData];
+    if(outlineView == projectOutlineView) {
+        LXProjectFileReference *item = [projectOutlineView itemAtRow:row];
+        
+        [self.cachedFileViews removeObjectForKey:@((NSInteger)item.file)];
+        [self.project removeFile:item];
+        [projectOutlineView reloadData];
+    }
 }
 
-- (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(LXImageTextFieldCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(LXProjectFileReference *)item {
-    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
+- (void)outlineView:(NSOutlineView *)outlineView willDisplayOutlineCell:(NSButtonCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(id)item {
+    //[cell setImage:[[NSImage alloc] initWithSize:NSZeroSize]];
+    //[cell setAlternateImage:[[NSImage alloc] initWithSize:NSZeroSize]];
+}
+
+- (void)outlineView:(NSOutlineView *)outlineView willDisplayCell:(LXTextFieldCell *)cell forTableColumn:(NSTableColumn *)tableColumn item:(LXProjectFileReference *)item {
+    BOOL selected = [outlineView isRowSelected:[outlineView rowForItem:item]];
     
-    [cell setModified:fileView.modified];
+    [cell setSelected:selected];
     
-    if([item isKindOfClass:[LXProjectGroup class]]) {
-        [cell setImage:[NSImage imageNamed:@"foldericon.png"]];
-        [cell setAccessoryImage:nil];
+    if(selected) {
+        [cell setTextColor:[NSColor whiteColor]];
     }
     else {
-        [cell setImage:[NSImage imageNamed:@"scripticon.png"]];
+        [cell setTextColor:[NSColor colorWithCalibratedWhite:0.8 alpha:1]];
+    }
+    
+    if(outlineView == projectOutlineView) {
+        LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)item.file)];
         
-        if([item.file isCompiled]) {
-            [cell setAccessoryImage:[NSImage imageNamed:@"checkicon.png"]];
-        }
-        else if([item.file hasErrors]) {
-            [cell setAccessoryImage:[NSImage imageNamed:@"erroricon.png"]];
+        [cell setModified:fileView.modified];
+    
+        if([item isKindOfClass:[LXProjectGroup class]]) {
+            [cell setImage:[NSImage imageNamed:@"foldericon.png"]];
+            [cell setFont:[NSFont boldSystemFontOfSize:12]];
+            [cell setAccessoryImage:nil];
         }
         else {
-            [cell setAccessoryImage:[NSImage imageNamed:@"warningicon.png"]];
+            [cell setImage:[NSImage imageNamed:@"scripticon.png"]];
+            [cell setFont:[NSFont systemFontOfSize:12]];
+
+            if([item.file isCompiled]) {
+                [cell setAccessoryImage:[NSImage imageNamed:@"checkicon.png"]];
+            }
+            else if([item.file hasErrors]) {
+                [cell setAccessoryImage:[NSImage imageNamed:@"erroricon.png"]];
+            }
+            else {
+                [cell setAccessoryImage:[NSImage imageNamed:@"warningicon.png"]];
+            }
         }
     }
 }
@@ -597,60 +885,184 @@
     return YES;
 }
 
+#pragma mark - NSTableViewDataSource
+
+- (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
+    return [self.project.callStack count];
+	
+	return 0;
+}
+
+- (id)tableView:(NSTableView *)tableView objectValueForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
+    LXLuaCallStackIndex *index = self.project.callStack[row];
+    return [NSString stringWithFormat:@"%ld %@:%@: line %ld", row, index.source, index.function, index.originalLine];
+}
+
+- (void)tableView:(NSTableView *)tableView willDisplayCell:(id)cell forTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
+    BOOL selected = [tableView isRowSelected:row];
+    
+    [cell setSelected:selected];
+    
+    if(selected) {
+        [cell setTextColor:[NSColor whiteColor]];
+    }
+    else {
+        [cell setTextColor:[NSColor colorWithCalibratedWhite:0.8 alpha:1]];
+    }
+}
+
+#pragma mark - NSTableViewDelegate
+
+- (void)setCurrentCallStackIndex:(NSInteger)idx {
+    if(idx != -1) {
+        LXLuaCallStackIndex *index = self.project.callStack[idx];
+        
+        __block LXProjectFile *file = nil;
+        
+        [self.project.files indexOfObjectPassingTest:^BOOL(LXProjectFile *obj, NSUInteger idx, BOOL *stop) {
+            if([[obj.name stringByDeletingPathExtension] isEqualToString:[index.source stringByDeletingPathExtension]]) {
+                file = obj;
+                return YES;
+            }
+            
+            return NO;
+        }];
+        
+        if(file) {
+            LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)file)];
+            
+            if(!fileView) {
+                fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:file];
+                fileView.delegate = self;
+                self.cachedFileViews[@((NSInteger)file)] = fileView;
+            }
+            
+            [contentView setSubviews:@[fileView]];
+            [fileView resizeViews];
+            
+            [fileView.textView setHighlightedLine:index.originalLine];
+            
+            if(index.error) {
+                [fileView.textView setHighlightedLineColor:[NSColor redColor] background:[NSColor colorWithDeviceRed:1.0f green:0.8f blue:0.8f alpha:1.0f]];
+            }
+            else {
+                [fileView.textView setHighlightedLineColor:[NSColor blueColor] background:[NSColor colorWithDeviceRed:0.8f green:0.8f blue:1.0f alpha:1.0f]];
+            }
+        }
+        
+        self.localVariables = [index.upVariables arrayByAddingObjectsFromArray:index.localVariables];
+    }
+}
+
+- (BOOL)tableView:(NSTableView *)aTableView shouldEditTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex {
+	return NO;
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)aNotification {
+    NSInteger idx = [callStackView selectedRow];
+    
+    [self setCurrentCallStackIndex:idx];
+}
+
 #pragma mark - NSSplitViewDelegate 
 
 - (BOOL)splitView:(NSSplitView *)splitView canCollapseSubview:(NSView *)subview {
+    if(splitView == horizontalSplitView) {
+        return NO;
+    }
+    else if(splitView == verticalSplitView) {
+        return subview == debugContainerView;
+    }
+    
     return NO;
 }
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
-    return proposedMinimumPosition + 150.0f;
+    if(splitView == horizontalSplitView) {
+        return proposedMinimumPosition + 150.0f;
+    }
+    else if(splitView == verticalSplitView) {
+        return proposedMinimumPosition + 400.0f;
+    }
+    
+    return proposedMinimumPosition;
 }
 
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
-    return proposedMinimumPosition - 400.0f;
+    if(splitView == horizontalSplitView) {
+        return proposedMinimumPosition - 400.0f;
+    }
+    else if(splitView == verticalSplitView) {
+        return proposedMinimumPosition - 200.0f;
+    }
+
+    return proposedMinimumPosition;
 }
 
-- (void)splitView:(NSSplitView *)sender resizeSubviewsWithOldSize:(NSSize)oldSize {
-    CGFloat dividerThickness = [sender dividerThickness];
-    NSRect frame = [sender frame];
+- (void)splitView:(NSSplitView *)splitView resizeSubviewsWithOldSize:(NSSize)oldSize {
+    if(splitView == horizontalSplitView) {
+        CGFloat dividerThickness = [splitView dividerThickness];
+        NSRect frame = [splitView frame];
+        
+        NSView *leftView = [splitView subviews][0];
+        NSView *rightView = [splitView subviews][1];
+        
+        CGFloat rightWidth = MAX(frame.size.width-leftView.frame.size.width-dividerThickness, 400.0f);
+        CGFloat leftWidth = frame.size.width-rightWidth-dividerThickness;
+        
+        leftView.frame = NSMakeRect(0, 0, leftWidth, frame.size.height);
+        rightView.frame = NSMakeRect(leftWidth+dividerThickness, 0, rightWidth, frame.size.height);
+    }
+    else if(splitView == verticalSplitView) {
+        [splitView adjustSubviews];
+    }
+}
+
+- (void)splitViewDidResizeSubviews:(NSNotification *)notification {
+    NSSplitView *splitView = notification.object;
     
-    NSView *leftView = [sender subviews][0];
-    NSView *rightView = [sender subviews][1];
-    
-    CGFloat rightWidth = MAX(frame.size.width-leftView.frame.size.width-dividerThickness, 400.0f);
-    CGFloat leftWidth = frame.size.width-rightWidth-dividerThickness;
-    
-    leftView.frame = NSMakeRect(0, 0, leftWidth, frame.size.height);
-    rightView.frame = NSMakeRect(leftWidth+dividerThickness, 0, rightWidth, frame.size.height);
-    
-    //[sender adjustSubviews];
+    if(splitView == verticalSplitView) {
+        NSView *bottomView = [splitView subviews][1];
+        showDebugContainerButton.frameCenterRotation = bottomView.isHidden ? 180 : 0;
+    }
 }
 
 #pragma mark - LXProjectDelegate
 
+- (void)project:(LXProject *)project didLogMessage:(NSString *)message {
+    NSFontManager *fontManager = [NSFontManager sharedFontManager];
+    NSFont *font = [fontManager fontWithFamily:@"Menlo"
+                                        traits:NSBoldFontMask
+                                        weight:0
+                                          size:11];
+    
+    NSAttributedString *attributedMessage = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@\n", message] attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.8 alpha:1], NSFontAttributeName : font}];
+    [[logView textStorage] appendAttributedString:attributedMessage];
+    
+    NSRange range = NSMakeRange([[logView string] length], 0);
+    [logView scrollRangeToVisible:range];
+}
+
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error {
-    LXProjectFileView *fileView = self.cachedFileViews[@((NSInteger)file)];
+    NSInteger lastSelectedRow = callStackView.selectedRow;
     
-    if(!fileView) {
-        fileView = [[LXProjectFileView alloc] initWithContentView:contentView file:file];
-        fileView.delegate = self;
-        self.cachedFileViews[@((NSInteger)file)] = fileView;
+    [callStackView reloadData];
+    
+    if([self.project.callStack count]) {
+        NSInteger selectedRow = callStackView.selectedRow;
+        
+        if(lastSelectedRow == 0) {
+            [self setCurrentCallStackIndex:lastSelectedRow];
+        }
+        else if(selectedRow != 0) {
+            [callStackView selectRowIndexes:[NSIndexSet indexSetWithIndex:0] byExtendingSelection:NO];
+        }
     }
     
-    [contentView setSubviews:@[fileView]];
-    [fileView resizeViews];
-    
-    [fileView.textView setHighlightedLine:line];
-    
-    if(error) {
-        [fileView.textView setHighlightedLineColor:[NSColor redColor] background:[NSColor colorWithDeviceRed:1.0f green:0.8f blue:0.8f alpha:1.0f]];
-    }
-    else {
-        [fileView.textView setHighlightedLineColor:[NSColor blueColor] background:[NSColor colorWithDeviceRed:0.8f green:0.8f blue:1.0f alpha:1.0f]];
-    }
+    self.globalTable = project.globalTable;
     
     [continueButton setEnabled:YES];
+    [continueButton setImage:[NSImage imageNamed:@"resume_co.png"]];
     [continueButton setAction:@selector(continueExecution:)];
     [stepOverButton setEnabled:YES];
     [stepIntoButton setEnabled:YES];
@@ -661,6 +1073,7 @@
     [self clearHighlightedLines];
     
     [continueButton setEnabled:NO];
+    [continueButton setImage:[NSImage imageNamed:@"suspend_co.png"]];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
@@ -815,6 +1228,7 @@
     
     [continueButton setEnabled:YES];
     [continueButton setAction:@selector(pauseExecution:)];
+    [continueButton setImage:[NSImage imageNamed:@"suspend_co.png"]];
 }
 
 - (void)clearHighlightedLines {
@@ -834,6 +1248,7 @@
     
     [continueButton setEnabled:YES];
     [continueButton setAction:@selector(pauseExecution:)];
+    [continueButton setImage:[NSImage imageNamed:@"suspend_co.png"]];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
@@ -877,6 +1292,38 @@
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)showHideDebugContainer:(NSButton *)sender {
+    NSSplitView *splitView = (NSSplitView *)[debugContainerView superview];
+    NSView *topSubview = [[splitView subviews] objectAtIndex:0];
+    NSView *bottomSubview = [[splitView subviews] objectAtIndex:1];
+    
+    BOOL hidden = [debugContainerView isHidden];
+    
+    if(hidden) {
+        [debugContainerView setHidden:NO];
+        [splitView adjustSubviews];
+        
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            [context setDuration:0.3];
+            [topSubview animator].frame = NSMakeRect(topSubview.frame.origin.x, 200, topSubview.frame.size.width, splitView.frame.size.height-200);
+            [bottomSubview animator].frame = NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 200);
+        } completionHandler:^{
+            sender.frameCenterRotation = 0;
+        }];
+    }
+    else {
+        [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+            [context setDuration:0.3];
+            [topSubview animator].frame = NSMakeRect(topSubview.frame.origin.x, 1, topSubview.frame.size.width, splitView.frame.size.height-1);
+            [bottomSubview animator].frame = NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 1);
+        } completionHandler:^{
+            [debugContainerView setHidden:YES];
+            sender.frameCenterRotation = 180;
+            [splitView adjustSubviews];
+        }];
+    }
 }
 
 @end

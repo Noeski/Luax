@@ -199,12 +199,13 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 - (void)setDefaults {
 	highlightedLine = -1;
 	
-    commentsColor = [NSColor colorWithDeviceRed:0.0f green:0.6f blue:0.0f alpha:1.0f];
-    keywordsColor = [NSColor colorWithDeviceRed:0.8f green:0.0f blue:0.4f alpha:1.0f];
-    numbersColor = [NSColor blueColor];
+    textColor = [NSColor colorWithCalibratedRed:0.9 green:0.9 blue:0.9 alpha:1];//[NSColor colorWithCalibratedWhite:0.9 alpha:1];
+    commentsColor = [NSColor colorWithCalibratedRed:0.392 green:0.600 blue:0.490 alpha:1];//[NSColor colorWithDeviceRed:0.0f green:0.6f blue:0.0f alpha:1.0f];
+    keywordsColor = [NSColor colorWithCalibratedRed:0.937 green:0.902 blue:0.588 alpha:1];//[NSColor colorWithDeviceRed:0.8f green:0.0f blue:0.4f alpha:1.0f];
+    numbersColor = [NSColor colorWithCalibratedRed:0.525 green:0.804 blue:0.812 alpha:1];//[NSColor blueColor];
     functionsColor = [NSColor colorWithDeviceRed:0.6f green:0.0f blue:0.8f alpha:1.0f];
-    stringsColor = [NSColor redColor];
-    typesColor = [NSColor colorWithDeviceRed:0.314 green:0.506 blue:0.529 alpha:1];
+    stringsColor = [NSColor colorWithCalibratedRed:0.796 green:0.569 blue:0.573 alpha:1];//[NSColor redColor];
+    typesColor = [NSColor colorWithCalibratedRed:0.949 green:0.875 blue:0.710 alpha:1];//[NSColor colorWithDeviceRed:0.314 green:0.506 blue:0.529 alpha:1];
     
     NSString *path = [[NSBundle mainBundle] pathForResource:@"AutoCompleteDefinitions" ofType:@"json"];
     NSError *error;
@@ -252,9 +253,11 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
     NSFont *font = [[NSFontManager sharedFontManager]
                     fontWithFamily:@"Menlo"
                     traits:0
-                    weight:0
-                    size:11];
+                    weight:4
+                    size:12];
     
+    [self setInsertionPointColor:textColor];
+    [self setBackgroundColor:[NSColor colorWithCalibratedWhite:0.20 alpha:1]];
     [self setSelectedTextAttributes:@{NSBackgroundColorAttributeName : [NSColor clearColor]}];
 
     [self setHighlightedLineColor:[NSColor blueColor] background:[NSColor colorWithDeviceRed:0.8f green:0.8f blue:1.0f alpha:1.0f]];
@@ -369,39 +372,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 
 - (void)recompile:(NSString *)string {
     [self.file.context compile:string];
-    
-    [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:NSMakeRange(0, [string length])];
-    [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:NSMakeRange(0, [string length])];
-
-    for(LXToken *token in self.file.context.parser.tokens) {
-        switch(token.type) {
-            case LX_TK_COMMENT:
-            case LX_TK_LONGCOMMENT:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:commentsColor forCharacterRange:token.range];
-                break;
-            case LX_TK_NUMBER:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:numbersColor forCharacterRange:token.range];
-                break;
-            case LX_TK_STRING:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:stringsColor forCharacterRange:token.range];
-                break;
-            default:
-                if([token isKeyword]) {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
-                }
-                else if(token.isMember) {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
-                }
-                else if(token.variableType.isDefined) {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
-                }
-            }
-    }
-    
-    for(LXCompilerError *error in self.file.context.errors) {
-        [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
-        [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
-    }
+    [self colorTokensInRange:NSMakeRange(0, [string length])];
 }
 
 - (LXToken *)tokenBeforeRange:(NSRange)range {
@@ -534,6 +505,8 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 
 - (void)colorTokensInRange:(NSRange)range {
     [self.layoutManager removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:range];
+    [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:range];
+    [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:range];
     
     for(LXToken *token in self.file.context.parser.tokens) {
         if(token.range.location > NSMaxRange(range))
@@ -542,7 +515,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
         if(!NSRangesTouch(range, token.range))
             continue;
         
-        switch(token.type) {
+        switch((NSInteger)token.type) {
             case LX_TK_COMMENT:
             case LX_TK_LONGCOMMENT:
                 [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:commentsColor forCharacterRange:token.range];
@@ -553,16 +526,34 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
             case LX_TK_STRING:
                 [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:stringsColor forCharacterRange:token.range];
                 break;
-            default: {
+            case '(':
+            case ')':
+            case '{':
+            case '}':
+            case '[':
+            case ']':
+                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
+                break;
+            default:
                 if([token isKeyword]) {
                     [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
                 }
-                else {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:[NSColor blackColor] forCharacterRange:token.range];
+                else if(token.isMember) {
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
                 }
-                break;
-            }
-        }        
+                else if(token.variableType.isDefined) {
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
+                }
+                else {
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:textColor forCharacterRange:token.range];
+                }
+        }
+    }
+    
+    
+    for(LXCompilerError *error in self.file.context.errors) {
+        [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
+        [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
     }
 }
 
@@ -1458,13 +1449,13 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 - (void)drawViewBackgroundInRect:(NSRect)rect {
     [super drawViewBackgroundInRect:rect];
 	
-    LXScope *scope = self.file.context.scope;
-    [self drawScope:scope];
+    //LXScope *scope = self.file.context.scope;
+    //[self drawScope:scope];
     
     NSUInteger rectCount;
     NSRectArray rects = [[self layoutManager] rectArrayForCharacterRange:[self selectedRange] withinSelectedCharacterRange:NSMakeRange(NSNotFound, 0) inTextContainer:[self textContainer] rectCount:&rectCount];
     
-    [[NSColor colorWithDeviceRed:0.7 green:0.835 blue:1.0 alpha:1.0] set];
+    [[NSColor colorWithCalibratedRed:0.176 green:0.263 blue:0.251 alpha:1] set];
 
     for(NSUInteger i = 0; i < rectCount; ++i) {
         NSRect rect = rects[i];

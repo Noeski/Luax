@@ -13,6 +13,7 @@
 @class LXProjectFile;
 @protocol LXProjectDelegate<NSObject>
 @optional
+- (void)project:(LXProject *)project didLogMessage:(NSString *)message;
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error;
 - (void)projectFinishedRunning:(LXProject *)project;
 @end
@@ -43,6 +44,7 @@
 @property (nonatomic, readonly) NSArray *children;
 @end
 
+@class LXLuaVariable;
 @interface LXProject : NSObject
 @property (nonatomic, weak) id<LXProjectDelegate> delegate;
 @property (nonatomic, strong) NSString *name;
@@ -50,6 +52,10 @@
 @property (nonatomic, readonly) NSArray *files;
 @property (nonatomic, readonly) LXProjectGroup *root;
 @property (nonatomic, readonly) LXCompiler *compiler;
+@property (nonatomic, readonly) NSDictionary *tablesDictionary;
+@property (nonatomic, readonly) NSArray *callStack;
+@property (nonatomic, readonly) LXLuaVariable *globalTable;
+
 
 - (void)save;
 - (void)load:(NSDictionary *)dictionary;

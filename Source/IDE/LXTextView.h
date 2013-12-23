@@ -28,15 +28,11 @@
 
 @interface LXTextView : NSTextView<NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate> {
 	NSInteger lineHeight;
-	NSPoint startPoint;
-	NSPoint startOrigin;
-	CGFloat pageGuideX;
-	NSColor *pageGuideColour;
-		
+
     NSUndoManager *undoManager;
     BOOL insideUndoGroup;
     
-    NSColor *commentsColor, *keywordsColor, *numbersColor, *stringsColor, *functionsColor, *typesColor;
+    NSColor *textColor, *commentsColor, *keywordsColor, *numbersColor, *stringsColor, *functionsColor, *typesColor;
     NSCharacterSet *identifierCharacterSet;
     BOOL insertAutoComplete;
     BOOL settingAutoComplete;

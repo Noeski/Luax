@@ -93,7 +93,7 @@ static NSImage *markerImage = nil;
 }
 
 - (void)drawViewBackgroundInRect:(NSRect)rect {
-	[[NSColor colorWithCalibratedWhite:0.94 alpha:1.0] setFill];
+	[[NSColor colorWithCalibratedWhite:0.2 alpha:1.0] setFill];
     [[NSBezierPath bezierPathWithRect:rect] fill];
     
 	NSRect visibleRect = NSZeroRect;//[((NSClipView *)[self superview]) documentVisibleRect];
@@ -130,10 +130,10 @@ static NSImage *markerImage = nil;
         
         NSMutableDictionary *textAttributes = [NSMutableDictionary dictionaryWithDictionary:@{NSFontAttributeName : font, NSParagraphStyleAttributeName : style}];
         
-        NSPoint point = NSMakePoint(0, self.bounds.size.height + self.offset - 12);
+        NSPoint point = NSMakePoint(0, self.bounds.size.height + self.offset - self.document.textView.lineHeight);
         
         for(NSInteger i = 0; i < self.lineNumberRange.length; ++i) {
-            textAttributes[NSForegroundColorAttributeName] = [NSColor colorWithDeviceWhite:0.4 alpha:1];
+            textAttributes[NSForegroundColorAttributeName] = [NSColor colorWithCalibratedWhite:0.8 alpha:1];
 
             NSInteger lineNumber = self.lineNumberRange.location+i+1;
             
@@ -144,14 +144,18 @@ static NSImage *markerImage = nil;
                 }
             }
             
+            NSRect stringBounds = NSMakeRect(point.x, point.y, self.bounds.size.width-4, self.document.textView.lineHeight);
             NSString *st = [NSString stringWithFormat:@"%ld", lineNumber];
-            [st drawInRect:NSMakeRect(point.x, point.y, self.bounds.size.width-4, 12) withAttributes:textAttributes];
-            point.y -= 13;
+            NSSize stringSize = [st sizeWithAttributes:textAttributes];
+            NSPoint stringOrigin = NSMakePoint(point.x, NSMidY(stringBounds) - (stringSize.height * 0.5));
+            
+            [st drawInRect:NSMakeRect(stringOrigin.x, stringOrigin.y, stringBounds.size.width, stringSize.height) withAttributes:textAttributes];
+            point.y -= self.document.textView.lineHeight;
         }
         
 		[[NSColor lightGrayColor] set];
         
-        NSInteger offset = self.offset < 0 ? self.offset % 13 + 13 : self.offset;
+        NSInteger offset = self.offset < 0 ? self.offset % self.document.textView.lineHeight + self.document.textView.lineHeight : self.offset;
         
 		NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(bounds.size.width, -offset, 0, bounds.size.height + offset)];
 		CGFloat dash[2];
