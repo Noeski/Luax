@@ -981,6 +981,9 @@
     if(splitView == horizontalSplitView) {
         return proposedMinimumPosition + 150.0f;
     }
+    else if(splitView == contentSplitView) {
+        return proposedMinimumPosition + 400.0f;
+    }
     else if(splitView == verticalSplitView) {
         return proposedMinimumPosition + 400.0f;
     }
@@ -991,6 +994,9 @@
 - (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
     if(splitView == horizontalSplitView) {
         return proposedMinimumPosition - 400.0f;
+    }
+    else if(splitView == contentSplitView) {
+        return proposedMinimumPosition - 150.0f;
     }
     else if(splitView == verticalSplitView) {
         return proposedMinimumPosition - 200.0f;
@@ -1009,6 +1015,19 @@
         
         CGFloat rightWidth = MAX(frame.size.width-leftView.frame.size.width-dividerThickness, 400.0f);
         CGFloat leftWidth = frame.size.width-rightWidth-dividerThickness;
+        
+        leftView.frame = NSMakeRect(0, 0, leftWidth, frame.size.height);
+        rightView.frame = NSMakeRect(leftWidth+dividerThickness, 0, rightWidth, frame.size.height);
+    }
+    else if(splitView == contentSplitView) {
+        CGFloat dividerThickness = [splitView dividerThickness];
+        NSRect frame = [splitView frame];
+        
+        NSView *leftView = [splitView subviews][0];
+        NSView *rightView = [splitView subviews][1];
+        
+        CGFloat leftWidth = MAX(frame.size.width-rightView.frame.size.width-dividerThickness, 400.0f);
+        CGFloat rightWidth = frame.size.width-leftWidth-dividerThickness;
         
         leftView.frame = NSMakeRect(0, 0, leftWidth, frame.size.height);
         rightView.frame = NSMakeRect(leftWidth+dividerThickness, 0, rightWidth, frame.size.height);
@@ -1037,10 +1056,10 @@
                                           size:11];
     
     NSAttributedString *attributedMessage = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"%@\n", message] attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.8 alpha:1], NSFontAttributeName : font}];
-    [[logView textStorage] appendAttributedString:attributedMessage];
+    [[consoleView textStorage] appendAttributedString:attributedMessage];
     
-    NSRange range = NSMakeRange([[logView string] length], 0);
-    [logView scrollRangeToVisible:range];
+    NSRange range = NSMakeRange([[consoleView string] length], 0);
+    [consoleView scrollRangeToVisible:range];
 }
 
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error {
@@ -1061,6 +1080,7 @@
     
     self.globalTable = project.globalTable;
     
+    [consoleView setEditable:YES];
     [continueButton setEnabled:YES];
     [continueButton setImage:[NSImage imageNamed:@"resume_co.png"]];
     [continueButton setAction:@selector(continueExecution:)];
@@ -1072,11 +1092,30 @@
 - (void)projectFinishedRunning:(LXProject *)project {
     [self clearHighlightedLines];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:NO];
     [continueButton setImage:[NSImage imageNamed:@"suspend_co.png"]];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
+    
+    [callStackView reloadData];
+    self.globalTable = nil;
+    self.localVariables = nil;
+}
+
+- (void)projectFinishedRunningString:(LXProject *)project {
+    [consoleView setEditable:YES];
+    
+    NSInteger lastSelectedRow = callStackView.selectedRow;
+    
+    [callStackView reloadData];
+    
+    if([self.project.callStack count]) {
+        [self setCurrentCallStackIndex:lastSelectedRow];
+    }
+    
+    self.globalTable = project.globalTable;
 }
 
 #pragma mark - LXProjectFileViewDelegate
@@ -1084,6 +1123,13 @@
 - (void)fileWasModified:(LXProjectFileView *)file modified:(BOOL)modifier {
     [projectOutlineView reloadItem:file.file reloadChildren:NO];
     [projectOutlineView setNeedsDisplay];
+}
+
+#pragma mark - LXConsoleTextViewDelegate
+
+- (void)consoleView:(LXConsoleTextView *)aConsoleView didEnterString:(NSString *)string {
+    [consoleView setEditable:NO clearText:NO];
+    [self.project runString:string];
 }
 
 #pragma mark - actions
@@ -1246,18 +1292,24 @@
     [self clearHighlightedLines];
     [self.project continueExecution];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:YES];
     [continueButton setAction:@selector(pauseExecution:)];
     [continueButton setImage:[NSImage imageNamed:@"suspend_co.png"]];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
+    
+    [callStackView reloadData];
+    self.globalTable = nil;
+    self.localVariables = nil;
 }
 
 - (IBAction)pauseExecution:(id)sender {
     [self clearHighlightedLines];
     [self.project pauseExecution];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:NO];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
@@ -1268,6 +1320,7 @@
     [self clearHighlightedLines];
     [self.project stepInto];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:NO];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
@@ -1278,6 +1331,7 @@
     [self clearHighlightedLines];
     [self.project stepOver];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:NO];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
@@ -1288,6 +1342,7 @@
     [self clearHighlightedLines];
     [self.project stepOut];
     
+    [consoleView setEditable:NO];
     [continueButton setEnabled:NO];
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];

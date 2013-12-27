@@ -254,7 +254,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
                     fontWithFamily:@"Menlo"
                     traits:0
                     weight:4
-                    size:12];
+                    size:11];
     
     [self setInsertionPointColor:textColor];
     [self setBackgroundColor:[NSColor colorWithCalibratedWhite:0.20 alpha:1]];

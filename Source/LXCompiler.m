@@ -1011,8 +1011,6 @@
     LXToken *classToken = [self consumeToken];
     LXNode *class = [[LXNode alloc] initWithLine:classToken.startLine column:classToken.column];
     
-    //[class addChild:@"class" line:classToken.startLine column:classToken.column];
-    
     NSMutableArray *functions = [NSMutableArray array];
     NSMutableArray *variables = [NSMutableArray array];
     
@@ -1042,6 +1040,16 @@
         
         superclass = [self tokenValue:typeToken];
         [self consumeToken];
+    }
+    
+    if(superclass) {
+        [class addAnonymousChunk:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)\n  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class})\n  obj:init(...)\n  return obj\nend})\n", name, name, name, superclass]];
+        [class addAnonymousChunk:[NSString stringWithFormat:@"for k, v in pairs(%@) do\n  %@[k] = v\nend\n", superclass, name]];
+        [class addAnonymousChunk:[NSString stringWithFormat:@"function %@:init(...)\n  %@.init(self, ...)\n", name, superclass]];
+    }
+    else {
+        [class addAnonymousChunk:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)\n  local obj = setmetatable({class = \"%@\"}, {__index = class})\n  obj:init(...)\n  return obj\nend})\n", name, name, name]];
+        [class addAnonymousChunk:[NSString stringWithFormat:@"function %@:init(...)\n", name]];
     }
     
     LXScope *classScope = [self pushScope:scope openScope:YES];
@@ -1126,6 +1134,23 @@
                     break;
                 } while(YES);
             }
+            
+            for(NSInteger i = 0; i < [variables count]; ++i) {
+                LXVariable *variable = variables[i];
+                
+                [class addAnonymousChunk:@"self."];
+                [class addAnonymousChunk:variable.name];
+                [class addAnonymousChunk:@"="];
+                
+                if(i < [initList count]) {
+                    [class addChild:initList[i]];
+                }
+                else {
+                    [class addAnonymousChunk:@"0"];
+                }
+                
+                [class addAnonymousChunk:@"\n"];
+            }
         }
         else {
             [self addError:[NSString stringWithFormat:@"Expected function or variable declaration near: %@", [self tokenValue:current]] range:current.range line:current.startLine column:current.column];
@@ -1135,6 +1160,8 @@
         LXToken *endToken = [self currentToken];
         
         if(endToken.type == LX_TK_END) {
+            [class addAnonymousChunk:@"end"];
+            
             NSInteger endIndex = currentTokenIndex;
             
             for(NSNumber *index in functionIndices) {
@@ -1174,6 +1201,7 @@
     
     return class;
 }
+
 
 - (LXNode *)parseStatement:(LXScope *)scope {
     BOOL isLocal = ![scope isGlobalScope];

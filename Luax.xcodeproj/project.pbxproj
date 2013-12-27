@@ -58,6 +58,7 @@
 		659DE1BB184BE2ED00627535 /* scripticon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BA184BE2ED00627535 /* scripticon.png */; };
 		659DE1BD184BF06F00627535 /* foldericon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BC184BF06F00627535 /* foldericon.png */; };
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
+		65E68B4C186DC8B200E72E3C /* LXConsoleTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */; };
 		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
 		79B95E5F184E5B93005486F3 /* checkicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 79B95E5C184E5B93005486F3 /* checkicon.png */; };
 		79B95E60184E5B93005486F3 /* erroricon.png in Resources */ = {isa = PBXBuildFile; fileRef = 79B95E5D184E5B93005486F3 /* erroricon.png */; };
@@ -230,6 +231,8 @@
 		65A8157E16629CCC0050D80A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		65A8157F16629CCC0050D80A /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		65A8158016629CCC0050D80A /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		65E68B4A186DC8B100E72E3C /* LXConsoleTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXConsoleTextView.h; path = Source/IDE/LXConsoleTextView.h; sourceTree = SOURCE_ROOT; };
+		65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXConsoleTextView.m; path = Source/IDE/LXConsoleTextView.m; sourceTree = SOURCE_ROOT; };
 		65F35F6416BEE70C007692D2 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		79B95E5C184E5B93005486F3 /* checkicon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = checkicon.png; sourceTree = "<group>"; };
 		79B95E5D184E5B93005486F3 /* erroricon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = erroricon.png; sourceTree = "<group>"; };
@@ -376,6 +379,8 @@
 				659DE1B81844C65700627535 /* LXTextFieldCell.m */,
 				651E8D2A1864B60300E4476B /* LXLuaVariableCell.h */,
 				651E8D2B1864B60300E4476B /* LXLuaVariableCell.m */,
+				65E68B4A186DC8B100E72E3C /* LXConsoleTextView.h */,
+				65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */,
 				656AD29F1842741200E691D6 /* LXProjectWindowController.h */,
 				656AD2A01842741200E691D6 /* LXProjectWindowController.m */,
 				656AD2A11842741200E691D6 /* LXProjectWindowController.xib */,
@@ -743,6 +748,7 @@
 				654D750F18371E6B00E37009 /* LXVariable.m in Sources */,
 				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
 				651E8D261864A55700E4476B /* LXLuaCallStackIndex.m in Sources */,
+				65E68B4C186DC8B200E72E3C /* LXConsoleTextView.m in Sources */,
 				656AD290183FF9A400E691D6 /* NSNumber+Base64VLQ.m in Sources */,
 				656AD29A18426CFC00E691D6 /* LXPacket.m in Sources */,
 				656AD2A21842741200E691D6 /* LXProjectWindowController.m in Sources */,

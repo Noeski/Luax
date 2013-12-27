@@ -10,6 +10,7 @@
 
 #import "LXProject.h"
 #import "LXProjectFileView.h"
+#import "LXConsoleTextView.h"
 #import "LXServer.h"
 #import "LXClient.h"
 
@@ -22,7 +23,7 @@
 @interface LXSplitView : NSSplitView
 @end
 
-@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectDelegate, LXProjectFileViewDelegate> {
+@interface LXProjectWindowController : NSWindowController<LXServerDelegate, LXClientDelegate, NSComboBoxDataSource, NSComboBoxDelegate, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSplitViewDelegate, LXProjectDelegate, LXProjectFileViewDelegate, LXConsoleTextViewDelegate> {
     IBOutlet NSComboBox *hostTextField;
     IBOutlet NSTextField *portTextField;
     IBOutlet NSButton *connectButton;
@@ -37,11 +38,12 @@
     IBOutlet NSButton *stepOverButton;
     IBOutlet NSButton *stepIntoButton;
     IBOutlet NSButton *stepOutButton;
-    IBOutlet NSTextView *logView;
+    IBOutlet LXConsoleTextView *consoleView;
     IBOutlet NSTableView *callStackView;
     IBOutlet NSOutlineView *localVariablesView;
     IBOutlet NSView *debugContainerView;
     IBOutlet NSSplitView *horizontalSplitView;
+    IBOutlet NSSplitView *contentSplitView;
     IBOutlet NSSplitView *verticalSplitView;
 
     BOOL showLocals;

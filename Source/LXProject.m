@@ -528,6 +528,7 @@ id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, 
 
 @property (nonatomic, readonly) NSMutableArray *mutableFiles;
 @property (nonatomic, weak) LXProjectFile *mainFile;
+@property (atomic, strong) NSString *st;
 @end
 
 @implementation LXProject
@@ -742,7 +743,7 @@ void stepOverHook(lua_State* L, lua_Debug* dbg) {
 			project.functionLevel--;
 			break;
 			
-		case LUA_HOOKLINE:
+		case LUA_HOOKLINE:            
             if([project checkBreakpoints:L debug:dbg])
                 return;
             
@@ -809,6 +810,94 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     longjmp(project->_jmp, 1);
 }
 
+int locals__index(lua_State* L) {
+    lua_pushstring(L, "__locals");
+    lua_rawget(L, lua_gettop(L)-2);
+    
+    lua_pushvalue(L, lua_gettop(L)-1);
+    lua_rawget(L, lua_gettop(L)-1);
+    
+    if(lua_isnil(L, lua_gettop(L))) {
+        lua_pop(L, 2);
+        
+        lua_getglobal(L, "_G");
+        lua_replace(L, lua_gettop(L)-2);
+        
+        lua_rawget(L, lua_gettop(L)-1);
+    }
+    else {
+        lua_pushstring(L, "val");
+        lua_gettable(L, lua_gettop(L)-1);
+    }
+    
+    return 1;
+}
+
+int locals__newindex(lua_State* L) {
+    lua_pushstring(L, "__locals");
+    lua_rawget(L, lua_gettop(L)-3);
+    
+    lua_pushvalue(L, lua_gettop(L)-2);
+    lua_rawget(L, lua_gettop(L)-1);
+    
+    if(lua_isnil(L, lua_gettop(L))) {
+        lua_pop(L, 2);
+        
+        lua_getglobal(L, "_G");
+        lua_replace(L, lua_gettop(L)-3);
+        
+        lua_rawset(L, lua_gettop(L)-2);
+    }
+    else {
+        lua_pushstring(L, "val");
+        lua_pushvalue(L, lua_gettop(L)-3);
+        lua_rawset(L, lua_gettop(L)-2);
+        
+        lua_pushstring(L, "local");
+        lua_gettable(L, lua_gettop(L)-1);
+        
+        bool isLocal = lua_toboolean(L, lua_gettop(L));
+        lua_pop(L, 1);
+        
+        if(isLocal) {
+            lua_pushstring(L, "where");
+            lua_gettable(L, lua_gettop(L)-1);
+            
+            int where = lua_tointeger(L, lua_gettop(L));
+            lua_pop(L, 1);
+            
+            lua_Debug ar;
+            lua_getstack(L, where, &ar);
+            
+            lua_pushstring(L, "index");
+            lua_gettable(L, lua_gettop(L)-1);
+            
+            int index = lua_tointeger(L, lua_gettop(L));
+            lua_pop(L, 1);
+            
+            lua_pushvalue(L, lua_gettop(L)-2);
+            
+            lua_setlocal(L, &ar, index);
+        }
+        else {
+            lua_pushstring(L, "where");
+            lua_gettable(L, lua_gettop(L)-1);
+            
+            lua_pushstring(L, "index");
+            lua_gettable(L, lua_gettop(L)-2);
+            
+            int index = lua_tointeger(L, lua_gettop(L));
+            lua_pop(L, 1);
+            
+            lua_pushvalue(L, lua_gettop(L)-3);
+            
+            lua_setupvalue(L, lua_gettop(L)-1, index);
+        }
+    }
+    
+    return 0;
+}
+
 - (void)run {
     [self compile];
     
@@ -869,6 +958,173 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     }];
 }
 
+- (void)runString:(NSString *)string {
+    self.st = [string copy];
+}
+
+- (void)interpret:(NSString *)input {
+    lua_State* L = _state;
+    
+    lua_newtable(L);
+    int idx = lua_gettop(L);
+    
+    int stack_depth = 0;
+    for(; true; stack_depth++) {
+		lua_Debug ar;
+		
+		bool ok = lua_getstack(L, stack_depth, &ar);
+		
+		if(!ok)
+			break;
+        
+        lua_getinfo(L, "f", &ar);
+        
+        for(int i = 1; true; ++i) {
+			const char *key = lua_getlocal(L, &ar, i);
+			if(key == NULL)
+				break;
+            
+            lua_pushstring(L, key);
+            lua_gettable(L, idx);
+            
+            if(lua_isnil(L, lua_gettop(L))) {
+                lua_pushstring(L, key);
+                lua_newtable(L);
+                lua_pushstring(L, "where");
+                lua_pushinteger(L, stack_depth+2);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "index");
+                lua_pushinteger(L, i);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "val");
+                lua_pushvalue(L, lua_gettop(L)-4);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "local");
+                lua_pushboolean(L, true);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_settable(L, idx);
+            }
+            
+            lua_pop(L, 2);
+		}
+        
+        for(int i = 1; true; ++i) {
+			const char *key = lua_getupvalue(L, lua_gettop(L), i);
+			if(key == NULL)
+				break;
+			
+            lua_pushstring(L, key);
+            lua_gettable(L, idx);
+            
+            if(lua_isnil(L, lua_gettop(L))) {
+                lua_pushstring(L, key);
+                lua_newtable(L);
+                lua_pushstring(L, "where");
+                lua_pushvalue(L, lua_gettop(L)-5);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "index");
+                lua_pushinteger(L, i);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "val");
+                lua_pushvalue(L, lua_gettop(L)-4);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_pushstring(L, "local");
+                lua_pushboolean(L, false);
+                lua_settable(L, lua_gettop(L)-2);
+                lua_settable(L, idx);
+            }
+            
+            lua_pop(L, 2);
+		}
+        
+        lua_pop(L, 1);
+    }
+    
+    const luaL_Reg lua_library[] = {
+		{"__index", locals__index},
+		{"__newindex", locals__newindex},
+		{NULL, NULL}
+	};
+    
+    lua_newtable(L);
+    lua_pushstring(L, "__locals");
+    lua_pushvalue(L, idx);
+    lua_settable(L, lua_gettop(L)-2);
+    lua_newtable(L);
+    luaL_setfuncs(L, lua_library, 0);
+    lua_setmetatable(L, lua_gettop(L)-1);
+    
+	int top = lua_gettop(L);
+    
+    NSString *returnString = [NSString stringWithFormat:@"return %@", input];
+    
+    int status = luaL_loadstring(L, [returnString UTF8String]);
+    
+    if(status != 0) {
+        lua_pop(L, 1);
+        
+        status = luaL_loadstring(L, [input UTF8String]);
+    }
+	
+	if(status != 0) {
+        NSString *errorString = [NSString stringWithFormat:@"Error: %s", lua_tostring(L, -1)];
+        [self logMessage:errorString];
+        lua_pop(L, 3);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [self.delegate projectFinishedRunningString:self];
+            }
+        });
+        
+		return;
+	}
+    
+    lua_pushvalue(L, lua_gettop(L)-1);
+    lua_setupvalue(L, lua_gettop(L)-1, 1);
+    
+	status = lua_pcall(L, 0, LUA_MULTRET, 0);
+    
+    if(status != 0) {
+        NSString *errorString = [NSString stringWithFormat:@"Error: %s", lua_tostring(L, -1)];
+        [self logMessage:errorString];
+        lua_pop(L, 3);
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [self.delegate projectFinishedRunningString:self];
+            }
+        });
+        
+		return;
+	}
+    
+    lua_remove(L, top);
+    lua_remove(L, top-1);
+    
+	int nresults = lua_gettop(L) - top + 2;
+    
+    if(nresults > 0) {
+        NSString *buffer = @"";
+        
+        for(int i = nresults; i > 0; i--) {
+            buffer = [buffer stringByAppendingFormat:@"%s%@", lua_tostring(_state, -1 * i), i > 1 ? @"\n" : @""];
+        }
+        
+        [self logMessage:buffer];
+        
+        lua_pop(_state, nresults);
+    }
+    
+    [self updateStack];
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+            [self.delegate projectFinishedRunningString:self];
+        }
+    });
+}
+
 - (void)stopExecution {
     [self continueExecution:LXDebugStateStopped];
     [_queue waitUntilAllOperationsAreFinished];
@@ -877,6 +1133,10 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
 - (void)continueExecution:(LXDebugState)state {
     if(self.debugState == state)
         return;
+    
+    _tablesDictionary = nil;
+    _callStack = nil;
+    _globalTable = nil;
     
     self.stopLevel = self.functionLevel;
     
@@ -974,6 +1234,11 @@ void stopHook(lua_State* L, lua_Debug* dbg) {
     });
         
     do {
+        if(self.st) {
+            [self interpret:self.st];
+            self.st = nil;
+        }
+        
         usleep(100000);
         
         state = self.debugState;

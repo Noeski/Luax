@@ -16,6 +16,7 @@
 - (void)project:(LXProject *)project didLogMessage:(NSString *)message;
 - (void)project:(LXProject *)project file:(LXProjectFile *)file didBreakAtLine:(NSInteger)line error:(BOOL)error;
 - (void)projectFinishedRunning:(LXProject *)project;
+- (void)projectFinishedRunningString:(LXProject *)project;
 @end
 
 @class LXProjectGroup;
@@ -62,6 +63,7 @@
 - (void)compile;
 - (void)clean;
 - (void)run;
+- (void)runString:(NSString *)string;
 - (void)stopExecution;
 - (void)continueExecution;
 - (void)pauseExecution;
