@@ -45,9 +45,10 @@
     IBOutlet NSSplitView *horizontalSplitView;
     IBOutlet NSSplitView *contentSplitView;
     IBOutlet NSSplitView *verticalSplitView;
+    IBOutlet NSPopUpButton *showLocalsButton;
+    IBOutlet NSButton *showTemporariesButton;
 
     BOOL showLocals;
-    NSButton *showTemporariesButton;
 }
 
 @property (nonatomic, strong) LXProject *project;
@@ -67,6 +68,9 @@
 - (IBAction)stepInto:(id)sender;
 - (IBAction)stepOver:(id)sender;
 - (IBAction)stepOut:(id)sender;
+- (IBAction)showLocals:(id)sender;
+- (IBAction)showGlobals:(id)sender;
+- (IBAction)showTemporaries:(id)sender;
 - (IBAction)showHideDebugContainer:(id)sender;
 
 @end

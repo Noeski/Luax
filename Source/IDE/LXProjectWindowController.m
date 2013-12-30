@@ -209,6 +209,9 @@
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:YES];
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];
     
+    [showTemporariesButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Temporaries" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
+    //[showLocalsButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Locals" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
+
     showLocals = YES;
 }
 
@@ -1382,6 +1385,24 @@
     [stepOverButton setEnabled:NO];
     [stepIntoButton setEnabled:NO];
     [stepOutButton setEnabled:NO];
+}
+
+- (IBAction)showLocals:(id)sender {
+	showLocals = YES;
+    
+	[self reloadLocalVariables];
+}
+
+- (IBAction)showGlobals:(id)sender {
+	showLocals = NO;
+    
+	[self reloadGlobalVariables];
+}
+
+- (IBAction)showTemporaries:(id)sender {
+    if(showLocals) {
+        [self reloadLocalVariables];
+    }
 }
 
 - (IBAction)showHideDebugContainer:(NSButton *)sender {
