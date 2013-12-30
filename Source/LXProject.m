@@ -518,6 +518,7 @@ id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, 
 
 @interface LXProject() {
     NSOperationQueue *_queue;
+    NSLock *_lock;
     lua_State *_state;
     jmp_buf _jmp;
 }
@@ -528,7 +529,7 @@ id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, 
 
 @property (nonatomic, readonly) NSMutableArray *mutableFiles;
 @property (nonatomic, weak) LXProjectFile *mainFile;
-@property (atomic, strong) NSString *st;
+@property (nonatomic, strong) NSMutableArray *commandQueue;
 @end
 
 @implementation LXProject
@@ -536,9 +537,11 @@ id recursiveSearch(NSInteger low, NSInteger high, id needle, NSArray *haystack, 
 - (id)init {
     if(self = [super init]) {
         _queue = [[NSOperationQueue alloc] init];
+        _lock = [[NSLock alloc] init];
         _mutableFiles = [[NSMutableArray alloc] init];
         _root = [[LXProjectGroup alloc] initWithParent:nil];
         _compiler = [[LXCompiler alloc] init];
+        _commandQueue = [[NSMutableArray alloc] init];
     }
     
     return self;
@@ -863,7 +866,7 @@ int locals__newindex(lua_State* L) {
             lua_pushstring(L, "where");
             lua_gettable(L, lua_gettop(L)-1);
             
-            int where = lua_tointeger(L, lua_gettop(L));
+            int where = (int)lua_tointeger(L, lua_gettop(L));
             lua_pop(L, 1);
             
             lua_Debug ar;
@@ -872,7 +875,7 @@ int locals__newindex(lua_State* L) {
             lua_pushstring(L, "index");
             lua_gettable(L, lua_gettop(L)-1);
             
-            int index = lua_tointeger(L, lua_gettop(L));
+            int index = (int)lua_tointeger(L, lua_gettop(L));
             lua_pop(L, 1);
             
             lua_pushvalue(L, lua_gettop(L)-2);
@@ -886,7 +889,7 @@ int locals__newindex(lua_State* L) {
             lua_pushstring(L, "index");
             lua_gettable(L, lua_gettop(L)-2);
             
-            int index = lua_tointeger(L, lua_gettop(L));
+            int index = (int)lua_tointeger(L, lua_gettop(L));
             lua_pop(L, 1);
             
             lua_pushvalue(L, lua_gettop(L)-3);
@@ -958,11 +961,112 @@ int locals__newindex(lua_State* L) {
     }];
 }
 
-- (void)runString:(NSString *)string {
-    self.st = [string copy];
+- (lua_State *)state {
+    return _state;
 }
 
-- (void)interpret:(NSString *)input {
+- (void)addCommand:(void (^)(void))block {
+    [_lock lock];
+    [self.commandQueue addObject:block];
+    [_lock unlock];
+}
+
+- (BOOL)clearCommandQueue {
+    [_lock lock];
+    for(NSInteger i = 0; i < [self.commandQueue count]; ++i) {
+        void (^block)(void) = self.commandQueue[i];
+        
+        block();
+    }
+    
+    [self.commandQueue removeAllObjects];
+    
+    [_lock unlock];
+    
+    return YES;
+}
+
+- (void)runString:(NSString *)string {
+    __weak LXProject *weakSelf = self;
+    
+    [self addCommand:^{
+        int top = lua_gettop([weakSelf state]);
+        
+        NSInteger nresults = [weakSelf interpret:string];
+        
+        if(nresults == -1) {
+            NSString *errorString = [NSString stringWithFormat:@"Error: %s", lua_tostring([weakSelf state], -1)];
+            [weakSelf logMessage:errorString];
+        }
+        else if(nresults > 0) {
+            NSString *buffer = @"";
+            
+            for(int i = (int)nresults; i > 0; i--) {
+                buffer = [buffer stringByAppendingFormat:@"%s%@", lua_tostring([weakSelf state], -1 * i), i > 1 ? @"\n" : @""];
+            }
+            
+            [weakSelf logMessage:buffer];
+        }
+        
+        lua_pop([weakSelf state], lua_gettop([weakSelf state]) - top);
+
+        [weakSelf updateStack];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([weakSelf.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [weakSelf.delegate projectFinishedRunningString:weakSelf];
+            }
+        });
+    }];
+}
+
+- (void)setLocalValue:(NSString *)value where:(NSInteger)where index:(NSInteger)index indices:(NSArray *)indices {
+    __weak LXProject *weakSelf = self;
+
+    [self addCommand:^{
+        int top = lua_gettop([weakSelf state]);
+        
+        NSInteger nresults = [weakSelf interpret:value];
+        
+        if(nresults == 1) {
+            lua_Debug ar;
+            lua_getstack([weakSelf state], (int)where, &ar);
+            
+            if([indices count] > 0) {
+                lua_getlocal([weakSelf state], &ar, (int)index);
+                
+                int i = 0;
+                for(; i < [indices count]-1; ++i) {
+                    lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                    lua_rawget([weakSelf state], lua_gettop([weakSelf state])-1);
+                }
+                
+                lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                lua_pushvalue([weakSelf state], top+1);
+                lua_rawset([weakSelf state], lua_gettop([weakSelf state])-2);
+            }
+            else {
+                lua_setlocal([weakSelf state], &ar, (int)index);
+            }
+        }
+        else {
+            //Error
+        }
+        
+        lua_pop([weakSelf state], lua_gettop([weakSelf state]) - top);
+        
+        [weakSelf updateStack];
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([weakSelf.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [weakSelf.delegate projectFinishedRunningString:weakSelf];
+            }
+        });
+    }];
+}
+
+//May leave the stack in an inconsistent state..
+- (NSInteger)interpret:(NSString *)input {
     lua_State* L = _state;
     
     lua_newtable(L);
@@ -1067,17 +1171,7 @@ int locals__newindex(lua_State* L) {
     }
 	
 	if(status != 0) {
-        NSString *errorString = [NSString stringWithFormat:@"Error: %s", lua_tostring(L, -1)];
-        [self logMessage:errorString];
-        lua_pop(L, 3);
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
-                [self.delegate projectFinishedRunningString:self];
-            }
-        });
-        
-		return;
+		return -1;
 	}
     
     lua_pushvalue(L, lua_gettop(L)-1);
@@ -1086,17 +1180,7 @@ int locals__newindex(lua_State* L) {
 	status = lua_pcall(L, 0, LUA_MULTRET, 0);
     
     if(status != 0) {
-        NSString *errorString = [NSString stringWithFormat:@"Error: %s", lua_tostring(L, -1)];
-        [self logMessage:errorString];
-        lua_pop(L, 3);
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
-                [self.delegate projectFinishedRunningString:self];
-            }
-        });
-        
-		return;
+		return -1;
 	}
     
     lua_remove(L, top);
@@ -1104,25 +1188,7 @@ int locals__newindex(lua_State* L) {
     
 	int nresults = lua_gettop(L) - top + 2;
     
-    if(nresults > 0) {
-        NSString *buffer = @"";
-        
-        for(int i = nresults; i > 0; i--) {
-            buffer = [buffer stringByAppendingFormat:@"%s%@", lua_tostring(_state, -1 * i), i > 1 ? @"\n" : @""];
-        }
-        
-        [self logMessage:buffer];
-        
-        lua_pop(_state, nresults);
-    }
-    
-    [self updateStack];
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        if([self.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
-            [self.delegate projectFinishedRunningString:self];
-        }
-    });
+    return nresults;
 }
 
 - (void)stopExecution {
@@ -1234,17 +1300,13 @@ int locals__newindex(lua_State* L) {
     });
         
     do {
-        if(self.st) {
-            [self interpret:self.st];
-            self.st = nil;
-        }
-        
         usleep(100000);
         
         state = self.debugState;
     }
-    while(state == LXDebugStateBreak ||
-          state == LXDebugStateError);
+    while([self clearCommandQueue] &&
+          (state == LXDebugStateBreak ||
+          state == LXDebugStateError));
 }
 
 - (void)logMessage:(NSString *)message {
@@ -1331,6 +1393,10 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
                     [tableValues addObject:tableValue];
                     
 					lua_pop(state, 1);
+                    
+                    if([key isEqualToString:@"class"] && tableValue.type == LXLuaVariableTypeString) {
+                        value.className = tableValue.value;
+                    }
 				}
                 
                 table[@"values"] = tableValues;

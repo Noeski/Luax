@@ -49,7 +49,7 @@
         case LXLuaVariableTypeString:
             return @" = (string) ";
         case LXLuaVariableTypeTable:
-            return @" = (table) ";
+            return [NSString stringWithFormat:@" = (%@) ", var.className ? var.className : @"table"];
         case LXLuaVariableTypeFunction:
             return @" = (function) ";
         case LXLuaVariableTypeUserdata:
