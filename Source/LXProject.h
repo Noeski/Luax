@@ -64,6 +64,7 @@
 - (void)clean;
 - (void)run;
 - (void)runString:(NSString *)string;
+- (void)setLocalValue:(NSString *)value where:(NSInteger)where index:(NSInteger)index indices:(NSArray *)indices;
 - (void)stopExecution;
 - (void)continueExecution;
 - (void)pauseExecution;

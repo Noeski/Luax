@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 Noah Hilt. All rights reserved.
 //
 
+#import <QuartzCore/QuartzCore.h>
 #import "LXProjectWindowController.h"
 #import "LXTextFieldCell.h"
 #import "LXLuaVariableCell.h"
@@ -208,6 +209,9 @@
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:YES];
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];
     
+    [showTemporariesButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Temporaries" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
+    //[showLocalsButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Locals" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
+
     showLocals = YES;
 }
 
@@ -646,7 +650,35 @@
 
 - (void)outlineView:(NSOutlineView *)outlineView setObjectValue:(id)object forTableColumn:(NSTableColumn *)theColumn byItem:(id)item {
     if(outlineView == localVariablesView) {
+        LXLuaVariableCell *cell = [theColumn dataCellForRow:[outlineView rowForItem:item]];
         
+        if([cell.stringValue isEqualToString:object])
+            return;
+        
+        if([item isKindOfClass:[LXLuaVariable class]]) {
+            LXLuaVariable *var = item;
+            NSMutableArray *indices = [NSMutableArray array];;
+            
+            while(var.parent != nil) {
+                [indices addObject:var.key];
+                
+                var = var.parent;
+            }
+            
+            if(var.scope == LXLuaVariableScopeLocal) {
+                [self.project setLocalValue:[NSString stringWithFormat:@"return %@", object] where:var.where index:var.index indices:indices];
+            }
+            /*else if(var.scope == LXLuaVariableScopeUpvalue) {
+                NSData *data = [[NSString stringWithFormat:@"{\"type\":\"request\",\"command\":\"setupvalue\",\"indices\":[%@],\"where\":%d,\"index\":%d,\"value\":%@}", indices, (int)var.where, (int)var.index, [self toQuotedString:[NSString stringWithFormat:@"return %@", object]]] dataUsingEncoding:NSUTF8StringEncoding];
+                [self sendData:data];
+            }
+            else if(var.scope == LXLuaVariableScopeGlobal) {
+                NSData *data = [[NSString stringWithFormat:@"{\"type\":\"request\",\"command\":\"setglobal\",\"indices\":[%@],\"value\":%@}", indices, [self toQuotedString:[NSString stringWithFormat:@"return %@", object]]] dataUsingEncoding:NSUTF8StringEncoding];
+                [self sendData:data];
+            }*/
+            
+            //[localVariablesView reloadItem:item];
+        }
     }
     else if(outlineView == projectOutlineView) {
         [self.project setFileName:item name:object];
@@ -1080,6 +1112,12 @@
     
     self.globalTable = project.globalTable;
     
+    BOOL hidden = [debugContainerView isHidden];
+    
+    if(hidden) {
+        [self showHideDebugContainer:showDebugContainerButton];
+    }
+    
     [consoleView setEditable:YES];
     [continueButton setEnabled:YES];
     [continueButton setImage:[NSImage imageNamed:@"resume_co.png"]];
@@ -1349,6 +1387,24 @@
     [stepOutButton setEnabled:NO];
 }
 
+- (IBAction)showLocals:(id)sender {
+	showLocals = YES;
+    
+	[self reloadLocalVariables];
+}
+
+- (IBAction)showGlobals:(id)sender {
+	showLocals = NO;
+    
+	[self reloadGlobalVariables];
+}
+
+- (IBAction)showTemporaries:(id)sender {
+    if(showLocals) {
+        [self reloadLocalVariables];
+    }
+}
+
 - (IBAction)showHideDebugContainer:(NSButton *)sender {
     NSSplitView *splitView = (NSSplitView *)[debugContainerView superview];
     NSView *topSubview = [[splitView subviews] objectAtIndex:0];
@@ -1362,8 +1418,9 @@
         
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             [context setDuration:0.3];
-            [topSubview animator].frame = NSMakeRect(topSubview.frame.origin.x, 200, topSubview.frame.size.width, splitView.frame.size.height-200);
-            [bottomSubview animator].frame = NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 200);
+            [context setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut]];
+            [[topSubview animator] setFrame:NSMakeRect(topSubview.frame.origin.x, 200, topSubview.frame.size.width, splitView.frame.size.height-200)];
+            [[bottomSubview animator] setFrame:NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 200)];
         } completionHandler:^{
             sender.frameCenterRotation = 0;
         }];
@@ -1371,8 +1428,9 @@
     else {
         [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
             [context setDuration:0.3];
-            [topSubview animator].frame = NSMakeRect(topSubview.frame.origin.x, 1, topSubview.frame.size.width, splitView.frame.size.height-1);
-            [bottomSubview animator].frame = NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 1);
+            [context setTimingFunction:[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut]];
+            [[topSubview animator] setFrame:NSMakeRect(topSubview.frame.origin.x, 1, topSubview.frame.size.width, splitView.frame.size.height-1)];
+            [[bottomSubview animator] setFrame:NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 1)];
         } completionHandler:^{
             [debugContainerView setHidden:YES];
             sender.frameCenterRotation = 180;

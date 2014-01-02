@@ -33,6 +33,7 @@ typedef enum {
 @property (nonatomic, assign) NSInteger where;
 @property (nonatomic, assign) NSInteger index;
 @property (nonatomic, strong) NSString *key;
+@property (nonatomic, strong) NSString *className;
 @property (nonatomic, strong) id value;
 @property (nonatomic, weak) LXLuaVariable *parent;
 @property (nonatomic, retain) NSArray *children;

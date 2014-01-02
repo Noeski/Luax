@@ -74,6 +74,7 @@
     if(!fieldEditor) {
         fieldEditor = [[NSTextView alloc] init];
         [fieldEditor setInsertionPointColor:[NSColor whiteColor]];
+        [fieldEditor setFieldEditor:YES];
     }
     
     return fieldEditor;
