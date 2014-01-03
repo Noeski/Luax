@@ -45,7 +45,7 @@
     IBOutlet NSSplitView *horizontalSplitView;
     IBOutlet NSSplitView *contentSplitView;
     IBOutlet NSSplitView *verticalSplitView;
-    IBOutlet NSPopUpButton *showLocalsButton;
+    IBOutlet NSButton *showLocalsButton;
     IBOutlet NSButton *showTemporariesButton;
 
     BOOL showLocals;
@@ -68,6 +68,7 @@
 - (IBAction)stepInto:(id)sender;
 - (IBAction)stepOver:(id)sender;
 - (IBAction)stepOut:(id)sender;
+- (IBAction)showLocalsMenu:(id)sender;
 - (IBAction)showLocals:(id)sender;
 - (IBAction)showGlobals:(id)sender;
 - (IBAction)showTemporaries:(id)sender;

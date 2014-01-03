@@ -1065,6 +1065,93 @@ int locals__newindex(lua_State* L) {
     }];
 }
 
+- (void)setUpValue:(NSString *)value where:(NSInteger)where index:(NSInteger)index indices:(NSArray *)indices {
+    __weak LXProject *weakSelf = self;
+    
+    [self addCommand:^{
+        int top = lua_gettop([weakSelf state]);
+        
+        NSInteger nresults = [weakSelf interpret:value];
+        
+        if(nresults == 1) {
+            lua_Debug ar;
+            lua_getstack([weakSelf state], (int)where, &ar);
+            
+            if([indices count] > 0) {
+                lua_getupvalue([weakSelf state], &ar, (int)index);
+                
+                int i = 0;
+                for(; i < [indices count]-1; ++i) {
+                    lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                    lua_rawget([weakSelf state], lua_gettop([weakSelf state])-1);
+                }
+                
+                lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                lua_pushvalue([weakSelf state], top+1);
+                lua_rawset([weakSelf state], lua_gettop([weakSelf state])-2);
+            }
+            else {
+                lua_setupvalue([weakSelf state], &ar, (int)index);
+            }
+        }
+        else {
+            //Error
+        }
+        
+        lua_pop([weakSelf state], lua_gettop([weakSelf state]) - top);
+        
+        [weakSelf updateStack];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([weakSelf.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [weakSelf.delegate projectFinishedRunningString:weakSelf];
+            }
+        });
+    }];
+}
+
+- (void)setGlobalValue:(NSString *)value indices:(NSArray *)indices {
+    __weak LXProject *weakSelf = self;
+    
+    [self addCommand:^{
+        int top = lua_gettop([weakSelf state]);
+        
+        NSInteger nresults = [weakSelf interpret:value];
+        
+        if(nresults == 1) {
+            if([indices count] == 1) {
+                lua_setglobal([weakSelf state], [indices[0] UTF8String]);
+            }
+            else if([indices count] > 1) {
+                lua_getglobal([weakSelf state], [indices[0] UTF8String]);
+                
+                int i = 1;
+                for(; i < [indices count]-1; ++i) {
+                    lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                    lua_rawget([weakSelf state], lua_gettop([weakSelf state])-1);
+                }
+                
+                lua_pushstring([weakSelf state], [indices[i] UTF8String]);
+                lua_pushvalue([weakSelf state], top+1);
+                lua_rawset([weakSelf state], lua_gettop([weakSelf state])-2);
+            }
+        }
+        else {
+            //Error
+        }
+        
+        lua_pop([weakSelf state], lua_gettop([weakSelf state]) - top);
+        
+        [weakSelf updateStack];
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if([weakSelf.delegate respondsToSelector:@selector(projectFinishedRunningString:)]) {
+                [weakSelf.delegate projectFinishedRunningString:weakSelf];
+            }
+        });
+    }];
+}
+
 //May leave the stack in an inconsistent state..
 - (NSInteger)interpret:(NSString *)input {
     lua_State* L = _state;

@@ -209,8 +209,17 @@
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:YES];
     [projectOutlineView setDraggingSourceOperationMask:NSDragOperationEvery forLocal:NO];
     
-    [showTemporariesButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Temporaries" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
-    //[showLocalsButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Locals" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1]}]];
+    NSShadow *shadow = [[NSShadow alloc] init];
+    shadow.shadowBlurRadius = 4;
+    shadow.shadowOffset = NSMakeSize(0, -2);
+    shadow.shadowColor = [NSColor colorWithCalibratedWhite:0 alpha:0.6];
+    
+    NSMutableParagraphStyle *paragraphStyle = [[NSMutableParagraphStyle alloc] init];
+    paragraphStyle.alignment = NSRightTextAlignment;
+    
+    [showTemporariesButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Temporaries" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1], NSShadowAttributeName : shadow}]];
+
+    [showLocalsButton setAttributedTitle:[[NSAttributedString alloc] initWithString:@"Locals" attributes:@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.7 alpha:1], NSShadowAttributeName : shadow, NSParagraphStyleAttributeName : paragraphStyle}]];
 
     showLocals = YES;
 }
@@ -668,14 +677,12 @@
             if(var.scope == LXLuaVariableScopeLocal) {
                 [self.project setLocalValue:[NSString stringWithFormat:@"return %@", object] where:var.where index:var.index indices:indices];
             }
-            /*else if(var.scope == LXLuaVariableScopeUpvalue) {
-                NSData *data = [[NSString stringWithFormat:@"{\"type\":\"request\",\"command\":\"setupvalue\",\"indices\":[%@],\"where\":%d,\"index\":%d,\"value\":%@}", indices, (int)var.where, (int)var.index, [self toQuotedString:[NSString stringWithFormat:@"return %@", object]]] dataUsingEncoding:NSUTF8StringEncoding];
-                [self sendData:data];
+            else if(var.scope == LXLuaVariableScopeUpvalue) {
+                [self.project setUpValue:[NSString stringWithFormat:@"return %@", object] where:var.where index:var.index indices:indices];
             }
             else if(var.scope == LXLuaVariableScopeGlobal) {
-                NSData *data = [[NSString stringWithFormat:@"{\"type\":\"request\",\"command\":\"setglobal\",\"indices\":[%@],\"value\":%@}", indices, [self toQuotedString:[NSString stringWithFormat:@"return %@", object]]] dataUsingEncoding:NSUTF8StringEncoding];
-                [self sendData:data];
-            }*/
+                [self.project setGlobalValue:[NSString stringWithFormat:@"return %@", object] indices:indices];
+            }
             
             //[localVariablesView reloadItem:item];
         }
@@ -978,7 +985,7 @@
                 [fileView.textView setHighlightedLineColor:[NSColor redColor] background:[NSColor colorWithDeviceRed:1.0f green:0.8f blue:0.8f alpha:1.0f]];
             }
             else {
-                [fileView.textView setHighlightedLineColor:[NSColor blueColor] background:[NSColor colorWithDeviceRed:0.8f green:0.8f blue:1.0f alpha:1.0f]];
+                [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:0.000 green:0.565 blue:0.745 alpha:1] background:[NSColor colorWithCalibratedRed:0.000 green:0.376 blue:0.573 alpha:1]];
             }
         }
         
@@ -1387,13 +1394,30 @@
     [stepOutButton setEnabled:NO];
 }
 
+- (IBAction)showLocalsMenu:(NSButton *)sender {
+    [sender.menu popUpMenuPositioningItem:[sender.menu itemAtIndex:showLocals ? 0 : 1] atLocation:NSZeroPoint inView:sender];
+}
+
 - (IBAction)showLocals:(id)sender {
+    NSMutableAttributedString *mutableString = [[NSMutableAttributedString alloc] initWithAttributedString:showLocalsButton.attributedTitle];
+    [[mutableString mutableString] setString:@"Locals"];
+    
+    [showLocalsButton setAttributedTitle:mutableString];
+    [[showLocalsButton.menu itemAtIndex:0] setState:1];
+    [[showLocalsButton.menu itemAtIndex:1] setState:0];
+
 	showLocals = YES;
     
 	[self reloadLocalVariables];
 }
 
 - (IBAction)showGlobals:(id)sender {
+    NSMutableAttributedString *mutableString = [[NSMutableAttributedString alloc] initWithAttributedString:showLocalsButton.attributedTitle];
+    [[mutableString mutableString] setString:@"Globals"];
+    
+    [showLocalsButton setAttributedTitle:mutableString];
+    [[showLocalsButton.menu itemAtIndex:0] setState:0];
+    [[showLocalsButton.menu itemAtIndex:1] setState:1];
 	showLocals = NO;
     
 	[self reloadGlobalVariables];
