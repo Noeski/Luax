@@ -28,8 +28,13 @@ typedef enum {
 } LXTokenType;
 
 typedef enum {
-    LXTokenCompletionTypeType = 1
-} LXTokenCompletionType;
+    LXTokenCompletionFlagsTypes = 1,
+    LXTokenCompletionFlagsVariables = 2,
+    LXTokenCompletionFlagsMembers = 4,
+    LXTokenCompletionFlagsFunction = 8,
+    LXTokenCompletionFlagsControlStructures = 16,
+    LXTokenCompletionFlagsBlock = LXTokenCompletionFlagsControlStructures | LXTokenCompletionFlagsVariables | LXTokenCompletionFlagsTypes
+} LXTokenCompletionFlags;
 
 @interface LXToken : NSObject 
 @property (nonatomic) LXTokenType type;
@@ -41,7 +46,7 @@ typedef enum {
 @property (nonatomic, strong) LXClass *variableType;
 @property (nonatomic, strong) LXScope *scope;
 @property (nonatomic) BOOL isMember;
-@property (nonatomic, assign) LXTokenCompletionType completionType;
+@property (nonatomic, assign) LXTokenCompletionFlags completionFlags;
 
 - (BOOL)isKeyword;
 - (BOOL)isType;

@@ -1121,7 +1121,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     if(charRange.length == 0) {
         LXToken *token = [self tokenBeforeRange:charRange];
         
-        if(token.completionType == LXTokenCompletionTypeType) {
+        if(token.completionFlags == LXTokenCompletionFlagsMembers) {
             NSLog(@"%@", token.variableType.name);
         }
     }
