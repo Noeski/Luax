@@ -1436,33 +1436,6 @@
                     
                     [statement addChild:[self parseExpression:scope]];
                 }
-                
-                LXToken *doToken = [self currentToken];
-                
-                if(doToken.type != LX_TK_DO) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
-                    [self skipLine];
-                    break;
-                }
-                
-                [self consumeToken];
-                
-                [statement addAnonymousChunk:@" "];
-                [statement addChunk:@"do" line:doToken.startLine column:doToken.column];
-               
-                [statement addChild:[self parseBlock:scope]];
-
-                [self popScope];
-
-                LXToken *endToken = [self currentToken];
-                
-                if(endToken.type != LX_TK_END) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
-                    break;
-                }
-                
-                [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
-                [self consumeToken];
             }
             else {
                 LXToken *typeToken = nameToken;
@@ -1552,38 +1525,45 @@
                         break;
                     }
                 } while(YES);
-                
-                LXToken *doToken = [self currentToken];
-                
-                if(doToken.type != LX_TK_DO) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
-                    [self skipLine];
-                    break;
-                }
-                
-                [self consumeToken];
-                
-                [statement addAnonymousChunk:@" "];
-                [statement addChunk:@"do" line:doToken.startLine column:doToken.column];
-                
-                [statement addChild:[self parseBlock:scope]];
-                [self popScope];
-                
-                LXToken *endToken = [self currentToken];
-                
-                if(endToken.type != LX_TK_END) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
-                    break;
-                }
-                
-                [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
-                [self consumeToken];
             }
+            
+            LXToken *doToken = [self currentToken];
+            
+            if(doToken.type != LX_TK_DO) {
+                [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:doToken]] range:doToken.range line:doToken.startLine column:doToken.column];
+                [self skipLine];
+                break;
+            }
+            
+            doToken.completionFlags = LXTokenCompletionFlagsBlock;
+            [self consumeToken];
+            
+            [statement addAnonymousChunk:@" "];
+            [statement addChunk:@"do" line:doToken.startLine column:doToken.column];
+            
+            [statement addChild:[self parseBlock:scope]];
+            
+            [self popScope];
+            
+            LXToken *endToken = [self currentToken];
+            
+            if(endToken.type != LX_TK_END) {
+                [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
+                break;
+            }
+            
+            endToken.completionFlags = LXTokenCompletionFlagsBlock;
+            
+            [self consumeToken];
+            
+            [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
             
             break;
         }
         
         case LX_TK_REPEAT: {
+            current.completionFlags = LXTokenCompletionFlagsBlock;
+            
             [self consumeToken];
 
             [statement addChunk:@"repeat" line:current.startLine column:current.column];
@@ -1596,6 +1576,8 @@
                 [self skipLine];
                 break;
             }
+            
+            untilToken.completionFlags = LXTokenCompletionFlagsVariables;
             
             [statement addChunk:@"until" line:untilToken.startLine column:untilToken.column];
             [statement addAnonymousChunk:@" "];
@@ -1644,6 +1626,8 @@
         }
         
         case LX_TK_RETURN: {
+            current.completionFlags = LXTokenCompletionFlagsVariables;
+            
             [self consumeToken];
             [statement addChunk:@"return" line:current.startLine column:current.column];
             [statement addAnonymousChunk:@" "];
@@ -1669,6 +1653,8 @@
         }
         
         case LX_TK_BREAK: {
+            current.completionFlags = LXTokenCompletionFlagsBlock;
+            
             [self consumeToken];
             [statement addChunk:@"break" line:current.startLine column:current.column];
             break;
@@ -1694,6 +1680,8 @@
         }
         
         case ';': {
+            current.completionFlags = LXTokenCompletionFlagsBlock;
+            
             [self consumeToken];
             [statement addChunk:@";" line:current.startLine column:current.column];
             break;

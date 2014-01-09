@@ -505,6 +505,7 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
 
 - (void)colorTokensInRange:(NSRange)range {
     [self.layoutManager removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:range];
+    [self.layoutManager removeTemporaryAttribute:NSBackgroundColorAttributeName forCharacterRange:range];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:range];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:range];
     
@@ -624,27 +625,27 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
             
             if([string length] >= 1 && ![[NSCharacterSet decimalDigitCharacterSet] characterIsMember:[string characterAtIndex:0]]) {
-                //Find type of autocomplete
-                LXScope *scope = [self scopeAtLocation:affectedCharRange.location];
-                
-                if(scope.type == LXScopeTypeClass ||
-                   scope.type == LXScopeTypeFunction) {
-                    for(NSString *key in [self.file.context.compiler.typeMap allKeys]) {
-                        if(![self.file.context.compiler.typeMap[key] isDefined])
+                if((previousToken.completionFlags & LXTokenCompletionFlagsControlStructures) == LXTokenCompletionFlagsControlStructures) {
+                    for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
+                        BOOL found = NO;
+                        
+                        for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                            if([otherDefinition.key isEqualToString:definition.key]) {
+                                found = YES;
+                                break;
+                            }
+                        }
+                        
+                        if(found)
                             continue;
                         
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = key;
-                        autoCompleteDefinition.type = @"Class";
-                        autoCompleteDefinition.string = key;
-                        autoCompleteDefinition.title = key;
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
+                        [autoCompleteDefinitions addObject:definition];
                     }
                 }
-                else {
+                
+                if((previousToken.completionFlags & LXTokenCompletionFlagsVariables) == LXTokenCompletionFlagsVariables) {
+                    LXScope *scope = [self scopeAtLocation:affectedCharRange.location];
+
                     while(scope) {
                         for(LXVariable *variable in scope.localVariables) {
                             if(!variable.type.isDefined) {
@@ -666,36 +667,87 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                             LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
                             
                             autoCompleteDefinition.key = variable.name;
-                            autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                            autoCompleteDefinition.string = variable.name;
-                            autoCompleteDefinition.title = variable.name;
-                            autoCompleteDefinition.description = nil;
-                            autoCompleteDefinition.markers = nil;
+
+                            if([variable isFunction]) {
+                                LXFunction *function = (LXFunction *)variable;
+                                
+                                if([function.returnTypes count]) {
+                                    LXVariable *returnType = function.returnTypes[0];
+
+                                    autoCompleteDefinition.type = returnType.type.name;
+                                    
+                                    for(NSInteger i = 1; i < [function.returnTypes count]; ++i) {
+                                        returnType = function.returnTypes[i];
+
+                                        autoCompleteDefinition.type = [autoCompleteDefinition.type stringByAppendingFormat:@", %@", returnType.type.name];
+                                    }
+                                }
+                                else {
+                                    autoCompleteDefinition.type = @"void";
+                                }
+                                
+                                autoCompleteDefinition.string = [NSString stringWithFormat:@"%@(", variable.name];
+                                autoCompleteDefinition.title = [NSString stringWithFormat:@"%@(", variable.name];
+
+                                NSMutableArray *markers = nil;
+
+                                if([function.arguments count]) {
+                                    markers = [NSMutableArray array];
+                                    
+                                    LXVariable *argument = function.arguments[0];
+                                    
+                                    NSRange marker = NSMakeRange(autoCompleteDefinition.string.length, argument.name.length);
+                                    [markers addObject:[NSValue valueWithRange:marker]];
+                                    
+                                    autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@"%@", argument.name];
+                                    autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@"%@", argument.type.name];
+                                    
+                                    for(NSInteger i = 1; i < [function.arguments count]; ++i) {
+                                        argument = function.arguments[i];
+                                        
+                                        marker = NSMakeRange(autoCompleteDefinition.string.length+2, argument.name.length);
+                                        [markers addObject:[NSValue valueWithRange:marker]];
+                                        
+                                        autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@", %@", argument.name];
+                                        autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@", %@", argument.type.name];
+                                    }
+                                }
+                                
+                                autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingString:@")"];
+                                autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
+
+                                autoCompleteDefinition.markers = markers;
+                                autoCompleteDefinition.description = nil;
+                            }
+                            else {
+                                autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
+                                autoCompleteDefinition.string = variable.name;
+                                autoCompleteDefinition.title = variable.name;
+                                autoCompleteDefinition.description = nil;
+                                autoCompleteDefinition.markers = nil;
+                            }
+                            
                             [autoCompleteDefinitions addObject:autoCompleteDefinition];
                         }
                         
                         scope = scope.parent;
                     }
-                    
-                    //
-                    
-                    NSInteger line = [self lineForLocation:affectedCharRange.location];
-                    if(line != previousToken.endLine) {
-                        for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-                            BOOL found = NO;
-                            
-                            for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-                                if([otherDefinition.key isEqualToString:definition.key]) {
-                                    found = YES;
-                                    break;
-                                }
-                            }
-                            
-                            if(found)
-                                continue;
-                            
-                            [autoCompleteDefinitions addObject:definition];
-                        }
+                }
+                
+                if((previousToken.completionFlags & LXTokenCompletionFlagsTypes) == LXTokenCompletionFlagsTypes) {
+                    for(NSString *key in [self.file.context.compiler.typeMap allKeys]) {
+                        if(![self.file.context.compiler.typeMap[key] isDefined])
+                            continue;
+                        
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                        
+                        autoCompleteDefinition.key = key;
+                        autoCompleteDefinition.type = @"Class";
+                        autoCompleteDefinition.string = key;
+                        autoCompleteDefinition.title = key;
+                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.markers = nil;
+                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
                     }
                 }
                 
@@ -782,7 +834,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
                 [currentAutoCompleteDefinitions addObject:definition];
                 
-                CGFloat sizeOfString = [definition.string sizeWithAttributes:sizeAttribute].width + 6;
+                CGFloat sizeOfString = [definition.title sizeWithAttributes:sizeAttribute].width + 6;
                 
                 if(sizeOfString > largestStringWidth) {
                     largestStringWidth = sizeOfString;
@@ -880,177 +932,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [self updateAutoComplete:affectedCharRange replacementString:replacementString];
     }
     
-    if(NO && undo && [replacementString length] == 1 && [[replacementString stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] length] == 1) {
-        {
-            NSCharacterSet *charSet = [NSCharacterSet alphanumericCharacterSet];
-            NSInteger startIndex = affectedCharRange.location-1;
-            char ch = [replacementString characterAtIndex:0];
-            
-            if([charSet characterIsMember:ch]) {
-                while(startIndex >= 0) {
-                    ch = [[self string] characterAtIndex:startIndex];
-                    
-                    if(![charSet characterIsMember:ch])
-                        break;
-                    
-                    startIndex--;
-                }
-            }
-            
-            NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
-            
-            autoCompleteWordRange = NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
-            
-            NSFont *font = [[NSFontManager sharedFontManager]
-                            fontWithFamily:@"Menlo"
-                            traits:0
-                            weight:0
-                            size:11];
-            
-            NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
-            
-            CGFloat largestTypeWidth = 0;
-            CGFloat largestStringWidth = 200;
-            
-            NSMutableArray *allDefinitions = nil;
-            
-            LXToken *previousToken = [self tokenBeforeRange:NSMakeRange(startIndex+1, 0)];
-            LXToken *variableToken = nil;
-
-            if([replacementString isEqualToString:@"."] ||
-               [replacementString isEqualToString:@":"]) {
-                autoCompleteWordRange = NSMakeRange(autoCompleteWordRange.location+1, 0);
-                string = @"";
-                variableToken = previousToken;
-            }
-            else if(previousToken.type == '.' ||
-                    previousToken.type == ':') {
-                variableToken = [self tokenBeforeRange:previousToken.range];
-            }
-            
-            if(variableToken.variable.type.isDefined) {
-                allDefinitions = [NSMutableArray array];
-                
-                LXClass *tokenClass = variableToken.variable.type;
-                
-                while(tokenClass) {
-                    for(LXVariable *variable in tokenClass.variables) {
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = variable.name;
-                        autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                        autoCompleteDefinition.string = variable.name;
-                        autoCompleteDefinition.title = variable.name;
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [allDefinitions addObject:autoCompleteDefinition];
-                    }
-                    
-                    /*for(LXNodeFunctionExpression *function in tokenClass.functions) {
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = [function.name toString];
-                        autoCompleteDefinition.type = @"";
-                        autoCompleteDefinition.string = [function.name toString];
-                        autoCompleteDefinition.title = [function.name toString];
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [allDefinitions addObject:autoCompleteDefinition];
-                    }*/
-                    
-                    tokenClass = tokenClass.parent;
-                }
-            }
-            else {
-                allDefinitions = [NSMutableArray array];
-                
-                LXScope *scope = [self scopeAtLocation:affectedCharRange.location];
-
-                while(scope) {
-                    for(LXVariable *variable in scope.localVariables) {
-                        BOOL found = NO;
-                        
-                        for(LXAutoCompleteDefinition *definition in allDefinitions) {
-                            if([definition.key isEqualToString:variable.name]) {
-                                found = YES;
-                                break;
-                            }
-                        }
-                        
-                        if(found)
-                            continue;
-                        
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                    
-                        autoCompleteDefinition.key = variable.name;
-                        autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                        autoCompleteDefinition.string = variable.name;
-                        autoCompleteDefinition.title = variable.name;
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [allDefinitions addObject:autoCompleteDefinition];
-                    }
-                    
-                    scope = scope.parent;
-                }
-                
-                for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-                    BOOL found = NO;
-                    
-                    for(LXAutoCompleteDefinition *otherDefinition in allDefinitions) {
-                        if([otherDefinition.key isEqualToString:definition.key]) {
-                            found = YES;
-                            break;
-                        }
-                    }
-                    
-                    if(found)
-                        continue;
-                    
-                    [allDefinitions addObject:definition];
-                }
-            }
-            
-            for(LXAutoCompleteDefinition *definition in allDefinitions) {
-                NSString *autoCompleteKey = definition.key;
-                
-                if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
-                    [currentAutoCompleteDefinitions addObject:definition];
-                    
-                    CGFloat sizeOfString = [definition.string sizeWithAttributes:sizeAttribute].width + 6;
-                    
-                    if(sizeOfString > largestStringWidth) {
-                        largestStringWidth = sizeOfString;
-                    }
-                    
-                    sizeOfString = [definition.type sizeWithAttributes:sizeAttribute].width + 6;
-                    
-                    if(sizeOfString > largestTypeWidth) {
-                        largestTypeWidth = sizeOfString;
-                    }
-                }
-            }
-            
-            CGFloat windowHeight = [currentAutoCompleteDefinitions count] *(autoCompleteTableView.rowHeight + 2);
-            if(windowHeight > 150) {
-                windowHeight = 150;
-            }
-            
-            windowHeight += 20;
-            
-            [[autoCompleteTableView tableColumnWithIdentifier:@"Column1"] setWidth:largestTypeWidth];
-            [[autoCompleteTableView tableColumnWithIdentifier:@"Column2"] setWidth:largestStringWidth];
-
-            [autoCompleteWindow setFrame:NSMakeRect(autoCompleteWindow.frame.origin.x, autoCompleteWindow.frame.origin.y, largestStringWidth, windowHeight) display:NO];
-            [autoCompleteScrollView setFrame:NSMakeRect(0, 20, largestTypeWidth + largestStringWidth, windowHeight - 20)];
-            [autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
-        }
-    }
-    
     [self replaceCharactersInRange:affectedCharRange withString:replacementString];
-    
-    [self.layoutManager removeTemporaryAttribute:NSForegroundColorAttributeName forCharacterRange:NSMakeRange(0, [self.string length])];
-    [self.layoutManager removeTemporaryAttribute:NSBackgroundColorAttributeName forCharacterRange:NSMakeRange(0, [self.string length])];
     
     [self recompile:self.string];
     
@@ -1118,14 +1000,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (void)setSelectedRange:(NSRange)charRange affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag {
-    if(charRange.length == 0) {
-        LXToken *token = [self tokenBeforeRange:charRange];
-        
-        if(token.completionFlags == LXTokenCompletionFlagsMembers) {
-            NSLog(@"%@", token.variableType.name);
-        }
-    }
-    
     //if(settingAutoComplete)
     //   [self cancelAutoComplete]; TODO cancel setting autocomplete
     
@@ -1194,10 +1068,10 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             [shadow setShadowColor:[NSColor blackColor]];
             [shadow setShadowOffset:CGSizeMake(0, -1.0f)];
             
-            return [[NSAttributedString alloc] initWithString:definition.string attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : font, NSShadowAttributeName : shadow}];
+            return [[NSAttributedString alloc] initWithString:definition.title attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : font, NSShadowAttributeName : shadow}];
         }
         else {
-            return [[NSAttributedString alloc] initWithString:definition.string attributes:@{NSForegroundColorAttributeName : [NSColor blackColor]}];
+            return [[NSAttributedString alloc] initWithString:definition.title attributes:@{NSForegroundColorAttributeName : [NSColor blackColor]}];
         }
     }
 }
