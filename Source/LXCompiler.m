@@ -512,7 +512,7 @@
         if(token.type == '.' ||
            token.type == ':') {
             token.completionFlags = LXTokenCompletionFlagsMembers;
-            token.variableType = lastExpression.variable.type;
+            token.variable = lastExpression.variable;
             [self consumeToken];
             
             [expression addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
@@ -659,6 +659,8 @@
         expression.assignable = NO;
     }
     else if(token.type == LX_TK_NAME) {
+        token.completionFlags = LXTokenCompletionFlagsMembers;
+
         [self consumeToken];
         
         NSString *name = [self tokenValue:token];

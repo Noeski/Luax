@@ -30,6 +30,7 @@
 	NSInteger lineHeight;
 
     NSUndoManager *undoManager;
+    NSFont *font;
     BOOL insideUndoGroup;
     
     NSColor *textColor, *commentsColor, *keywordsColor, *numbersColor, *stringsColor, *functionsColor, *typesColor;

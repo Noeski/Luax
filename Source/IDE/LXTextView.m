@@ -87,9 +87,9 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         autoCompleteWindow.delegate = self;
         [autoCompleteWindow setBackgroundColor:[NSColor clearColor]];
         
-        NSFont *font = [[NSFontManager sharedFontManager] fontWithFamily:@"Menlo"
+        font = [[NSFontManager sharedFontManager] fontWithFamily:@"Menlo"
                                                                   traits:0
-                                                                  weight:0
+                                                                  weight:4
                                                                     size:11];
         
         NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
@@ -250,12 +250,6 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
     
     autoCompleteMarkers = [[NSMutableArray alloc] init];
     
-    NSFont *font = [[NSFontManager sharedFontManager]
-                    fontWithFamily:@"Menlo"
-                    traits:0
-                    weight:4
-                    size:11];
-    
     [self setInsertionPointColor:textColor];
     [self setBackgroundColor:[NSColor colorWithCalibratedWhite:0.20 alpha:1]];
     [self setSelectedTextAttributes:@{NSBackgroundColorAttributeName : [NSColor clearColor]}];
@@ -273,7 +267,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 	[self setRichText:NO];
 	[self setImportsGraphics:NO];
 	[self setUsesFontPanel:NO];
-	[self setTextContainerInset:NSMakeSize(5, 0)];
+	[self setTextContainerInset:NSMakeSize(0, 0)];
 	[self setContinuousSpellCheckingEnabled:NO];
 	[self setGrammarCheckingEnabled:NO];
 	
@@ -293,7 +287,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 
 - (NSPoint)textContainerOrigin {
     NSPoint origin = [super textContainerOrigin];
-    NSPoint newOrigin = NSMakePoint(origin.x + 5.0f, origin.y);
+    NSPoint newOrigin = NSMakePoint(origin.x, origin.y);
     return newOrigin;
 }
 
@@ -314,12 +308,6 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         
         if(NSPointInRect(eventLocation, errorRect)) {
             [errorLabel setStringValue:error.error];
-            
-            NSFont *font = [[NSFontManager sharedFontManager]
-                            fontWithFamily:@"Menlo"
-                            traits:0
-                            weight:0
-                            size:11];
             
             NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
             NSRect textRect = [error.error boundingRectWithSize:self.bounds.size options:NSStringDrawingUsesLineFragmentOrigin attributes:sizeAttribute];
@@ -857,61 +845,10 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                 }
                 
                 if([autoCompleteDefinitions count] > 0) {
-                    autoCompleteWordRange = NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
+                    autoCompleteWordRange = isMemberAccessor ? NSMakeRange(startIndex+2, 0) : NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
                     settingAutoComplete = YES;
                 }
             }
-        }
-        else if(ch == '.' ||
-                ch == ':') {
-            NSInteger startIndex = affectedCharRange.location-1;
-
-            LXToken *previousToken = [self tokenBeforeRange:NSMakeRange(startIndex+1, 0)];
-            LXToken *variableToken = previousToken;
-            
-            if(variableToken.variable.type.isDefined) {
-                LXClass *tokenClass = variableToken.variable.type;
-                
-                while(tokenClass) {
-                    for(LXVariable *variable in tokenClass.variables) {
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = variable.name;
-                        autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                        autoCompleteDefinition.string = variable.name;
-                        autoCompleteDefinition.title = variable.name;
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                    }
-                    
-                    /*for(LXNodeFunctionStatement *functionStatement in tokenClass.functions) {
-                        LXNodeFunctionExpression *function = (LXNodeFunctionExpression *)functionStatement.expression;
-                        
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = [function.name toString];
-                        autoCompleteDefinition.type = @"";
-                        autoCompleteDefinition.string = [function.name toString];
-                        autoCompleteDefinition.title = [function.name toString];
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                    }*/
-                    
-                    tokenClass = tokenClass.parent;
-                }
-            }
-            
-            if([autoCompleteDefinitions count] > 0) {
-                autoCompleteWordRange = NSMakeRange(startIndex+2, 0);
-                settingAutoComplete = YES;
-            }
-            
-            NSLog(@"Type: %@", variableToken.variable.type.name);
-        }
-        else {
-            
         }
     }
 }
@@ -919,18 +856,12 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 - (void)updateCurrentAutoCompleteDefinitions {
     [currentAutoCompleteDefinitions removeAllObjects];
     
-    NSFont *font = [[NSFontManager sharedFontManager]
-                    fontWithFamily:@"Menlo"
-                    traits:0
-                    weight:0
-                    size:11];
-    
     NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
     
     CGFloat largestTypeWidth = 0;
     CGFloat largestStringWidth = 200;
     
-    if(autoCompleteWordRange.length && autoCompleteWordRange.location+autoCompleteWordRange.length <= [[self string] length]) {
+    if(/*autoCompleteWordRange.length && */autoCompleteWordRange.location+autoCompleteWordRange.length <= [[self string] length]) {
         NSString *string = [[self string] substringWithRange:autoCompleteWordRange];
         
         for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
@@ -985,7 +916,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     
     CGFloat width = [autoCompleteTableView tableColumnWithIdentifier:@"Column1"].width + 3;
     
-    [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestStringWidth, windowHeight) display:YES];
+    [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestTypeWidth + largestStringWidth, windowHeight) display:YES];
     [autoCompleteScrollView setFrame:NSMakeRect(0, 20, largestTypeWidth + largestStringWidth, windowHeight - 20)];
     [autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
 }
@@ -1143,18 +1074,16 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [paragraphStyle setAlignment:NSRightTextAlignment];
         
         if(selected) {
-            NSFont *font = [[NSFontManager sharedFontManager]
-                            fontWithFamily:@"Menlo"
-                            traits:NSBoldFontMask
-                            weight:0
-                            size:11];
-            
             NSShadow *shadow = [[NSShadow alloc] init];
             [shadow setShadowBlurRadius:0];
             [shadow setShadowColor:[NSColor blackColor]];
             [shadow setShadowOffset:CGSizeMake(0, -1.0f)];
             
-            return [[NSAttributedString alloc] initWithString:definition.type attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : font, NSShadowAttributeName : shadow, NSParagraphStyleAttributeName : paragraphStyle}];
+            return [[NSAttributedString alloc] initWithString:definition.type attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : [[NSFontManager sharedFontManager]
+                                                                                                                                                                         fontWithFamily:@"Menlo"
+                                                                                                                                                                         traits:NSBoldFontMask
+                                                                                                                                                                         weight:0
+                                                                                                                                                                         size:11], NSShadowAttributeName : shadow, NSParagraphStyleAttributeName : paragraphStyle}];
         }
         else {
             return [[NSAttributedString alloc] initWithString:definition.type attributes:@{NSForegroundColorAttributeName : [NSColor blueColor], NSParagraphStyleAttributeName : paragraphStyle}];
@@ -1162,18 +1091,16 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     }
     else {
         if(selected) {
-            NSFont *font = [[NSFontManager sharedFontManager]
-                            fontWithFamily:@"Menlo"
-                            traits:NSBoldFontMask
-                            weight:0
-                            size:11];
-            
             NSShadow *shadow = [[NSShadow alloc] init];
             [shadow setShadowBlurRadius:0];
             [shadow setShadowColor:[NSColor blackColor]];
             [shadow setShadowOffset:CGSizeMake(0, -1.0f)];
             
-            return [[NSAttributedString alloc] initWithString:definition.title attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : font, NSShadowAttributeName : shadow}];
+            return [[NSAttributedString alloc] initWithString:definition.title attributes:@{NSForegroundColorAttributeName : [NSColor whiteColor], NSFontAttributeName : [[NSFontManager sharedFontManager]
+                                                                                                                                                                          fontWithFamily:@"Menlo"
+                                                                                                                                                                          traits:NSBoldFontMask
+                                                                                                                                                                          weight:0
+                                                                                                                                                                          size:11], NSShadowAttributeName : shadow}];
         }
         else {
             return [[NSAttributedString alloc] initWithString:definition.title attributes:@{NSForegroundColorAttributeName : [NSColor blackColor]}];
@@ -1207,7 +1134,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         
         autoCompleteRange = NSMakeRange(NSMaxRange(autoCompleteWordRange), [autoCompleteString length]);
         
-        [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:[NSColor colorWithDeviceWhite:0.0 alpha:0.5] forCharacterRange:autoCompleteRange];
+        [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:[NSColor colorWithCalibratedRed:0.937 green:0.902 blue:0.588 alpha:0.6] forCharacterRange:autoCompleteRange];
         
         [self setSelectedRange:NSMakeRange(autoCompleteRange.location, 0)];
         
@@ -1355,12 +1282,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 	while (numberOfSpaces--) {
 		[sizeString appendString:@" "];
 	}
-    
-    NSFont *font = [[NSFontManager sharedFontManager]
-                    fontWithFamily:@"Menlo"
-                    traits:0
-                    weight:0
-                    size:11];
     
 	NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
 	CGFloat sizeOfTab = [sizeString sizeWithAttributes:sizeAttribute].width;
