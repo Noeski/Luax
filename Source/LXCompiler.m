@@ -288,14 +288,19 @@
 }
 
 - (LXToken *)consumeToken {
+    return [self consumeToken:0];
+}
+
+- (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags {
     LXToken *token = [self token:&currentTokenIndex];
     token.scope = [self currentScope];
+    token.completionFlags = completionFlags;
     
     ++currentTokenIndex;
     return token;
 }
 
-- (BOOL)consumeToken:(LXTokenType)type {
+- (LXToken *)consumeTokenType:(LXTokenType)type {
     NSInteger index = currentTokenIndex;
     
     LXToken *token = [self token:&index];
@@ -305,10 +310,10 @@
         
         currentTokenIndex = index+1;
         
-        return YES;
+        return token;
     }
     
-    return NO;
+    return NULL;
 }
 
 - (void)closeBlock:(LXTokenType)type {
@@ -1040,12 +1045,12 @@
     NSString *name = [self tokenValue:nameToken];
     NSString *superclass = nil;
     
-    [self consumeToken];
+    [self consumeToken:LXTokenCompletionFlagsClass];
     
     LXToken *extendsToken = [self currentToken];
     
     if(extendsToken.type == LX_TK_EXTENDS) {
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsTypes];
         
         LXToken *typeToken = [self currentToken];
         
@@ -1054,7 +1059,7 @@
         }
         
         superclass = [self tokenValue:typeToken];
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsClass];
     }
     
     if(superclass) {
@@ -1135,14 +1140,14 @@
             }
             
             if(current.type == '=') {
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsVariables];
                 
                 do {
                     [initList addObject:[self parseExpression:scope]];
                     
                     current = [self currentToken];
                     if(current.type == ',') {
-                        [self consumeToken];
+                        [self consumeToken:LXTokenCompletionFlagsVariables];
                         continue;
                     }
                     
@@ -1206,7 +1211,7 @@
         [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
     }
     
-    [self consumeToken];
+    [self consumeToken:LXTokenCompletionFlagsBlock];
     
     LXClass *scriptClass = [[LXClassBase alloc] init];
     scriptClass.name = name;
@@ -1225,10 +1230,10 @@
 - (LXNode *)parseStatement:(LXScope *)scope {
     BOOL isLocal = ![scope isGlobalScope];
     
-    if([self consumeToken:LX_TK_LOCAL]) {
+    if([self consumeTokenType:LX_TK_LOCAL]) {
         isLocal = YES;
     }
-    else if([self consumeToken:LX_TK_GLOBAL]) {
+    else if([self consumeTokenType:LX_TK_GLOBAL]) {
         isLocal = NO;
     }
     
@@ -1237,9 +1242,7 @@
     
     switch((NSInteger)current.type) {
         case LX_TK_IF: {
-            current.completionFlags = LXTokenCompletionFlagsVariables;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             
             [statement addChunk:@"if" line:current.startLine column:current.column];
             [statement addAnonymousChunk:@" "];
@@ -1252,9 +1255,7 @@
                 [self skipLine];
             }
         
-            thenToken.completionFlags = LXTokenCompletionFlagsBlock;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
         
             [statement addAnonymousChunk:@" "];
             [statement addChunk:@"then" line:thenToken.startLine column:thenToken.column];
@@ -1263,9 +1264,7 @@
             LXToken *elseIfToken = [self currentToken];
         
             while(elseIfToken.type == LX_TK_ELSEIF) {
-                elseIfToken.completionFlags = LXTokenCompletionFlagsVariables;
-
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsVariables];
 
                 [statement addChunk:@"elseif" line:elseIfToken.startLine column:elseIfToken.column];
                 [statement addAnonymousChunk:@" "];
@@ -1279,9 +1278,7 @@
                     break;
                 }
                 
-                thenToken.completionFlags = LXTokenCompletionFlagsBlock;
-                
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsBlock];
                 
                 [statement addAnonymousChunk:@" "];
                 [statement addChunk:@"then" line:thenToken.startLine column:thenToken.column];
@@ -1293,9 +1290,7 @@
             LXToken *elseToken = [self currentToken];
 
             if(elseToken.type == LX_TK_ELSE) {
-                elseToken.completionFlags = LXTokenCompletionFlagsBlock;
-
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsBlock];
                 
                 [statement addChunk:@"else" line:elseToken.startLine column:elseToken.column];
                 [statement addChild:[self parseBlock:scope]];
@@ -1308,9 +1303,7 @@
                 break;
             }
         
-            endToken.completionFlags = LXTokenCompletionFlagsBlock;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
 
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
         
@@ -1318,9 +1311,7 @@
         }
         
         case LX_TK_WHILE: {
-            current.completionFlags = LXTokenCompletionFlagsVariables;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             
             [statement addChunk:@"while" line:current.startLine column:current.column];
             [statement addAnonymousChunk:@" "];
@@ -1334,9 +1325,7 @@
                 break;
             }
             
-            doToken.completionFlags = LXTokenCompletionFlagsBlock;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             
             [statement addAnonymousChunk:@" "];
             [statement addChunk:@"do" line:doToken.startLine column:doToken.column];
@@ -1349,9 +1338,7 @@
                 break;
             }
             
-            endToken.completionFlags = LXTokenCompletionFlagsBlock;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
 
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
             
@@ -1359,9 +1346,7 @@
         }
         
         case LX_TK_DO: {
-            current.completionFlags = LXTokenCompletionFlagsBlock;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
 
             [statement addChunk:@"do" line:current.startLine column:current.column];
             [statement addChild:[self parseBlock:scope]];
@@ -1373,9 +1358,7 @@
                 break;
             }
             
-            endToken.completionFlags = LXTokenCompletionFlagsBlock;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
             
@@ -1383,9 +1366,7 @@
         }
         
         case LX_TK_FOR: {
-            current.completionFlags = LXTokenCompletionFlagsTypes | LXTokenCompletionFlagsVariables;
-
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsTypes | LXTokenCompletionFlagsVariables];
             
             [statement addChunk:@"for" line:current.startLine column:current.column];
             [statement addAnonymousChunk:@" "];
@@ -1537,8 +1518,7 @@
                 break;
             }
             
-            doToken.completionFlags = LXTokenCompletionFlagsBlock;
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             
             [statement addAnonymousChunk:@" "];
             [statement addChunk:@"do" line:doToken.startLine column:doToken.column];
@@ -1554,9 +1534,7 @@
                 break;
             }
             
-            endToken.completionFlags = LXTokenCompletionFlagsBlock;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             
             [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
             
@@ -1564,9 +1542,7 @@
         }
         
         case LX_TK_REPEAT: {
-            current.completionFlags = LXTokenCompletionFlagsBlock;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
 
             [statement addChunk:@"repeat" line:current.startLine column:current.column];
             [statement addChild:[self parseBlock:scope]];
@@ -1579,11 +1555,9 @@
                 break;
             }
             
-            untilToken.completionFlags = LXTokenCompletionFlagsVariables;
-            
             [statement addChunk:@"until" line:untilToken.startLine column:untilToken.column];
             [statement addAnonymousChunk:@" "];
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             
             [statement addChild:[self parseExpression:scope]];
 
@@ -1628,9 +1602,7 @@
         }
         
         case LX_TK_RETURN: {
-            current.completionFlags = LXTokenCompletionFlagsVariables;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             [statement addChunk:@"return" line:current.startLine column:current.column];
             [statement addAnonymousChunk:@" "];
 
@@ -1641,7 +1613,7 @@
                     LXToken *commaToken = [self currentToken];
                     
                     if(commaToken.type == ',') {
-                        [self consumeToken];
+                        [self consumeToken:LXTokenCompletionFlagsVariables];
                         [statement addChunk:@"," line:commaToken.startLine column:commaToken.column];
 
                         continue;
@@ -1655,9 +1627,7 @@
         }
         
         case LX_TK_BREAK: {
-            current.completionFlags = LXTokenCompletionFlagsBlock;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             [statement addChunk:@"break" line:current.startLine column:current.column];
             break;
         }
@@ -1682,17 +1652,14 @@
         }
         
         case ';': {
-            current.completionFlags = LXTokenCompletionFlagsBlock;
-            
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsBlock];
             [statement addChunk:@";" line:current.startLine column:current.column];
             break;
         }
         
         default: {
             if([current isType] &&
-               [self nextToken].type == LX_TK_NAME &&
-               current.startLine == [self nextToken].endLine) {
+               [self nextToken].type == LX_TK_NAME) {
                 NSMutableArray *typeList = [NSMutableArray array];
                 
                 [self consumeToken];
@@ -1797,7 +1764,7 @@
                 NSInteger index = 0;
                 
                 if(commaToken.type == '=') {
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     
                     [statement addChunk:@"=" line:commaToken.startLine column:commaToken.column];
 
@@ -1808,7 +1775,7 @@
                         commaToken = [self currentToken];
                         
                         if(commaToken.type == ',') {
-                            [self consumeToken];
+                            [self consumeToken:LXTokenCompletionFlagsVariables];
                             
                             [statement addChunk:@"," line:commaToken.startLine column:commaToken.column];
                         }
@@ -1846,7 +1813,7 @@
                     [declarations addObject:declaration];
                     
                     while(assignmentToken.type == ',') {
-                        [self consumeToken];
+                        [self consumeToken:LXTokenCompletionFlagsVariables];
                         
                         [statement addChunk:@"," line:assignmentToken.startLine column:assignmentToken.column];
                         declaration = [self parseSuffixedExpression:scope onlyDotColon:NO];
@@ -1862,7 +1829,7 @@
                         break;
                     }
                     
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     [statement addChunk:@"=" line:assignmentToken.startLine column:assignmentToken.column];
 
                     NSInteger i = 0;
@@ -1922,7 +1889,7 @@
                         assignmentToken = [self currentToken];
                         
                         if(assignmentToken.type == ',') {
-                            [self consumeToken];
+                            [self consumeToken:LXTokenCompletionFlagsVariables];
                             
                             [statement addChunk:@"," line:assignmentToken.startLine column:assignmentToken.column];
                         }
