@@ -626,20 +626,24 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                 NSLog(@"Previous Token: %@ %@", [self.string substringWithRange:previousToken.range], string);
 
                 if((previousToken.completionFlags & LXTokenCompletionFlagsControlStructures) == LXTokenCompletionFlagsControlStructures) {
-                    for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-                        BOOL found = NO;
-                        
-                        for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-                            if([otherDefinition.key isEqualToString:definition.key]) {
-                                found = YES;
-                                break;
+                    NSInteger line = [self lineForLocation:affectedCharRange.location];
+                    
+                    if(line != previousToken.endLine) {
+                        for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
+                            BOOL found = NO;
+                            
+                            for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                                if([otherDefinition.key isEqualToString:definition.key]) {
+                                    found = YES;
+                                    break;
+                                }
                             }
+                            
+                            if(found)
+                                continue;
+                            
+                            [autoCompleteDefinitions addObject:definition];
                         }
-                        
-                        if(found)
-                            continue;
-                        
-                        [autoCompleteDefinitions addObject:definition];
                     }
                 }
                 
@@ -751,7 +755,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                     }
                 }
                 
-                if((previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers) {
+                if(isMemberAccessor || (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers) {
                     if(previousToken.variable.type.isDefined) {
                         LXClass *tokenClass = previousToken.variable.type;
                         

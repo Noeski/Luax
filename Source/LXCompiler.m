@@ -516,9 +516,8 @@
 
         if(token.type == '.' ||
            token.type == ':') {
-            token.completionFlags = LXTokenCompletionFlagsMembers;
             token.variable = lastExpression.variable;
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsMembers];
             
             [expression addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
             
@@ -644,7 +643,7 @@
     LXNode *expression = [[LXNode alloc] initWithLine:token.startLine column:token.column];
     
     if(token.type == '(') {
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsVariables];
         
         [expression addChunk:@"(" line:token.startLine column:token.column];
         [expression addChild:[self parseExpression:scope]];
@@ -657,15 +656,13 @@
             return expression;
         }
         
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsBlock];
         
         [expression addChunk:@")" line:endParenToken.startLine column:endParenToken.column];
         //TODO: find expression type?
         expression.assignable = NO;
     }
     else if(token.type == LX_TK_NAME) {
-        token.completionFlags = LXTokenCompletionFlagsMembers;
-
         [self consumeToken];
         
         NSString *name = [self tokenValue:token];
@@ -725,7 +722,7 @@
     LXNode *expression = [[LXNode alloc] initWithLine:currentToken.startLine column:currentToken.column];
 
     if(unaryOps[@(currentToken.type)]) {
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsVariables];
         
         [expression addChunk:[self tokenValue:currentToken] line:currentToken.startLine column:currentToken.column];
         [expression addChild:[self parseSubExpression:scope level:8]];
@@ -739,7 +736,7 @@
             NSValue *priority = priorityDict[@(operatorToken.type)];
                 
             if(priority && priority.rangeValue.location > level) {
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsVariables];
                 
                 [expression addChunk:[self tokenValue:operatorToken] line:operatorToken.startLine column:operatorToken.column];
                 [expression addChild:[self parseSubExpression:scope level:priority.rangeValue.length]];
@@ -784,7 +781,7 @@
 
         leftParenToken = current;
         
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsTypes];
         current = [self currentToken];
         
         if(current.type == ')' ||
@@ -809,7 +806,7 @@
                        current = [self currentToken];
                        
                        if(current.type == ',') {
-                           [self consumeToken];
+                           [self consumeToken:LXTokenCompletionFlagsTypes];
                        }
                        else {
                            break;
@@ -913,7 +910,7 @@
             [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:current]] range:current.range line:current.startLine column:current.column];
         }
         
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsTypes];
         [node addChunk:@"(" line:current.startLine column:current.column];
     }
     else {
@@ -931,7 +928,7 @@
                 }
             }
             else {
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsTypes];
                 [node addChunk:@"(" line:current.startLine column:current.column];
             }
         }
@@ -972,7 +969,7 @@
             current = [self currentToken];
             
             if(current.type == ',') {
-                [self consumeToken];
+                [self consumeToken:LXTokenCompletionFlagsTypes];
                 [node addChunk:@"," line:current.startLine column:current.column];
             }
             else {
@@ -984,7 +981,6 @@
 
             [self consumeToken];
             [node addChunk:@"..." line:current.startLine column:current.column];
-
             break;
         }
         else {
@@ -1001,7 +997,7 @@
         }
         
         [node addChunk:@")" line:current.startLine column:current.column];
-        [self consumeToken];
+        [self consumeToken:LXTokenCompletionFlagsBlock];
     }
     
     [node addChild:[self parseBlock:functionScope]];
@@ -1014,7 +1010,7 @@
     }
     
     [node addChunk:@"end" line:endToken.startLine column:endToken.column];
-    [self consumeToken];
+    [self consumeToken:LXTokenCompletionFlagsBlock];
 
     function.returnTypes = returnTypes;
     function.arguments = arguments;
