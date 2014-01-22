@@ -14,4 +14,5 @@
 @property (nonatomic, strong) NSMutableArray *tokens;
 
 - (void)parse:(NSString *)string;
+- (NSRange)replaceCharactersInRange:(NSRange)range replacementString:(NSString *)string;
 @end

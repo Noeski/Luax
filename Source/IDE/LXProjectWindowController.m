@@ -229,7 +229,7 @@
     _project.delegate = self;
     [projectOutlineView reloadData];
     
-    self.window.title = project.name;
+    self.window.title = [NSString stringWithFormat:@"Luax - %@", project.name];
 }
 
 - (void)reloadLocalVariables {

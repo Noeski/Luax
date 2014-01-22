@@ -46,6 +46,112 @@
     }
 }
 
+BOOL NSRangesTouch2(NSRange range, NSRange otherRange){
+    NSUInteger min, loc, max1 = NSMaxRange(range), max2= NSMaxRange(otherRange);
+    
+    min = (max1 < max2) ? max1 : max2;
+    loc = (range.location > otherRange.location) ? range.location : otherRange.location;
+    
+    return min >= loc;
+}
+
+- (NSRange)replaceCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    NSInteger diff = string.length - range.length;
+
+    NSInteger startIndex = 0;
+    NSInteger endIndex = 0;
+    
+    NSRange replacementRange;
+
+    LXToken *previousToken;
+    
+    BOOL found = NO;
+    
+    for(LXToken *token in self.tokens) {
+        if(token.range.location > NSMaxRange(range)) {
+            break;
+        }
+        
+        if(NSRangesTouch2(range, token.range)) {
+            replacementRange.location = NSMaxRange(previousToken.range);
+            replacementRange.length = MAX((range.location - replacementRange.location)  + string.length, NSMaxRange(token.range) - replacementRange.location);
+
+            currentPosition = NSMaxRange(previousToken.range);
+            currentLine = previousToken.endLine;
+            currentColumn = previousToken.endColumn;
+            
+            found = YES;
+            
+            break;
+        }
+        
+        ++startIndex;
+        
+        previousToken = token;
+    }
+    
+    if(!found) {
+        replacementRange.location = range.location;
+        replacementRange.length = (range.location - replacementRange.location) + string.length;
+        
+        currentPosition = range.location;
+        currentLine = previousToken.startLine;
+        currentColumn = previousToken.column;
+        
+        for(NSInteger i = previousToken.range.location; i < NSMaxRange(previousToken.range); ++i) {
+            char ch = [self.string characterAtIndex:i];
+            
+            if(ch == '\n' || ch == '\r') {
+                ++currentLine;
+                currentColumn = 0;
+            }
+            else {
+                ++currentColumn;
+            }
+        }
+    }
+    
+    self.string = [self.string stringByReplacingCharactersInRange:range withString:string];
+
+    NSMutableArray *newTokens = [[NSMutableArray alloc] init];
+    
+    LXToken *token = [self scanNextToken];
+    
+    while(token.type != LX_TK_EOS) {
+        [newTokens addObject:token];
+        
+        if(currentPosition >= NSMaxRange(replacementRange))
+            break;
+        
+        token = [self scanNextToken];
+    }
+    
+    replacementRange.length = currentPosition - replacementRange.location;
+    
+    for(endIndex = startIndex; endIndex < [self.tokens count]; ++endIndex) {
+        LXToken *token = self.tokens[endIndex];
+        
+        NSInteger location = token.range.location + diff;
+        
+        if(location >= (NSInteger)NSMaxRange(replacementRange))
+            break;
+    }
+    
+    [self.tokens removeObjectsInRange:NSMakeRange(startIndex, endIndex-startIndex)];
+    
+    for(NSInteger i = 0; i < [newTokens count]; ++i) {
+        [self.tokens insertObject:newTokens[i] atIndex:startIndex+i];
+    }
+    
+    for(NSInteger i = startIndex+[newTokens count]; i < [self.tokens count]; ++i) {
+        LXToken *token = self.tokens[i];
+        
+        token.range = NSMakeRange(token.range.location+diff, token.range.length);
+    }
+    
+    return replacementRange;
+}
+
 - (char)current {
     if(currentPosition >= [self.string length])
         return '\0';
@@ -71,7 +177,7 @@
 - (BOOL)checkNext:(NSString *)set {
     if([self current] == '\0' ||
        [set rangeOfString:[NSString stringWithFormat:@"%c", [self current]]].location == NSNotFound)
-    return NO;
+        return NO;
     
     [self next];
     return YES;
@@ -89,7 +195,7 @@
     [self next];
     
     if([self currentIsNewLine] && old != [self current])
-    [self next];
+        [self next];
     
     currentLine++;
     currentColumn = 0;
@@ -224,6 +330,7 @@
     token.startLine = startLine;
     token.endLine = currentLine;
     token.column = column;
+    token.endColumn = currentColumn;
     
     return token;
 }

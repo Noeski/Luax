@@ -43,6 +43,7 @@ typedef enum {
 @property (nonatomic) NSInteger startLine;
 @property (nonatomic) NSInteger endLine;
 @property (nonatomic) NSInteger column;
+@property (nonatomic) NSInteger endColumn;
 @property (nonatomic, strong) LXVariable *variable;
 @property (nonatomic, strong) LXClass *variableType;
 @property (nonatomic, strong) LXScope *scope;

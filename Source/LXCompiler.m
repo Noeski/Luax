@@ -419,14 +419,14 @@
         }
         
         case '{': {
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             [expression addChunk:@"{" line:token.startLine column:token.column];
 
             do {
                 token = [self currentToken];
                 
                 if(token.type == '[') {
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     
                     [expression addChunk:@"[" line:token.startLine column:token.column];
                     [expression addChild:[self parseExpression:scope]];
@@ -449,7 +449,7 @@
                         break;
                     }
                     
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     
                     [expression addChunk:@"=" line:equalsToken.startLine column:equalsToken.column];
                     [expression addChild:[self parseExpression:scope]];
@@ -460,7 +460,7 @@
                     LXToken *equalsToken = [self currentToken];
                     
                     if(equalsToken.type == '=') {
-                        [self consumeToken];
+                        [self consumeToken:LXTokenCompletionFlagsVariables];
                         
                         [expression addChunk:@"=" line:equalsToken.startLine column:equalsToken.column];
                         [expression addChild:[self parseExpression:scope]];
@@ -479,7 +479,7 @@
                 token = [self currentToken];
 
                 if(token.type ==';' || token.type == ',') {
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     
                     [expression addChunk:@"," line:token.startLine column:token.column];
                 }
@@ -498,9 +498,12 @@
             break;
         }
         
-        default:
-            [expression addChild:[self parseSuffixedExpression:scope onlyDotColon:NO]];
+        default: {
+            LXNode *subExpression = [self parseSuffixedExpression:scope onlyDotColon:NO];
+            [expression addChild:subExpression];
+            expression.variable = subExpression.variable;
             break;
+        }
     }
     
     return expression;
@@ -548,7 +551,7 @@
             }
         }
         else if(!onlyDotColon && token.type == '[') {
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             
             [expression addChunk:@"[" line:token.startLine column:token.column];
             [expression addChild:[self parseExpression:scope]];
@@ -566,7 +569,7 @@
             expression.assignable = YES;
         }
         else if(!onlyDotColon && token.type == '(') {
-            [self consumeToken];
+            [self consumeToken:LXTokenCompletionFlagsVariables];
             
             [expression addChunk:@"(" line:token.startLine column:token.column];
             
@@ -584,7 +587,7 @@
                     }
                 }
                 else {
-                    [self consumeToken];
+                    [self consumeToken:LXTokenCompletionFlagsVariables];
                     
                     [expression addChunk:@"," line:endParenToken.startLine column:endParenToken.column];
                 }
@@ -597,8 +600,10 @@
             
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
+                LXVariable *variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
                 
-                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.variable = variable;
+                endParenToken.variable = variable;
             }
         }
         else if(!onlyDotColon && token.type == LX_TK_STRING) {
@@ -610,7 +615,10 @@
             if(lastExpression.variable.isFunction) {
                 LXFunction *function = (LXFunction *)lastExpression.variable;
                 
-                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                LXVariable *variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                
+                expression.variable = variable;
+                token.variable = variable;
             }
         }
         else if(!onlyDotColon && token.type == '{') {
@@ -646,7 +654,9 @@
         [self consumeToken:LXTokenCompletionFlagsVariables];
         
         [expression addChunk:@"(" line:token.startLine column:token.column];
-        [expression addChild:[self parseExpression:scope]];
+        
+        LXNode *subExpression = [self parseExpression:scope];
+        [expression addChild:subExpression];
         
         LXToken *endParenToken = [self currentToken];
         
@@ -656,11 +666,12 @@
             return expression;
         }
         
-        [self consumeToken:LXTokenCompletionFlagsBlock];
+        [self consumeToken:LXTokenCompletionFlagsControlStructures];
         
         [expression addChunk:@")" line:endParenToken.startLine column:endParenToken.column];
-        //TODO: find expression type?
+        expression.variable = subExpression.variable;
         expression.assignable = NO;
+        endParenToken.variable = subExpression.variable;
     }
     else if(token.type == LX_TK_NAME) {
         [self consumeToken];
@@ -728,7 +739,10 @@
         [expression addChild:[self parseSubExpression:scope level:8]];
     }
     else {
-        [expression addChild:[self parseSimpleExpression:scope]];
+        LXNode *subExpression = [self parseSimpleExpression:scope];
+        
+        [expression addChild:subExpression];
+        expression.variable = subExpression.variable;
         
         do {
             LXToken *operatorToken = [self currentToken];
@@ -1680,7 +1694,7 @@
                     if(variable) {
                         [self addError:[NSString stringWithFormat:@"Variable %@ is already defined.", name] range:nameToken.range line:nameToken.startLine column:nameToken.column];
                     }
-                    else {
+                    else { 
                         variable = [scope createVariable:name type:variableType];
                     }
                 }

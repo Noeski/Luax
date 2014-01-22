@@ -361,6 +361,11 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 - (void)recompile:(NSString *)string {
     [self.file.context compile:string];
     [self colorTokensInRange:NSMakeRange(0, [string length])];
+    [self setNeedsDisplay:YES];
+}
+
+- (void)recompile {
+    [self recompile:self.string];
 }
 
 - (LXToken *)tokenBeforeRange:(NSRange)range {
@@ -739,8 +744,11 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                 }
                 
                 if((previousToken.completionFlags & LXTokenCompletionFlagsTypes) == LXTokenCompletionFlagsTypes) {
-                    for(NSString *key in [self.file.context.compiler.typeMap allKeys]) {
-                        if(![self.file.context.compiler.typeMap[key] isDefined])
+                    NSMutableDictionary *typeMap = [self.file.context.compiler.baseTypeMap mutableCopy];
+                    [typeMap addEntriesFromDictionary:self.file.context.compiler.typeMap];
+                    
+                    for(NSString *key in [typeMap allKeys]) {
+                        if(![typeMap[key] isDefined])
                             continue;
                         
                         LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
@@ -973,7 +981,9 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     }
     
     [self replaceCharactersInRange:affectedCharRange withString:replacementString];
-    
+
+    //[self colorTokensInRange:[self.file.context.parser replaceCharactersInRange:affectedCharRange replacementString:replacementString]];
+   
     [self recompile:self.string];
     
     NSInteger diff = [replacementString length] - affectedCharRange.length;
@@ -1002,7 +1012,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     if(undo) {
         [self updateCurrentAutoCompleteDefinitions];
     }
-        
+    
     return NO;
 }
 
