@@ -40,6 +40,7 @@
 		654D75331837FE8400E37009 /* Luaxc in CopyFiles */ = {isa = PBXBuildFile; fileRef = 654D751E1837FC8D00E37009 /* Luaxc */; };
 		654D75361838018700E37009 /* LXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D75351838018700E37009 /* LXParser.m */; };
 		654D75371838018700E37009 /* LXParser.m in Sources */ = {isa = PBXBuildFile; fileRef = 654D75351838018700E37009 /* LXParser.m */; };
+		6567B76918904D5E0053E2C2 /* show.png in Resources */ = {isa = PBXBuildFile; fileRef = 6567B76818904D5E0053E2C2 /* show.png */; };
 		656AD274183ADBEA00E691D6 /* LXAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD273183ADBEA00E691D6 /* LXAppDelegate.m */; };
 		656AD27A183ADD0200E691D6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 656AD279183ADD0200E691D6 /* MainMenu.xib */; };
 		656AD285183ADF0D00E691D6 /* LXTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 656AD284183ADF0D00E691D6 /* LXTextView.m */; };
@@ -200,6 +201,7 @@
 		654D75311837FD4600E37009 /* luaxc.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = luaxc.m; path = Source/luaxc.m; sourceTree = SOURCE_ROOT; };
 		654D75341838018700E37009 /* LXParser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXParser.h; path = Source/LXParser.h; sourceTree = SOURCE_ROOT; };
 		654D75351838018700E37009 /* LXParser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXParser.m; path = Source/LXParser.m; sourceTree = SOURCE_ROOT; };
+		6567B76818904D5E0053E2C2 /* show.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = show.png; sourceTree = "<group>"; };
 		656AD272183ADBEA00E691D6 /* LXAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXAppDelegate.h; path = Source/IDE/LXAppDelegate.h; sourceTree = SOURCE_ROOT; };
 		656AD273183ADBEA00E691D6 /* LXAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXAppDelegate.m; path = Source/IDE/LXAppDelegate.m; sourceTree = SOURCE_ROOT; };
 		656AD279183ADD0200E691D6 /* MainMenu.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = MainMenu.xib; path = Source/IDE/MainMenu.xib; sourceTree = SOURCE_ROOT; };
@@ -487,6 +489,7 @@
 			isa = PBXGroup;
 			children = (
 				6570AE101867B2050084BD25 /* hide.png */,
+				6567B76818904D5E0053E2C2 /* show.png */,
 				652E835418568B1900342128 /* AutoCompleteDefinitions.json */,
 				654D75131837248100E37009 /* Main.lux */,
 				659DE1BC184BF06F00627535 /* foldericon.png */,
@@ -711,6 +714,7 @@
 				79B95E60184E5B93005486F3 /* erroricon.png in Resources */,
 				79B95E61184E5B93005486F3 /* warningicon.png in Resources */,
 				651E8D20185BF6EB00E4476B /* Untitled-4.png in Resources */,
+				6567B76918904D5E0053E2C2 /* show.png in Resources */,
 				6570AE111867B2050084BD25 /* hide.png in Resources */,
 				656AD2AD1842C26C00E691D6 /* LXProjectAccessoryView.xib in Resources */,
 				651E8D1F185BF6EB00E4476B /* Untitled-3.png in Resources */,

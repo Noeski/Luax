@@ -3,6 +3,19 @@
 #import "LXNode.h"
 #import "LXToken.h"
 #import "NSString+JSON.h"
+#import "LXProjectWindowController.h"
+#import "LXTextFieldCell.h"
+
+@interface LXAutoCompleteCell : NSTextFieldCell
+@end
+
+@implementation LXAutoCompleteCell
+
+- (NSColor *)highlightColorWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
+    return nil;
+}
+
+@end
 
 @interface LXErrorView : NSObject
 @property (nonatomic, assign) NSRect frame;
@@ -96,25 +109,25 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         [contentView setWantsLayer:YES];
         [contentView.layer setBackgroundColor:[NSColor whiteColor].CGColor];
         autoCompleteScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        autoCompleteTableView = [[NSTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
+        autoCompleteTableView = [[LXTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         
         [autoCompleteTableView setAllowsEmptySelection:NO];
         [autoCompleteTableView setAllowsMultipleSelection:NO];
         [autoCompleteTableView setDoubleAction:@selector(finishAutoComplete)];
         
-        NSTextFieldCell *cell = [[NSTextFieldCell alloc] init];
+        NSTextFieldCell *cell = [[LXAutoCompleteCell alloc] init];
         cell.font = font;
         cell.alignment = NSRightTextAlignment;
         NSTableColumn *tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column1"];
-        [tableColumn setWidth:150];
+        [tableColumn setWidth:75];
         [tableColumn setDataCell:cell];
         
         [autoCompleteTableView addTableColumn:tableColumn];
         
-        cell = [[NSTextFieldCell alloc] init];
+        cell = [[LXAutoCompleteCell alloc] init];
         cell.font = font;
         tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column2"];
-        [tableColumn setWidth:150];
+        [tableColumn setWidth:75];
         [tableColumn setDataCell:cell];
         
         [autoCompleteTableView addTableColumn:tableColumn];
@@ -126,7 +139,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         [autoCompleteScrollView setHasVerticalScroller:YES];
         [contentView addSubview:autoCompleteScrollView];
 
-        autoCompleteDescriptionView = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
+        /*autoCompleteDescriptionView = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         [autoCompleteDescriptionView setFont:font];
         [autoCompleteDescriptionView setStringValue:@"My Label"];
         [autoCompleteDescriptionView setBezeled:NO];
@@ -140,7 +153,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         [separatorView.layer setBackgroundColor:CGColorCreateGenericGray(0.8, 1)];
         [autoCompleteDescriptionView addSubview:separatorView];
         
-        [contentView addSubview:autoCompleteDescriptionView];
+        [contentView addSubview:autoCompleteDescriptionView];*/
         
         autoCompleteWindow.contentView = contentView;
         
@@ -901,12 +914,12 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         return [obj1.key compare:obj2.key options:NSCaseInsensitiveSearch];
     }];
     
-    CGFloat windowHeight = [currentAutoCompleteDefinitions count] *(autoCompleteTableView.rowHeight + 2);
+    CGFloat windowHeight = [currentAutoCompleteDefinitions count] * (autoCompleteTableView.rowHeight + 2);
     if(windowHeight > 150) {
         windowHeight = 150;
     }
     
-    windowHeight += 20;
+    //windowHeight += 20;
     
     if([currentAutoCompleteDefinitions count] == 0) {
         [self hideAutoCompleteWindow];
@@ -928,9 +941,9 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     
     CGFloat width = [autoCompleteTableView tableColumnWithIdentifier:@"Column1"].width + 3;
     
-    [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestTypeWidth + largestStringWidth, windowHeight) display:YES];
-    [autoCompleteScrollView setFrame:NSMakeRect(0, 20, largestTypeWidth + largestStringWidth, windowHeight - 20)];
-    [autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
+    [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestTypeWidth + largestStringWidth + 4, windowHeight) display:YES];
+    [autoCompleteScrollView setFrame:NSMakeRect(0, 0, largestTypeWidth + largestStringWidth + 6, windowHeight)];
+    //[autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
 }
 
 - (BOOL)shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {
@@ -1262,14 +1275,14 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     
 	BOOL shouldShiftText = NO;
 	
-	if ([self selectedRange].length > 0) { 
+	if([self selectedRange].length > 0) {
 		NSRange rangeOfFirstLine = [[self string] lineRangeForRange:NSMakeRange([self selectedRange].location, 0)];
 		NSInteger firstCharacterOfFirstLine = rangeOfFirstLine.location;
-		while ([[self string] characterAtIndex:firstCharacterOfFirstLine] == ' ' || [[self string] characterAtIndex:firstCharacterOfFirstLine] == '\t') {
+		while([[self string] characterAtIndex:firstCharacterOfFirstLine] == ' ' || [[self string] characterAtIndex:firstCharacterOfFirstLine] == '\t') {
 			firstCharacterOfFirstLine++;
 		}
 		
-		if ([self selectedRange].location <= firstCharacterOfFirstLine) {
+		if([self selectedRange].location <= firstCharacterOfFirstLine) {
 			shouldShiftText = YES;
 		}
 	}
@@ -1293,7 +1306,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 - (void)setTabWidth {
 	NSMutableString *sizeString = [NSMutableString string];
 	NSInteger numberOfSpaces = 2;
-	while (numberOfSpaces--) {
+	while(numberOfSpaces--) {
 		[sizeString appendString:@" "];
 	}
     
@@ -1303,7 +1316,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 	NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
 	
 	NSArray *array = [style tabStops];
-	for (id item in array) {
+	for(id item in array) {
 		[style removeTabStop:item];
 	}
 	[style setDefaultTabInterval:sizeOfTab];
@@ -1474,16 +1487,16 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 	NSString *completeString = [self string];
 	NSInteger completeStringLength = [completeString length];
 	NSInteger numberOfLinesInDocument;
-	for (index = 0, numberOfLinesInDocument = 1; index < completeStringLength; numberOfLinesInDocument++) {
+	for(index = 0, numberOfLinesInDocument = 1; index < completeStringLength; numberOfLinesInDocument++) {
 		index = NSMaxRange([completeString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
     
-	if (line > numberOfLinesInDocument) {
+	if(line > numberOfLinesInDocument) {
 		NSBeep();
 		return;
 	}
 	
-	for (index = 0, lineNumber = 1; lineNumber < line; lineNumber++) {
+	for(index = 0, lineNumber = 1; lineNumber < line; lineNumber++) {
 		index = NSMaxRange([completeString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
 	
@@ -1503,15 +1516,16 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 	NSString *completeString = [self string];
 	NSInteger completeStringLength = [completeString length];
 	NSInteger numberOfLinesInDocument;
-	for (index = 0, numberOfLinesInDocument = 1; index < completeStringLength; numberOfLinesInDocument++) {
+	for(index = 0, numberOfLinesInDocument = 1; index < completeStringLength; numberOfLinesInDocument++) {
 		index = NSMaxRange([completeString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
-	if (highlightedLine > numberOfLinesInDocument) {
+    
+	if(highlightedLine > numberOfLinesInDocument) {
 		NSBeep();
 		return;
 	}
 	
-	for (index = 0, lineNumber = 1; lineNumber < highlightedLine; lineNumber++) {
+	for(index = 0, lineNumber = 1; lineNumber < highlightedLine; lineNumber++) {
 		index = NSMaxRange([completeString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
 	

@@ -1081,7 +1081,7 @@
     
     if(splitView == verticalSplitView) {
         NSView *bottomView = [splitView subviews][1];
-        showDebugContainerButton.frameCenterRotation = bottomView.isHidden ? 180 : 0;
+        showDebugContainerButton.image = bottomView.isHidden ? [NSImage imageNamed:@"show.png"] : [NSImage imageNamed:@"hide.png"];
     }
 }
 
@@ -1446,7 +1446,7 @@
             [[topSubview animator] setFrame:NSMakeRect(topSubview.frame.origin.x, 200, topSubview.frame.size.width, splitView.frame.size.height-200)];
             [[bottomSubview animator] setFrame:NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 200)];
         } completionHandler:^{
-            sender.frameCenterRotation = 0;
+            [sender setImage:[NSImage imageNamed:@"hide.png"]];
         }];
     }
     else {
@@ -1457,7 +1457,7 @@
             [[bottomSubview animator] setFrame:NSMakeRect(bottomSubview.frame.origin.x, bottomSubview.frame.origin.y, bottomSubview.frame.size.width, 1)];
         } completionHandler:^{
             [debugContainerView setHidden:YES];
-            sender.frameCenterRotation = 180;
+            [sender setImage:[NSImage imageNamed:@"show.png"]];
             [splitView adjustSubviews];
         }];
     }
