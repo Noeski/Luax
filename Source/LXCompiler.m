@@ -1696,6 +1696,7 @@
                     }
                     else { 
                         variable = [scope createVariable:name type:variableType];
+                        variable.definedLocation = nameToken.range.location;
                     }
                 }
                 else {
@@ -1747,6 +1748,7 @@
                         }
                         else {
                             variable = [scope createVariable:name type:variableType];
+                            variable.definedLocation = nameToken.range.location;
                         }
                     }
                     else {

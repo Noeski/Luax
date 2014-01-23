@@ -668,9 +668,15 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                 if((previousToken.completionFlags & LXTokenCompletionFlagsVariables) == LXTokenCompletionFlagsVariables) {
                     LXScope *scope = [self scopeAtLocation:affectedCharRange.location];
 
+                    BOOL currentScope = YES;
+                    
                     while(scope) {
                         for(LXVariable *variable in scope.localVariables) {
                             if(!variable.type.isDefined) {
+                                continue;
+                            }
+                            
+                            if(currentScope && variable.definedLocation >= startIndex) {
                                 continue;
                             }
                             
@@ -753,6 +759,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                         }
                         
                         scope = scope.parent;
+                        
+                        currentScope = NO;
                     }
                 }
                 
