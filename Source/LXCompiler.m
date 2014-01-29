@@ -28,7 +28,46 @@
         _baseTypeMap[@"Table"] = [LXClassTable classTable];
         _baseTypeMap[@"Function"] = [LXClassFunction classFunction];
 
-        self.globalScope = [[LXScope alloc] initWithParent:nil openScope:NO];
+        _globalScope = [[LXScope alloc] initWithParent:nil openScope:NO];
+        
+        LXFunction *function = [[LXFunction alloc] init];
+        function.name = @"byte";
+        function.type = [LXClassFunction classFunction];
+        function.isGlobal = NO;
+        
+        LXClassBase *stringTable = [[LXClassBase alloc] init];
+        stringTable.name = @"StringTable";
+        stringTable.variables = @[function];
+        stringTable.isDefined = YES;
+        
+        _baseTypeMap[@"StringTable"] = stringTable;
+        
+        [_globalScope createVariable:@"_VERSION" type:[LXClassString classString]];
+        [_globalScope createVariable:@"string" type:stringTable];
+
+        [_globalScope createFunction:@"assert"];
+        [_globalScope createFunction:@"collectgarbage"];
+        [_globalScope createFunction:@"dofile"];
+        [_globalScope createFunction:@"error"];
+        [_globalScope createFunction:@"getmetatable"];
+        [_globalScope createFunction:@"ipairs"];
+        [_globalScope createFunction:@"load"];
+        [_globalScope createFunction:@"loadfile"];
+        [_globalScope createFunction:@"next"];
+        [_globalScope createFunction:@"pairs"];
+        [_globalScope createFunction:@"pcall"];
+        [_globalScope createFunction:@"print"];
+        [_globalScope createFunction:@"rawequal"];
+        [_globalScope createFunction:@"rawget"];
+        [_globalScope createFunction:@"rawlen"];
+        [_globalScope createFunction:@"rawset"];
+        [_globalScope createFunction:@"require"];
+        [_globalScope createFunction:@"select"];
+        [_globalScope createFunction:@"setmetatable"];
+        [_globalScope createFunction:@"tonumber"];
+        [_globalScope createFunction:@"tostring"];
+        [_globalScope createFunction:@"type"];
+        [_globalScope createFunction:@"xpcall"];
     }
     
     return self;
@@ -772,6 +811,8 @@
 #pragma mark - Function
 
 - (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXFunction **)functionPtr class:(NSString *)class {
+    BOOL isStatic = [self consumeTokenType:LX_TK_STATIC];
+
     LXToken *functionToken = [self consumeToken];
     LXNode *node = [[LXNode alloc] initWithLine:functionToken.startLine column:functionToken.column];
 
@@ -859,7 +900,7 @@
             [node addAnonymousChunk:@" "];
             
             if(class) {
-                [node addAnonymousChunk:[NSString stringWithFormat:@"%@:", class]];
+                [node addAnonymousChunk:[NSString stringWithFormat:@"%@%c", class, isStatic ? '.' : ':']];
             }
             
             [node addNamedChunk:functionName line:nameToken.startLine column:nameToken.column];
@@ -1028,6 +1069,7 @@
 
     function.returnTypes = returnTypes;
     function.arguments = arguments;
+    function.isStatic = isStatic;
     
     if(functionPtr)
         *functionPtr = function;
@@ -1097,9 +1139,10 @@
     LXToken *current = [self currentToken];
 
     while(current.type != LX_TK_END) {
-        if(current.type == LX_TK_FUNCTION) {
+        if(current.type == LX_TK_STATIC || current.type == LX_TK_FUNCTION) {
             [functionIndices addObject:@(currentTokenIndex)];
             
+            [self consumeTokenType:LX_TK_STATIC];
             [self consumeToken];
             [self closeBlock:LX_TK_FUNCTION];
         }
@@ -1203,8 +1246,9 @@
                 [class addAnonymousChunk:@"\n"];
                 [class addChild:[self parseFunction:classScope anonymous:NO isLocal:YES function:&function class:name]];
                 
-                if(function)
+                if(function) {
                     [variables addObject:function];
+                }
             }
             
             currentTokenIndex = endIndex;
@@ -1668,8 +1712,10 @@
         }
         
         default: {
+            //TODO: Check if current 'type' token is not actually a defined variable 
             if([current isType] &&
-               [self nextToken].type == LX_TK_NAME) {
+               [self nextToken].type == LX_TK_NAME &&
+               [scope localVariable:[self tokenValue:current]] == nil) {
                 NSMutableArray *typeList = [NSMutableArray array];
                 
                 [self consumeToken];

@@ -14,15 +14,6 @@
     return self.type != nil;
 }
 
-- (NSString *)autoCompleteString {
-    if(self.type) {
-        return [NSString stringWithFormat:@"%@ %@", self.type, self.name];
-    }
-    else {
-        return [NSString stringWithFormat:@"(undefined) %@", self.name];
-    }
-}
-
 - (BOOL)isFunction {
     return NO;
 }
@@ -30,6 +21,10 @@
 @end
 
 @implementation LXFunction
+
+- (BOOL)isDefined {
+    return YES;
+}
 
 - (BOOL)isFunction {
     return YES;

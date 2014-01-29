@@ -12,6 +12,7 @@
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) NSString *string;
 @property (nonatomic, strong) NSMutableArray *tokens;
+@property (nonatomic, readonly) NSInteger numberOfLines;
 
 - (void)parse:(NSString *)string;
 - (NSRange)replaceCharactersInRange:(NSRange)range replacementString:(NSString *)string;

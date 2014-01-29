@@ -706,7 +706,7 @@
             }
             
             [contentView setSubviews:@[fileView]];
-            [fileView resizeViews];
+            //[fileView resizeViews];
         }
     }
 }
@@ -977,7 +977,7 @@
             }
             
             [contentView setSubviews:@[fileView]];
-            [fileView resizeViews];
+            //[fileView resizeViews];
             
             [fileView.textView setHighlightedLine:index.originalLine];
             

@@ -127,7 +127,6 @@
 		79B95EFE18512D1E005486F3 /* lzio.h in Headers */ = {isa = PBXBuildFile; fileRef = 79B95EC318512D1E005486F3 /* lzio.h */; };
 		79B95F0118512D36005486F3 /* libLua.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 79B95E8418512CEF005486F3 /* libLua.a */; };
 		79C7A08C183BFFC500AB0A7C /* LXProjectFileView.m in Sources */ = {isa = PBXBuildFile; fileRef = 79C7A08B183BFFC500AB0A7C /* LXProjectFileView.m */; };
-		79C7A08F183C00EF00AB0A7C /* LXGutterView.m in Sources */ = {isa = PBXBuildFile; fileRef = 79C7A08E183C00EF00AB0A7C /* LXGutterView.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -305,8 +304,6 @@
 		79B95EC318512D1E005486F3 /* lzio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lzio.h; path = Source/lua/lzio.h; sourceTree = "<group>"; };
 		79C7A08A183BFFC500AB0A7C /* LXProjectFileView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXProjectFileView.h; path = Source/IDE/LXProjectFileView.h; sourceTree = SOURCE_ROOT; };
 		79C7A08B183BFFC500AB0A7C /* LXProjectFileView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXProjectFileView.m; path = Source/IDE/LXProjectFileView.m; sourceTree = SOURCE_ROOT; };
-		79C7A08D183C00EF00AB0A7C /* LXGutterView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXGutterView.h; path = Source/IDE/LXGutterView.h; sourceTree = SOURCE_ROOT; };
-		79C7A08E183C00EF00AB0A7C /* LXGutterView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXGutterView.m; path = Source/IDE/LXGutterView.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -373,8 +370,6 @@
 				656AD273183ADBEA00E691D6 /* LXAppDelegate.m */,
 				656AD283183ADF0D00E691D6 /* LXTextView.h */,
 				656AD284183ADF0D00E691D6 /* LXTextView.m */,
-				79C7A08D183C00EF00AB0A7C /* LXGutterView.h */,
-				79C7A08E183C00EF00AB0A7C /* LXGutterView.m */,
 				79C7A08A183BFFC500AB0A7C /* LXProjectFileView.h */,
 				79C7A08B183BFFC500AB0A7C /* LXProjectFileView.m */,
 				656AD2A91842B42700E691D6 /* LXDocumentController.h */,
@@ -773,7 +768,6 @@
 				654D750B18371E6B00E37009 /* LXNode.m in Sources */,
 				79C7A08C183BFFC500AB0A7C /* LXProjectFileView.m in Sources */,
 				654D750918371E6B00E37009 /* LXCompiler.m in Sources */,
-				79C7A08F183C00EF00AB0A7C /* LXGutterView.m in Sources */,
 				654D750518371E6B00E37009 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

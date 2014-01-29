@@ -34,7 +34,8 @@
     currentPosition = 0;
     currentLine = 0;
     currentColumn = 0;
-    
+    _numberOfLines = 0;
+
     [_tokens removeAllObjects];
     
     LXToken *token = [self scanNextToken];
@@ -44,6 +45,8 @@
         
         token = [self scanNextToken];
     }
+    
+    _numberOfLines = currentLine;
 }
 
 BOOL NSRangesTouch2(NSRange range, NSRange otherRange){
@@ -477,7 +480,7 @@ BOOL NSRangesTouch2(NSRange range, NSRange otherRange){
                                            @"in", @"local", @"global", @"nil", @"not", @"or", @"repeat",
                                            @"return", @"then", @"true", @"until", @"while",
                                            @"var", @"Bool", @"Number", @"String", @"Table", @"Function",
-                                           @"class", @"extends"
+                                           @"class", @"extends", @"static"
                                            ];
                     }
                     

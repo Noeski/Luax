@@ -7,7 +7,7 @@
         [self setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 
         _file = file;
-		_textScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(40, 0, [contentView bounds].size.width - 40, [contentView bounds].size.height)];
+		_textScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, [contentView bounds].size.width, [contentView bounds].size.height)];
 		NSSize contentSize = [_textScrollView contentSize];
 		[_textScrollView setBorderType:NSNoBorder];
         [_textScrollView setScrollerKnobStyle:NSScrollerKnobStyleLight];
@@ -18,10 +18,7 @@
 		[[_textScrollView contentView] setAutoresizesSubviews:YES];
 		[self addSubview:_textScrollView];
         
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewFrameDidChangeNotification object:[_textScrollView contentView]];
-		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(viewBoundsDidChange:) name:NSViewBoundsDidChangeNotification object:[_textScrollView contentView]];
-        
-		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(40, 0, contentSize.width, contentSize.height) file:_file];
+		_textView = [[LXTextView alloc] initWithFrame:NSMakeRect(0, 0, contentSize.width, contentSize.height) file:_file];
         _textView.delegate = self;
 		[_textView setMinSize:contentSize];
 		[_textView setHorizontallyResizable:YES];
@@ -29,18 +26,13 @@
 		[[_textView textContainer] setWidthTracksTextView:NO];
 		
 		[_textScrollView setDocumentView:_textView];
-        
-		_gutterTextView = [[LXGutterView alloc] initWithFrame:NSMakeRect(0, 0, 40, contentSize.height)];
-		_gutterTextView.document = self;
-        [self addSubview:_gutterTextView];
     }
 	
 	return self;
 }
 
 - (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
-    [_gutterTextView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
-	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
+	[self.textScrollView setFrame:NSMakeRect(0, 0, [self bounds].size.width, [self bounds].size.height)];
 }
 
 - (void)save {
@@ -56,8 +48,6 @@
 }
 
 - (void)textDidChange:(NSNotification *)notification {
-    [self updateLineNumbers];
-
     _modified = YES;
     
     if([self.delegate respondsToSelector:@selector(fileWasModified:modified:)]) {
@@ -74,119 +64,7 @@
 }
 
 - (void)resizeViews {	
-	[_gutterTextView setFrame:NSMakeRect(0, 0, 40, [self bounds].size.height)];
-	[self.textScrollView setFrame:NSMakeRect(40, 0, [self bounds].size.width - 40, [self bounds].size.height)];
-
-	[self updateLineNumbers];
-}
-	
-- (void)viewBoundsDidChange:(NSNotification *)notification {
-	if([[notification object] isKindOfClass:[NSClipView class]]) {
-		[self updateLineNumbersForClipView:[notification object]];
-	}
-}
-
-- (void)updateLineNumbers {
-	[self updateLineNumbersForClipView:[self.textScrollView contentView]];
-}
-
-- (void)updateLineNumbersForClipView:(NSClipView *)clipView {
-	NSLayoutManager *layoutManager = [self.textView layoutManager];
-	NSRect visibleRect = [[self.textScrollView contentView] documentVisibleRect];
-	NSRange visibleRange = [layoutManager glyphRangeForBoundingRect:visibleRect inTextContainer:[self.textView textContainer]];
-	NSString *textString = [self.textView string];
-	NSString *searchString = [textString substringWithRange:NSMakeRange(0, visibleRange.location)];
-	
-    NSInteger index, lineNumber;
-    
-	for(index = 0, lineNumber = 0; index < visibleRange.location; lineNumber++) {
-		LXBreakpointMarker *marker = [_gutterTextView markerAtLine:lineNumber];
-		
-		if(marker != nil) {
-			marker.yPos = -FLT_MAX;
-		}
-		
-		index = NSMaxRange([searchString lineRangeForRange:NSMakeRange(index, 0)]);
-	}
-	
-	NSInteger indexNonWrap;
-	NSInteger maxRangeVisibleRange;
-    
-    if(visibleRange.length == 0) {
-        indexNonWrap = 0;
-        maxRangeVisibleRange = -1;
-    }
-    else {
-        indexNonWrap = [searchString lineRangeForRange:NSMakeRange(index, 0)].location;
-        maxRangeVisibleRange = NSMaxRange([textString lineRangeForRange:NSMakeRange(NSMaxRange(visibleRange), 0)]);
-    }
-    
-	NSInteger numberOfGlyphsInTextString = [layoutManager numberOfGlyphs];
-	BOOL oneMoreTime = NO;
-    
-	if(numberOfGlyphsInTextString != 0) {
-		unichar lastGlyph = [textString characterAtIndex:numberOfGlyphsInTextString - 1];
-		if(lastGlyph == '\n' || lastGlyph == '\r') {
-			oneMoreTime = YES; // Continue one more time through the loop if the last glyph isn't newline
-		}
-	}
-	   
-	NSTextContainer	*container = [self.textView textContainer];
-	NSRange nullRange = NSMakeRange(NSNotFound, 0);
-	NSRectArray	rects;
-	NSUInteger rectCount;
-	
-    for(LXBreakpointMarker *marker in _gutterTextView.breakpointMarkers) {
-        marker.visible = NO;
-    }
-    
-    NSInteger currentLineHeight = (NSInteger)[self.textView lineHeight];
-    
-    NSRange lineNumberRange = NSMakeRange(lineNumber, 0);
-    
-	while(indexNonWrap <= maxRangeVisibleRange) {
-		if(index == indexNonWrap) {
-			lineNumber++;
-            lineNumberRange.length++;
-            
-			LXBreakpointMarker *marker = [_gutterTextView markerAtLine:lineNumber];
-
-			if(marker != nil) {
-				rects = [layoutManager rectArrayForCharacterRange:NSMakeRange(index, 0)
-                                     withinSelectedCharacterRange:nullRange
-                                                  inTextContainer:container
-                                                        rectCount:&rectCount];
-				
-                marker.visible = YES;
-				marker.yPos = NSMinY(rects[0]) - NSMinY(visibleRect);
-			}
-		}
-        else {            
-			indexNonWrap = index;
-		}
-		
-		if(index < maxRangeVisibleRange) {
-            NSRange range;
-            
-			[layoutManager lineFragmentRectForGlyphAtIndex:index effectiveRange:&range];
-			index = NSMaxRange(range);
-			indexNonWrap = NSMaxRange([textString lineRangeForRange:NSMakeRange(indexNonWrap, 0)]);
-		}
-        else {
-			index++;
-			indexNonWrap++;
-		}
-		
-		if(index == numberOfGlyphsInTextString && !oneMoreTime) {
-			break;
-		}
-	}
-    
-    _gutterTextView.lineNumberRange = lineNumberRange;
-    
-    NSInteger point = visibleRect.origin.y < 0.0 ? visibleRect.origin.y : (NSInteger)visibleRect.origin.y % currentLineHeight;
-    
-    _gutterTextView.offset = point;
+	[self.textScrollView setFrame:NSMakeRect(0, 0, [self bounds].size.width, [self bounds].size.height)];
 }
 
 - (NSUInteger)lineNumberForLocation:(NSPoint)point {

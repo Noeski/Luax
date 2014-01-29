@@ -2,7 +2,6 @@
 
 #import "LXProject.h"
 #import "LXTextView.h"
-#import "LXGutterView.h"
 
 @class LXProjectFileView;
 @protocol LXProjectFileViewDelegate<NSObject>
@@ -13,7 +12,6 @@
 @end
 
 @interface LXProjectFileView : NSView<NSTextViewDelegate> {
-	LXGutterView *_gutterTextView;
 }
 
 @property (nonatomic, weak) id<LXProjectFileViewDelegate> delegate;
@@ -25,9 +23,6 @@
 - (id)initWithContentView:(NSView *)contentView file:(LXProjectFile *)file;
 
 - (void)save;
-- (void)resizeViews;
-- (void)updateLineNumbers;
-- (void)updateLineNumbersForClipView:(NSClipView *)clipView;
 
 - (NSUInteger)lineNumberForLocation:(NSPoint)point;
 

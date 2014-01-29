@@ -209,6 +209,8 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 	return self;
 }
 
+NSTrackingArea *_trackingArea;
+
 - (void)setDefaults {
 	highlightedLine = -1;
 	
@@ -280,7 +282,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 	[self setRichText:NO];
 	[self setImportsGraphics:NO];
 	[self setUsesFontPanel:NO];
-	[self setTextContainerInset:NSMakeSize(0, 0)];
+	[self setTextContainerInset:NSMakeSize(20, 0)];
 	[self setContinuousSpellCheckingEnabled:NO];
 	[self setGrammarCheckingEnabled:NO];
 	
@@ -290,8 +292,8 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 	
 	[self setFont:font];
     
-	//NSTrackingArea *trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
-	//[self addTrackingArea:trackingArea];
+	_trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
+	[self addTrackingArea:_trackingArea];
 	
 	lineHeight = [[[self textContainer] layoutManager] defaultLineHeightForFont:font];
     
@@ -300,12 +302,29 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
 
 - (NSPoint)textContainerOrigin {
     NSPoint origin = [super textContainerOrigin];
-    NSPoint newOrigin = NSMakePoint(origin.x, origin.y);
+    NSPoint newOrigin = NSMakePoint(origin.x + 20, origin.y);
     return newOrigin;
 }
 
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    [self removeTrackingArea:_trackingArea];
+    _trackingArea = [[NSTrackingArea alloc] initWithRect:[self bounds] options: (NSTrackingMouseMoved | NSTrackingActiveInKeyWindow) owner:self userInfo:nil];
+    [self addTrackingArea:_trackingArea];
+}
+
 - (void)mouseMoved:(NSEvent *)theEvent {
-    [super mouseMoved:theEvent];
+    //[super mouseMoved:theEvent];
+    
+    NSPoint eventLocation = [theEvent locationInWindow];
+    eventLocation = [self convertPoint:eventLocation fromView:nil];
+    
+    if(eventLocation.x < 40) {
+        [[NSCursor arrowCursor] set];
+    }
+    else {
+        [[NSCursor IBeamCursor] set];
+    }
     
     BOOL found = NO;
     
@@ -315,9 +334,6 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
         rangeRect = NSOffsetRect(rangeRect, [self textContainerOrigin].x, [self textContainerOrigin].y);
         NSRect errorRect = NSMakeRect(rangeRect.origin.x-2, NSMaxY(rangeRect), 4, 4);
-        
-        NSPoint eventLocation = [theEvent locationInWindow];
-        eventLocation = [self convertPoint:eventLocation fromView:nil];
         
         if(NSPointInRect(eventLocation, errorRect)) {
             [errorLabel setStringValue:error.error];
@@ -790,8 +806,28 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                         
                         while(tokenClass) {
                             for(LXVariable *variable in tokenClass.variables) {
-                                if(!variable.type.isDefined) {
+                                if(![variable isFunction] && !variable.type.isDefined) {
                                     continue;
+                                }
+                                
+                                if(ch == '.') {
+                                    if([variable isFunction]) {
+                                        LXFunction *function = (LXFunction *)variable;
+                                        
+                                        if(!function.isStatic)
+                                            continue;
+                                    }
+                                }
+                                else if(ch == ':') {
+                                    if([variable isFunction]) {
+                                        LXFunction *function = (LXFunction *)variable;
+                                        
+                                        if(function.isStatic)
+                                            continue;
+                                    }
+                                    else {
+                                        continue;
+                                    }
                                 }
                                 
                                 BOOL found = NO;
@@ -947,6 +983,9 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     NSRect windowRect = [self convertRect:rect toView:nil];
     NSRect screenRect = [[self window] convertRectToScreen:windowRect];
     
+    screenRect.origin.x += [self textContainerOrigin].x;
+    screenRect.origin.y += [self textContainerOrigin].y;
+
     CGFloat width = [autoCompleteTableView tableColumnWithIdentifier:@"Column1"].width + 3;
     
     [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestTypeWidth + largestStringWidth + 4, windowHeight) display:YES];
@@ -1381,21 +1420,58 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     }
 }
 
+- (void)drawLineNumbers {
+    NSFont *lineFont = [[NSFontManager sharedFontManager]
+                    fontWithFamily:@"Menlo"
+                    traits:0
+                    weight:0
+                    size:8];
+    NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    [style setAlignment:NSRightTextAlignment];
+    
+    NSMutableDictionary *textAttributes = [NSMutableDictionary dictionaryWithDictionary:@{NSFontAttributeName : lineFont, NSParagraphStyleAttributeName : style}];
+    
+    NSPoint point = NSMakePoint(0, 0);
+    
+    for(NSInteger i = 0; i < self.file.context.parser.numberOfLines+1; ++i) {
+        textAttributes[NSForegroundColorAttributeName] = [NSColor colorWithCalibratedWhite:0.8 alpha:1];
+        
+        NSInteger lineNumber = i+1;
+        
+        NSRect stringBounds = NSMakeRect(point.x, point.y, 40-4, self.lineHeight);
+        NSString *st = [NSString stringWithFormat:@"%ld", lineNumber];
+        NSSize stringSize = [st sizeWithAttributes:textAttributes];
+        NSPoint stringOrigin = NSMakePoint(point.x, NSMidY(stringBounds) - (stringSize.height * 0.5));
+        
+        [st drawInRect:NSMakeRect(stringOrigin.x, stringOrigin.y, stringBounds.size.width, stringSize.height) withAttributes:textAttributes];
+        point.y += self.lineHeight;
+    }
+    
+    [[NSColor lightGrayColor] set];
+    
+    NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(40, 0, 0, self.bounds.size.height)];
+    CGFloat dash[2];
+    dash[0] = 1.0;
+    dash[1] = 3.0;
+    [dottedLine setLineWidth:1];
+    [dottedLine setLineDash:dash count:2 phase:1];
+    [dottedLine stroke];
+}
+
 - (void)drawViewBackgroundInRect:(NSRect)rect {
     [super drawViewBackgroundInRect:rect];
-	
-    //LXScope *scope = self.file.context.scope;
-    //[self drawScope:scope];
+    
+    [self drawLineNumbers];
     
     NSUInteger rectCount;
     NSRectArray rects = [[self layoutManager] rectArrayForCharacterRange:[self selectedRange] withinSelectedCharacterRange:NSMakeRange(NSNotFound, 0) inTextContainer:[self textContainer] rectCount:&rectCount];
     
     [[NSColor colorWithCalibratedRed:0.176 green:0.263 blue:0.251 alpha:1] set];
-
+    
     for(NSUInteger i = 0; i < rectCount; ++i) {
         NSRect rect = rects[i];
         rect = NSOffsetRect(rect, [self textContainerOrigin].x, [self textContainerOrigin].y);
-
+        
         [NSBezierPath fillRect:rect];
     }
     
