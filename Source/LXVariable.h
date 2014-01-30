@@ -14,6 +14,7 @@
 @property (nonatomic, assign) NSInteger definedLocation;
 @property (nonatomic, assign) BOOL isGlobal;
 @property (nonatomic, assign) BOOL isMember;
+@property (nonatomic, assign) BOOL isClass;
 @property (nonatomic, readonly) BOOL isDefined;
 @property (nonatomic, readonly) BOOL isFunction;
 @end

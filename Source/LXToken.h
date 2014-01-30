@@ -31,9 +31,9 @@ typedef enum {
     LXTokenCompletionFlagsTypes = 1,
     LXTokenCompletionFlagsVariables = 2,
     LXTokenCompletionFlagsMembers = 4,
-    LXTokenCompletionFlagsFunction = 8,
+    LXTokenCompletionFlagsFunctions = 8,
     LXTokenCompletionFlagsControlStructures = 16,
-    LXTokenCompletionFlagsClass = LXTokenCompletionFlagsFunction | LXTokenCompletionFlagsTypes,
+    LXTokenCompletionFlagsClass = /*LXTokenCompletionFlagsFunction |*/LXTokenCompletionFlagsTypes,
     LXTokenCompletionFlagsBlock = LXTokenCompletionFlagsControlStructures | LXTokenCompletionFlagsVariables | LXTokenCompletionFlagsTypes
 } LXTokenCompletionFlags;
 

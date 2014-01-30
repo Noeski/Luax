@@ -800,7 +800,9 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                     }
                 }
                 
-                if(isMemberAccessor || (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers) {
+                if(isMemberAccessor ||
+                   (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers ||
+                   (previousToken.completionFlags & LXTokenCompletionFlagsFunctions) == LXTokenCompletionFlagsFunctions) {
                     if(previousToken.variable.type.isDefined) {
                         LXClass *tokenClass = previousToken.variable.type;
                         
@@ -810,7 +812,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                                     continue;
                                 }
                                 
-                                if(ch == '.') {
+                                if((isMemberAccessor && ch == '.') ||
+                                   (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers) {
                                     if([variable isFunction]) {
                                         LXFunction *function = (LXFunction *)variable;
                                         
@@ -818,7 +821,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                                             continue;
                                     }
                                 }
-                                else if(ch == ':') {
+                                else {
                                     if([variable isFunction]) {
                                         LXFunction *function = (LXFunction *)variable;
                                         

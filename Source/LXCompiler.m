@@ -559,7 +559,7 @@
         if(token.type == '.' ||
            token.type == ':') {
             token.variable = lastExpression.variable;
-            [self consumeToken:LXTokenCompletionFlagsMembers];
+            [self consumeToken:token.type == ':' ? LXTokenCompletionFlagsFunctions :LXTokenCompletionFlagsMembers];
             
             [expression addChunk:token.type == ':' ? @":" : @"." line:token.startLine column:token.column];
             
@@ -811,7 +811,7 @@
 #pragma mark - Function
 
 - (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXFunction **)functionPtr class:(NSString *)class {
-    BOOL isStatic = [self consumeTokenType:LX_TK_STATIC];
+    BOOL isStatic = ([self consumeTokenType:LX_TK_STATIC] != nil);
 
     LXToken *functionToken = [self consumeToken];
     LXNode *node = [[LXNode alloc] initWithLine:functionToken.startLine column:functionToken.column];
@@ -1080,6 +1080,8 @@
 #pragma mark - Class
 
 - (LXNode *)parseClassStatement:(LXScope *)scope {
+    //TODO: Declare class as function and table..
+    
     LXToken *classToken = [self consumeToken];
     LXNode *class = [[LXNode alloc] initWithLine:classToken.startLine column:classToken.column];
     
@@ -1284,10 +1286,10 @@
 - (LXNode *)parseStatement:(LXScope *)scope {
     BOOL isLocal = ![scope isGlobalScope];
     
-    if([self consumeTokenType:LX_TK_LOCAL]) {
+    if([self consumeTokenType:LX_TK_LOCAL] != nil) {
         isLocal = YES;
     }
-    else if([self consumeTokenType:LX_TK_GLOBAL]) {
+    else if([self consumeTokenType:LX_TK_GLOBAL] != nil) {
         isLocal = NO;
     }
     
@@ -1712,6 +1714,8 @@
         }
         
         default: {
+            LXVariable *variable = [scope variable:[self tokenValue:current]];
+            
             //TODO: Check if current 'type' token is not actually a defined variable 
             if([current isType] &&
                [self nextToken].type == LX_TK_NAME &&

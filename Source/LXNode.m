@@ -335,6 +335,9 @@
 }
 
 - (LXVariable *)createVariable:(NSString *)name type:(LXClass *)type {
+    if([name isEqualToString:@"A"])
+        NSLog(@"break");
+    
     LXVariable *variable = [[LXVariable alloc] init];
     variable.name = name;
     variable.type = type;
