@@ -8,6 +8,7 @@
 
 #import "LXParser.h"
 #import "LXNode.h"
+#import "LXToken.h"
 
 @class LXContext;
 

@@ -76,231 +76,158 @@
         self.defaultExpression = [[LXNode alloc] initWithChunk:@"\"\"" line:-1 column:-1];
         
         
-        LXFunction *byteFunction = [[LXFunction alloc] init];
-        byteFunction.name = @"byte";
+        LXVariable *byteFunction = [LXVariable functionWithName:@"byte"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = [LXClassNumber classNumber];
+            LXVariable *retType = [LXVariable variableWithType:[LXClassNumber classNumber]];
             
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"i";
-            arg1.type = [LXClassNumber classNumber];
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"j";
-            arg2.type = [LXClassNumber classNumber];
+            LXVariable *arg1 = [LXVariable variableWithName:@"i" type:[LXClassNumber classNumber]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"j" type:[LXClassNumber classNumber]];
             
             byteFunction.returnTypes = @[retType];
             byteFunction.arguments = @[arg1, arg2];
         }
         
-        LXFunction *charFunction = [[LXFunction alloc] init];
-        charFunction.name = @"char";
+        LXVariable *charFunction = [LXVariable functionWithName:@"char"];
+        charFunction.isStatic = YES;
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg = [[LXVariable alloc] init];
-            arg.name = @"...";
-            arg.type = [LXClassNumber classNumber];
+            LXVariable *arg = [LXVariable variableWithName:@"..." type:[LXClassNumber classNumber]];
             
             charFunction.returnTypes = @[retType];
             charFunction.arguments = @[arg];
         }
 
-        LXFunction *dumpFunction = [[LXFunction alloc] init];
-        dumpFunction.name = @"dump";
+        LXVariable *dumpFunction = [LXVariable functionWithName:@"dump"];
+        dumpFunction.isStatic = YES;
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg = [[LXVariable alloc] init];
-            arg.name = @"function";
-            arg.type = [LXClassFunction classFunction];
+            LXVariable *arg = [LXVariable variableWithName:@"function" type:[LXClassFunction classFunction]];
             
             dumpFunction.returnTypes = @[retType];
             dumpFunction.arguments = @[arg];
         }
         
-        LXFunction *findFunction = [[LXFunction alloc] init];
-        findFunction.name = @"find";
+        LXVariable *findFunction = [LXVariable functionWithName:@"find"];
         
         {
-            LXVariable *retType1 = [[LXVariable alloc] init];
-            retType1.type = [LXClassNumber classNumber];
-            
-            LXVariable *retType2 = [[LXVariable alloc] init];
-            retType2.type = [LXClassNumber classNumber];
-            
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"pattern";
-            arg1.type = self;
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"init";
-            arg2.type = [LXClassNumber classNumber];
-            
-            LXVariable *arg3 = [[LXVariable alloc] init];
-            arg3.name = @"plain";
-            arg3.type = [LXClassBool classBool];
-            
+            LXVariable *retType1 = [LXVariable variableWithType:[LXClassNumber classNumber]];
+            LXVariable *retType2 = [LXVariable variableWithType:[LXClassNumber classNumber]];
+
+            LXVariable *arg1 = [LXVariable variableWithName:@"pattern" type:self];
+            LXVariable *arg2 = [LXVariable variableWithName:@"init" type:[LXClassNumber classNumber]];
+            LXVariable *arg3 = [LXVariable variableWithName:@"plain" type:[LXClassBool classBool]];
+  
             findFunction.returnTypes = @[retType1, retType2];
             findFunction.arguments = @[arg1, arg2, arg3];
         }
         
-        LXFunction *formatFunction = [[LXFunction alloc] init];
-        formatFunction.name = @"format";
+        LXVariable *formatFunction = [LXVariable functionWithName:@"format"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
-            
-            LXVariable *arg = [[LXVariable alloc] init];
-            arg.name = @"...";
-            arg.type = [LXClassNumber classNumber];
+            LXVariable *retType = [LXVariable variableWithType:self];
+            LXVariable *arg = [LXVariable variableWithName:@"..." type:[LXClassNumber classNumber]];
             
             formatFunction.returnTypes = @[retType];
             formatFunction.arguments = @[arg];
         }
 
-        LXFunction *gmatchFunction = [[LXFunction alloc] init];
-        gmatchFunction.name = @"gmatch";
+        LXVariable *gmatchFunction = [LXVariable functionWithName:@"gmatch"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = [LXClassFunction classFunction];
-            
-            LXVariable *arg = [[LXVariable alloc] init];
-            arg.name = @"pattern";
-            arg.type = self;
+            LXVariable *retType = [LXVariable variableWithType:[LXClassFunction classFunction]];
+
+            LXVariable *arg = [LXVariable variableWithName:@"pattern" type:self];
             
             gmatchFunction.returnTypes = @[retType];
             gmatchFunction.arguments = @[arg];
         }
 
-        LXFunction *gsubFunction = [[LXFunction alloc] init];
-        gsubFunction.name = @"gsub";
+        LXVariable *gsubFunction = [LXVariable functionWithName:@"gsub"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"pattern";
-            arg1.type = self;
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"repl";
-            arg2.type = self;
-            
-            LXVariable *arg3 = [[LXVariable alloc] init];
-            arg3.name = @"n";
-            arg3.type = [LXClassNumber classNumber];
+            LXVariable *arg1 = [LXVariable variableWithName:@"pattern" type:self];
+            LXVariable *arg2 = [LXVariable variableWithName:@"repl" type:self];
+            LXVariable *arg3 = [LXVariable variableWithName:@"n" type:[LXClassNumber classNumber]];
             
             gsubFunction.returnTypes = @[retType];
             gsubFunction.arguments = @[arg1, arg2, arg3];
         }
         
-        LXFunction *lenFunction = [[LXFunction alloc] init];
-        lenFunction.name = @"len";
+        LXVariable *lenFunction = [LXVariable functionWithName:@"len"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = [LXClassNumber classNumber];
+            LXVariable *retType = [LXVariable variableWithType:[LXClassNumber classNumber]];
             
             lenFunction.returnTypes = @[retType];
             lenFunction.arguments = @[];
         }
 
-        LXFunction *lowerFunction = [[LXFunction alloc] init];
-        lowerFunction.name = @"lower";
+        LXVariable *lowerFunction = [LXVariable functionWithName:@"lower"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
             lowerFunction.returnTypes = @[retType];
             lowerFunction.arguments = @[];
         }
 
-        LXFunction *matchFunction = [[LXFunction alloc] init];
-        matchFunction.name = @"match";
+        LXVariable *matchFunction = [LXVariable functionWithName:@"match"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"pattern";
-            arg1.type = self;
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"init";
-            arg2.type = [LXClassNumber classNumber];
+            LXVariable *arg1 = [LXVariable variableWithName:@"pattern" type:self];
+            LXVariable *arg2 = [LXVariable variableWithName:@"init" type:[LXClassNumber classNumber]];
             
             matchFunction.returnTypes = @[retType];
             matchFunction.arguments = @[arg1, arg2];
         }
 
-        LXFunction *repFunction = [[LXFunction alloc] init];
-        repFunction.name = @"rep";
+        LXVariable *repFunction = [LXVariable functionWithName:@"rep"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"n";
-            arg1.type = [LXClassNumber classNumber];
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"sep";
-            arg2.type = self;
+            LXVariable *arg1 = [LXVariable variableWithName:@"n" type:[LXClassNumber classNumber]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"sep" type:self];
             
             repFunction.returnTypes = @[retType];
             repFunction.arguments = @[arg1, arg2];
         }
         
-        LXFunction *reverseFunction = [[LXFunction alloc] init];
-        reverseFunction.name = @"reverse";
+        LXVariable *reverseFunction = [LXVariable functionWithName:@"reverse"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
             reverseFunction.returnTypes = @[retType];
             reverseFunction.arguments = @[];
         }
         
-        LXFunction *subFunction = [[LXFunction alloc] init];
-        subFunction.name = @"sub";
+        LXVariable *subFunction = [LXVariable functionWithName:@"sub"];
         
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
+            LXVariable *retType = [LXVariable variableWithType:self];
             
-            LXVariable *arg1 = [[LXVariable alloc] init];
-            arg1.name = @"i";
-            arg1.type = [LXClassNumber classNumber];
-            
-            LXVariable *arg2 = [[LXVariable alloc] init];
-            arg2.name = @"j";
-            arg2.type = [LXClassNumber classNumber];
+            LXVariable *arg1 = [LXVariable variableWithName:@"i" type:[LXClassNumber classNumber]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"j" type:[LXClassNumber classNumber]];
             
             subFunction.returnTypes = @[retType];
             subFunction.arguments = @[arg1, arg2];
         }
         
-        LXFunction *upperFunction = [[LXFunction alloc] init];
-        upperFunction.name = @"upper";
+        LXVariable *upperFunction = [LXVariable functionWithName:@"upper"];
 
         {
-            LXVariable *retType = [[LXVariable alloc] init];
-            retType.type = self;
-            
+            LXVariable *retType = [LXVariable variableWithType:self];
+
             upperFunction.returnTypes = @[retType];
             upperFunction.arguments = @[];
         }

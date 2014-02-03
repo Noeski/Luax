@@ -11,23 +11,30 @@
 @implementation LXVariable
 
 - (BOOL)isDefined {
-    return self.type != nil;
+    return self.isFunction || self.type != nil;
 }
 
-- (BOOL)isFunction {
-    return NO;
++ (LXVariable *)variableWithName:(NSString *)name type:(LXClass *)type {
+    LXVariable *variable = [[LXVariable alloc] init];
+    variable.name = name;
+    variable.type = type;
+    
+    return variable;
 }
 
-@end
-
-@implementation LXFunction
-
-- (BOOL)isDefined {
-    return YES;
++ (LXVariable *)variableWithType:(LXClass *)type {
+    LXVariable *variable = [[LXVariable alloc] init];
+    variable.type = type;
+    
+    return variable;
 }
 
-- (BOOL)isFunction {
-    return YES;
++ (LXVariable *)functionWithName:(NSString *)name {
+    LXVariable *function = [[LXVariable alloc] init];
+    function.name = name;
+    function.isFunction = YES;
+    
+    return function;
 }
 
 @end

@@ -15,12 +15,13 @@
 @property (nonatomic, assign) BOOL isGlobal;
 @property (nonatomic, assign) BOOL isMember;
 @property (nonatomic, assign) BOOL isClass;
+@property (nonatomic, assign) BOOL isFunction;
+@property (nonatomic, assign) BOOL isStatic;
 @property (nonatomic, readonly) BOOL isDefined;
-@property (nonatomic, readonly) BOOL isFunction;
-@end
-
-@interface LXFunction : LXVariable
 @property (nonatomic, strong) NSArray *returnTypes;
 @property (nonatomic, strong) NSArray *arguments;
-@property (nonatomic, assign) BOOL isStatic;
+
++ (LXVariable *)variableWithName:(NSString *)name type:(LXClass *)type;
++ (LXVariable *)variableWithType:(LXClass *)type;
++ (LXVariable *)functionWithName:(NSString *)name;
 @end

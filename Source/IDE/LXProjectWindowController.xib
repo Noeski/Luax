@@ -2,10 +2,10 @@
 <archive type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="8.00">
 	<data>
 		<int key="IBDocument.SystemTarget">1070</int>
-		<string key="IBDocument.SystemVersion">13A603</string>
+		<string key="IBDocument.SystemVersion">13B42</string>
 		<string key="IBDocument.InterfaceBuilderVersion">4514</string>
 		<string key="IBDocument.AppKitVersion">1265</string>
-		<string key="IBDocument.HIToolboxVersion">695.00</string>
+		<string key="IBDocument.HIToolboxVersion">696.00</string>
 		<object class="NSMutableDictionary" key="IBDocument.PluginVersions">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin</string>
 			<string key="NS.object.0">4514</string>
@@ -80,7 +80,7 @@
 			<object class="NSWindowTemplate" id="1005">
 				<int key="NSWindowStyleMask">15</int>
 				<int key="NSWindowBacking">2</int>
-				<string key="NSWindowRect">{{187, 240}, {800, 600}}</string>
+				<string key="NSWindowRect">{{276, 114}, {800, 600}}</string>
 				<int key="NSWTFlags">1618477056</int>
 				<string key="NSWindowTitle"/>
 				<string key="NSWindowClass">NSWindow</string>
@@ -110,7 +110,7 @@
 													<string key="NSFrameSize">{222, 600}</string>
 													<reference key="NSSuperview" ref="443010399"/>
 													<reference key="NSWindow"/>
-													<reference key="NSNextKeyView" ref="528839140"/>
+													<reference key="NSNextKeyView" ref="305488990"/>
 													<string key="NSReuseIdentifierKey">_NS:13</string>
 													<bool key="NSEnabled">YES</bool>
 													<bool key="NSAllowsLogicalLayoutDirection">NO</bool>
@@ -255,7 +255,7 @@
 									<string key="NSFrameSize">{222, 600}</string>
 									<reference key="NSSuperview" ref="763726347"/>
 									<reference key="NSWindow"/>
-									<reference key="NSNextKeyView" ref="305488990"/>
+									<reference key="NSNextKeyView" ref="443010399"/>
 									<string key="NSReuseIdentifierKey">_NS:9</string>
 									<bool key="NSDoNotTranslateAutoresizingMask">YES</bool>
 									<int key="NSsFlags">133680</int>
@@ -580,7 +580,7 @@
 																					<string key="NSFrameSize">{193, 599}</string>
 																					<reference key="NSSuperview" ref="705277299"/>
 																					<reference key="NSWindow"/>
-																					<reference key="NSNextKeyView" ref="598017120"/>
+																					<reference key="NSNextKeyView" ref="1012135604"/>
 																					<string key="NSReuseIdentifierKey">_NS:13</string>
 																					<object class="NSTextContainer" key="NSTextContainer" id="739886968">
 																						<object class="NSLayoutManager" key="NSLayoutManager">
@@ -711,7 +711,7 @@
 																	<string key="NSFrame">{{384, 0}, {193, 599}}</string>
 																	<reference key="NSSuperview" ref="131465341"/>
 																	<reference key="NSWindow"/>
-																	<reference key="NSNextKeyView" ref="1012135604"/>
+																	<reference key="NSNextKeyView" ref="705277299"/>
 																	<string key="NSReuseIdentifierKey">_NS:9</string>
 																	<bool key="NSDoNotTranslateAutoresizingMask">YES</bool>
 																	<int key="NSsFlags">133136</int>
@@ -760,7 +760,7 @@
 																			<string key="NSFrameSize">{292, 19}</string>
 																			<reference key="NSSuperview" ref="617087909"/>
 																			<reference key="NSWindow"/>
-																			<reference key="NSNextKeyView" ref="456931079"/>
+																			<reference key="NSNextKeyView" ref="186408238"/>
 																			<string key="NSReuseIdentifierKey">_NS:13</string>
 																			<bool key="NSEnabled">YES</bool>
 																			<bool key="NSAllowsLogicalLayoutDirection">NO</bool>
@@ -872,7 +872,7 @@
 															<string key="NSFrameSize">{292, 1}</string>
 															<reference key="NSSuperview" ref="379382420"/>
 															<reference key="NSWindow"/>
-															<reference key="NSNextKeyView" ref="186408238"/>
+															<reference key="NSNextKeyView" ref="617087909"/>
 															<string key="NSReuseIdentifierKey">_NS:9</string>
 															<bool key="NSDoNotTranslateAutoresizingMask">YES</bool>
 															<int key="NSsFlags">133744</int>
@@ -900,7 +900,7 @@
 																			<string key="NSFrameSize">{284, 19}</string>
 																			<reference key="NSSuperview" ref="565815887"/>
 																			<reference key="NSWindow"/>
-																			<reference key="NSNextKeyView" ref="183499614"/>
+																			<reference key="NSNextKeyView" ref="548001220"/>
 																			<string key="NSReuseIdentifierKey">_NS:13</string>
 																			<bool key="NSEnabled">YES</bool>
 																			<bool key="NSAllowsLogicalLayoutDirection">NO</bool>
@@ -1003,7 +1003,7 @@
 															<string key="NSFrame">{{293, 0}, {284, 1}}</string>
 															<reference key="NSSuperview" ref="379382420"/>
 															<reference key="NSWindow"/>
-															<reference key="NSNextKeyView" ref="548001220"/>
+															<reference key="NSNextKeyView" ref="565815887"/>
 															<string key="NSReuseIdentifierKey">_NS:9</string>
 															<bool key="NSDoNotTranslateAutoresizingMask">YES</bool>
 															<int key="NSsFlags">133744</int>
@@ -1073,7 +1073,6 @@
 							<string key="NSFrame">{{464, 338}, {32, 32}}</string>
 							<reference key="NSSuperview" ref="1006"/>
 							<reference key="NSWindow"/>
-							<reference key="NSNextKeyView"/>
 							<string key="NSHuggingPriority">{750, 750}</string>
 							<int key="NSpiFlags">20494</int>
 							<double key="NSMaxValue">100</double>
@@ -1087,6 +1086,7 @@
 				<string key="NSScreenRect">{{0, 0}, {1280, 778}}</string>
 				<string key="NSMinSize">{800, 622}</string>
 				<string key="NSMaxSize">{10000000000000, 10000000000000}</string>
+				<int key="NSWindowCollectionBehavior">128</int>
 				<bool key="NSWindowIsRestorable">YES</bool>
 			</object>
 			<object class="NSComboBox" id="228579926">
@@ -1202,9 +1202,11 @@
 				<int key="NSTextFieldAlignmentRectInsetsVersion">1</int>
 			</object>
 			<object class="NSButton" id="697292000">
-				<nil key="NSNextResponder"/>
+				<reference key="NSNextResponder"/>
 				<int key="NSvFlags">268</int>
 				<string key="NSFrameSize">{73, 17}</string>
+				<reference key="NSSuperview"/>
+				<reference key="NSWindow"/>
 				<string key="NSHuggingPriority">{250, 750}</string>
 				<bool key="NSEnabled">YES</bool>
 				<object class="NSButtonCell" key="NSCell" id="343896659">

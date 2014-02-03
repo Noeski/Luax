@@ -81,21 +81,19 @@
 }
 
 - (void)drawInteriorWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
-    NSMutableAttributedString *mutableString = [[NSMutableAttributedString alloc] initWithAttributedString:self.attributedStringValue];
-    
-    NSShadow *shadow = [[NSShadow alloc] init];
-    shadow.shadowBlurRadius = 4;
-    shadow.shadowOffset = NSMakeSize(0, -2);
-    shadow.shadowColor = [NSColor colorWithCalibratedWhite:0 alpha:0.6];
-    
-    [mutableString addAttribute:NSShadowAttributeName value:shadow range:NSMakeRange(0, [mutableString length])];
-    
     NSRect bounds = NSInsetRect(cellFrame, 2, 0);
     NSRect titleRect = [self titleRectForBounds:bounds];
-    [mutableString drawAtPoint:NSMakePoint(titleRect.origin.x, CGRectGetMidY(titleRect)-[mutableString size].height * 0.5)];
+    [self.attributedStringValue drawAtPoint:NSMakePoint(titleRect.origin.x, CGRectGetMidY(titleRect)-[self.attributedStringValue size].height * 0.5)];
 }
 
 - (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView {
+    [NSGraphicsContext saveGraphicsState];
+    NSShadow *shadow = [[NSShadow alloc] init];
+    shadow.shadowBlurRadius = 2;
+    shadow.shadowOffset = NSMakeSize(0, -2);
+    shadow.shadowColor = [NSColor colorWithCalibratedWhite:0 alpha:0.4];
+    [shadow set];
+    
     NSSize imageSize, accessoryImageSize;
     NSRect imageFrame, accessoryImageFrame;
     
@@ -127,8 +125,11 @@
     }
     
     [self.accessoryImage drawInRect:accessoryImageFrame fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0 respectFlipped:YES hints:nil];
-	
-	[super drawWithFrame:cellFrame inView:controlView];
+    [self drawInteriorWithFrame:cellFrame inView:controlView];
+
+    [NSGraphicsContext restoreGraphicsState];
+
+	//[super drawWithFrame:cellFrame inView:controlView];
 }
 
 - (NSSize)cellSize {

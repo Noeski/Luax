@@ -59,6 +59,10 @@
 		659DE1B91844C65700627535 /* LXTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 659DE1B81844C65700627535 /* LXTextFieldCell.m */; };
 		659DE1BB184BE2ED00627535 /* scripticon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BA184BE2ED00627535 /* scripticon.png */; };
 		659DE1BD184BF06F00627535 /* foldericon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BC184BF06F00627535 /* foldericon.png */; };
+		659E09B5189F2D43003100C4 /* LXCompiler+Expression.m in Sources */ = {isa = PBXBuildFile; fileRef = 659E09B4189F2D43003100C4 /* LXCompiler+Expression.m */; };
+		659E09B6189F2D43003100C4 /* LXCompiler+Expression.m in Sources */ = {isa = PBXBuildFile; fileRef = 659E09B4189F2D43003100C4 /* LXCompiler+Expression.m */; };
+		659E09B9189F307C003100C4 /* LXCompiler+Token.m in Sources */ = {isa = PBXBuildFile; fileRef = 659E09B8189F307C003100C4 /* LXCompiler+Token.m */; };
+		659E09BA189F307C003100C4 /* LXCompiler+Token.m in Sources */ = {isa = PBXBuildFile; fileRef = 659E09B8189F307C003100C4 /* LXCompiler+Token.m */; };
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
 		65E68B4C186DC8B200E72E3C /* LXConsoleTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */; };
 		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
@@ -229,6 +233,10 @@
 		659DE1B81844C65700627535 /* LXTextFieldCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXTextFieldCell.m; path = Source/IDE/LXTextFieldCell.m; sourceTree = SOURCE_ROOT; };
 		659DE1BA184BE2ED00627535 /* scripticon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = scripticon.png; sourceTree = "<group>"; };
 		659DE1BC184BF06F00627535 /* foldericon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = foldericon.png; sourceTree = "<group>"; };
+		659E09B3189F2D43003100C4 /* LXCompiler+Expression.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "LXCompiler+Expression.h"; path = "Source/LXCompiler+Expression.h"; sourceTree = SOURCE_ROOT; };
+		659E09B4189F2D43003100C4 /* LXCompiler+Expression.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "LXCompiler+Expression.m"; path = "Source/LXCompiler+Expression.m"; sourceTree = SOURCE_ROOT; };
+		659E09B7189F307C003100C4 /* LXCompiler+Token.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "LXCompiler+Token.h"; path = "Source/LXCompiler+Token.h"; sourceTree = SOURCE_ROOT; };
+		659E09B8189F307C003100C4 /* LXCompiler+Token.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "LXCompiler+Token.m"; path = "Source/LXCompiler+Token.m"; sourceTree = SOURCE_ROOT; };
 		65A8157716629CCC0050D80A /* Luax.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Luax.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A8157B16629CCC0050D80A /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		65A8157E16629CCC0050D80A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -350,6 +358,10 @@
 				654D75351838018700E37009 /* LXParser.m */,
 				654D74F018371E6B00E37009 /* LXCompiler.h */,
 				654D74F118371E6B00E37009 /* LXCompiler.m */,
+				659E09B7189F307C003100C4 /* LXCompiler+Token.h */,
+				659E09B8189F307C003100C4 /* LXCompiler+Token.m */,
+				659E09B3189F2D43003100C4 /* LXCompiler+Expression.h */,
+				659E09B4189F2D43003100C4 /* LXCompiler+Expression.m */,
 				654D75311837FD4600E37009 /* luaxc.m */,
 			);
 			name = Compiler;
@@ -730,6 +742,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				659E09B6189F2D43003100C4 /* LXCompiler+Expression.m in Sources */,
 				654D752B1837FD0300E37009 /* LXToken.m in Sources */,
 				654D752C1837FD0300E37009 /* LXClass.m in Sources */,
 				654D752D1837FD0300E37009 /* LXVariable.m in Sources */,
@@ -737,6 +750,7 @@
 				656AD291183FF9A400E691D6 /* NSNumber+Base64VLQ.m in Sources */,
 				654D75321837FD4600E37009 /* luaxc.m in Sources */,
 				654D752E1837FD0300E37009 /* LXNode.m in Sources */,
+				659E09BA189F307C003100C4 /* LXCompiler+Token.m in Sources */,
 				654D752F1837FD0300E37009 /* LXCompiler.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -749,6 +763,8 @@
 				654D750818371E6B00E37009 /* LXClass.m in Sources */,
 				651E8D291864A57700E4476B /* LXLuaVariable.m in Sources */,
 				654D750F18371E6B00E37009 /* LXVariable.m in Sources */,
+				659E09B9189F307C003100C4 /* LXCompiler+Token.m in Sources */,
+				659E09B5189F2D43003100C4 /* LXCompiler+Expression.m in Sources */,
 				654D750E18371E6B00E37009 /* LXToken.m in Sources */,
 				651E8D261864A55700E4476B /* LXLuaCallStackIndex.m in Sources */,
 				65E68B4C186DC8B200E72E3C /* LXConsoleTextView.m in Sources */,

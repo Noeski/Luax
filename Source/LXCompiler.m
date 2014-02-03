@@ -30,21 +30,7 @@
 
         _globalScope = [[LXScope alloc] initWithParent:nil openScope:NO];
         
-        LXFunction *function = [[LXFunction alloc] init];
-        function.name = @"byte";
-        function.type = [LXClassFunction classFunction];
-        function.isGlobal = NO;
-        
-        LXClassBase *stringTable = [[LXClassBase alloc] init];
-        stringTable.name = @"StringTable";
-        stringTable.variables = @[function];
-        stringTable.isDefined = YES;
-        
-        _baseTypeMap[@"StringTable"] = stringTable;
-        
         [_globalScope createVariable:@"_VERSION" type:[LXClassString classString]];
-        [_globalScope createVariable:@"string" type:stringTable];
-
         [_globalScope createFunction:@"assert"];
         [_globalScope createFunction:@"collectgarbage"];
         [_globalScope createFunction:@"dofile"];
@@ -205,6 +191,7 @@
     }
     
     [definedTypes removeAllObjects];
+    [definedVariables removeAllObjects];
     
     [self.compiler.globalScope removeScope:self.scope];
     
@@ -215,6 +202,18 @@
     LXScope *blockScope;
     self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
     self.scope = blockScope;
+    
+    for(LXVariable *variable in definedVariables) {
+        if(!variable.isDefined) {
+            //[self addError:[NSString stringWithFormat:@"Global variable %@ not defined", variable.name] range:NSMakeRange(0, 0) line:0 column:0];
+        }
+    }
+    
+    for(LXClass *type in definedTypes) {
+        if(!type.isDefined) {
+            //[self addError:[NSString stringWithFormat:@"Class %@ not defined", type.name] range:NSMakeRange(0, 0) line:0 column:0];
+        }
+    }
 }
 
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column {
@@ -638,7 +637,7 @@
             expression.assignable = NO;
             
             if(lastExpression.variable.isFunction) {
-                LXFunction *function = (LXFunction *)lastExpression.variable;
+                LXVariable *function = lastExpression.variable;
                 LXVariable *variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
                 
                 expression.variable = variable;
@@ -652,8 +651,7 @@
             expression.assignable = NO;
 
             if(lastExpression.variable.isFunction) {
-                LXFunction *function = (LXFunction *)lastExpression.variable;
-                
+                LXVariable *function = lastExpression.variable;
                 LXVariable *variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
                 
                 expression.variable = variable;
@@ -665,9 +663,7 @@
             expression.assignable = NO;
 
             if(lastExpression.variable.isFunction) {
-                LXFunction *function = (LXFunction *)lastExpression.variable;
-                
-                expression.variable = [function.returnTypes count] ? function.returnTypes[0] : nil;
+                expression.variable = [lastExpression.variable.returnTypes count] ? lastExpression.variable.returnTypes[0] : nil;
             }
         }
         else {
@@ -721,6 +717,8 @@
         if(!variable) {
             variable = [self.compiler.globalScope createVariable:name type:nil];
             [definedVariables addObject:variable];
+            
+            [self addError:[NSString stringWithFormat:@"Global variable %@ not defined", variable.name] range:token.range line:token.startLine column:token.column];
         }
         
         if(variable.isMember) {
@@ -810,7 +808,7 @@
 
 #pragma mark - Function
 
-- (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXFunction **)functionPtr class:(NSString *)class {
+- (LXNode *)parseFunction:(LXScope *)scope anonymous:(BOOL)anonymous isLocal:(BOOL)isLocal function:(LXVariable **)functionPtr class:(NSString *)class {
     BOOL isStatic = ([self consumeTokenType:LX_TK_STATIC] != nil);
 
     LXToken *functionToken = [self consumeToken];
@@ -851,10 +849,7 @@
                        LXClass *variableType = [self findType:type];
                        current.variableType = variableType;
                        
-                       LXVariable *variable = [[LXVariable alloc] init];
-                       variable.type = variableType;
-                       variable.isGlobal = NO;
-                       variable.isMember = NO;
+                       LXVariable *variable = [LXVariable variableWithType:variableType];
                        
                        [returnTypes addObject:variable];
                        
@@ -888,7 +883,7 @@
            }
     }
     
-    LXFunction *function = nil;
+    LXVariable *function = nil;
     
     if(!anonymous) {
         LXToken *nameToken = [self currentToken];
@@ -906,7 +901,7 @@
             [node addNamedChunk:functionName line:nameToken.startLine column:nameToken.column];
             
             if(isLocal) {
-                function = (LXFunction *)[scope localVariable:functionName];
+                function = [scope localVariable:functionName];
                 
                 if(function) {
                     //ERROR
@@ -1079,9 +1074,7 @@
 
 #pragma mark - Class
 
-- (LXNode *)parseClassStatement:(LXScope *)scope {
-    //TODO: Declare class as function and table..
-    
+- (LXNode *)parseClassStatement:(LXScope *)scope {    
     LXToken *classToken = [self consumeToken];
     LXNode *class = [[LXNode alloc] initWithLine:classToken.startLine column:classToken.column];
     
@@ -1244,7 +1237,7 @@
             for(NSNumber *index in functionIndices) {
                 currentTokenIndex = index.integerValue;
                 
-                LXFunction *function;
+                LXVariable *function;
                 [class addAnonymousChunk:@"\n"];
                 [class addChild:[self parseFunction:classScope anonymous:NO isLocal:YES function:&function class:name]];
                 
@@ -1276,7 +1269,13 @@
     scriptClass.variables = variables;
     scriptClass.functions = functions;
     
-    [self declareType:name objectType:scriptClass];
+    scriptClass = [self declareType:name objectType:scriptClass];
+    
+    LXVariable *classTable = [self.compiler.globalScope createVariable:name type:scriptClass];
+    [definedVariables addObject:classTable];
+    classTable.isFunction = YES;
+    classTable.isClass = YES;
+    classTable.returnTypes = @[[LXVariable variableWithType:scriptClass]];
     
     return class;
 }
@@ -1714,12 +1713,11 @@
         }
         
         default: {
-            LXVariable *variable = [scope variable:[self tokenValue:current]];
+            LXVariable *classVariable = [scope variable:[self tokenValue:current]];
             
-            //TODO: Check if current 'type' token is not actually a defined variable 
             if([current isType] &&
                [self nextToken].type == LX_TK_NAME &&
-               [scope localVariable:[self tokenValue:current]] == nil) {
+               (!classVariable || classVariable.isClass)) {
                 NSMutableArray *typeList = [NSMutableArray array];
                 
                 [self consumeToken];

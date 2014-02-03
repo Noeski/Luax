@@ -335,12 +335,11 @@
 }
 
 - (LXVariable *)createVariable:(NSString *)name type:(LXClass *)type {
-    if([name isEqualToString:@"A"])
-        NSLog(@"break");
+    if([name isEqualToString:@"A"]) {
+        NSLog(@"Break");
+    }
     
-    LXVariable *variable = [[LXVariable alloc] init];
-    variable.name = name;
-    variable.type = type;
+    LXVariable *variable = [LXVariable variableWithName:name type:type];
     variable.isGlobal = [self isGlobalScope];
     
     [self.localVariables addObject:variable];
@@ -348,10 +347,9 @@
     return variable;
 }
 
-- (LXFunction *)createFunction:(NSString *)name {
-    LXFunction *function = [[LXFunction alloc] init];
+- (LXVariable *)createFunction:(NSString *)name {
+    LXVariable *function = [LXVariable functionWithName:name];
     function.name = name;
-    function.type = [LXClassFunction classFunction];
     function.isGlobal = [self isGlobalScope];
     
     [self.localVariables addObject:function];
