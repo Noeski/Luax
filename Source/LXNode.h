@@ -68,3 +68,52 @@ typedef enum {
 
 - (void)compile:(LXLuaWriter *)writer;
 @end
+
+@interface LXExpr : NSObject
+- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
+@end
+
+@interface LXNumberExpression : LXExpr
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXStringExpression : LXExpr
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXNilExpression : LXExpr
+@end
+
+@interface LXBoolExpression : LXExpr
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXDotsExpression : LXExpr
+@end
+
+@interface LXUnaryExpr : LXExpr
+@property (nonatomic, strong) id op;
+@property (nonatomic, strong) id expr;
+@end
+
+@interface LXBinaryExpr : LXExpr
+@property (nonatomic, strong) id op;
+@property (nonatomic, strong) id lhs;
+@property (nonatomic, strong) id rhs;
+@end
+
+
+@interface LXStmt : NSObject
+@property (nonatomic, readonly) NSInteger line;
+@property (nonatomic, readonly) NSInteger column;
+@property (nonatomic, readonly) NSRange range;
+
+- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
+@end
+
+@interface LXIfStmt : LXStmt
+@property (nonatomic, strong) id expr;
+@property (nonatomic, strong) id body;
+@property (nonatomic, strong) id elseIfStmts;
+@property (nonatomic, strong) id elseStmt;
+@end

@@ -98,7 +98,7 @@ BOOL NSRangesTouch2(NSRange range, NSRange otherRange){
         replacementRange.length = (range.location - replacementRange.location) + string.length;
         
         currentPosition = range.location;
-        currentLine = previousToken.startLine;
+        currentLine = previousToken.line;
         currentColumn = previousToken.column;
         
         for(NSInteger i = previousToken.range.location; i < NSMaxRange(previousToken.range); ++i) {
@@ -330,7 +330,7 @@ BOOL NSRangesTouch2(NSRange range, NSRange otherRange){
     
     token.type = type;
     token.range = NSMakeRange(startPosition, currentPosition-startPosition);
-    token.startLine = startLine;
+    token.line = startLine;
     token.endLine = currentLine;
     token.column = column;
     token.endColumn = currentColumn;

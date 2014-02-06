@@ -8,6 +8,6 @@
 
 #import "LXCompiler.h"
 
-@interface LXCompiler(Expression)
-
+@interface LXContext(Expression)
+- (LXExpr *)parseExpression;
 @end

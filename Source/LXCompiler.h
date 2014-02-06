@@ -32,7 +32,11 @@
 
 @end
 
-@interface LXContext : NSObject
+@interface LXContext : NSObject {
+    LXToken *_previous;
+    LXToken *_current;
+    LXToken *_next;
+}
 @property (nonatomic, strong) LXCompiler *compiler;
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXParser *parser;
@@ -43,5 +47,20 @@
 - (id)initWithName:(NSString *)name compiler:(LXCompiler *)compiler;
 
 - (void)compile:(NSString *)string;
+- (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column;
 - (void)reportErrors;
+- (LXClass *)findType:(NSString *)name;
+- (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType;
+- (LXScope *)pushScope:(LXScope *)parent openScope:(BOOL)openScope;
+- (void)popScope;
+- (LXScope *)currentScope;
+- (LXToken *)currentToken;
+- (LXToken *)previousToken;
+- (LXToken *)nextToken;
+- (LXToken *)consumeToken;
+- (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags;
+- (LXToken *)consumeTokenType:(LXTokenType)type;
+- (NSString *)tokenValue:(LXToken *)token;
+
+- (LXNode *)parseExpression:(LXScope *)scope;
 @end

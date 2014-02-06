@@ -40,7 +40,7 @@ typedef enum {
 @interface LXToken : NSObject 
 @property (nonatomic) LXTokenType type;
 @property (nonatomic) NSRange range;
-@property (nonatomic) NSInteger startLine;
+@property (nonatomic) NSInteger line;
 @property (nonatomic) NSInteger endLine;
 @property (nonatomic) NSInteger column;
 @property (nonatomic) NSInteger endColumn;
