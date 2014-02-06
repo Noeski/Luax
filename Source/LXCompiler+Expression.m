@@ -75,42 +75,109 @@
     }
 }
 
-- (id)parseTable {
-    return nil;
+- (LXExpr *)parseTable {
+    LXTableCtorExpr *expr = [[LXTableCtorExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    
+    [self consumeToken:LXTokenCompletionFlagsVariables];
+    
+    NSMutableArray *mutableKeyValuePairs = [[NSMutableArray alloc] init];
+    
+    do {
+        if(_current.type == '[') {
+            [self consumeToken:LXTokenCompletionFlagsVariables];
+            LXExpr *key = [self parseExpression];
+            
+            if(_current.type != ']') {
+                [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+                break;
+            }
+            
+            [self consumeToken];
+            
+            if(_current.type != '=') {
+                [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+                break;
+            }
+            
+            [self consumeToken:LXTokenCompletionFlagsVariables];
+            
+            LXExpr *value = [self parseExpression];
+            
+            [mutableKeyValuePairs addObject:[[LXKVP alloc] initWithKey:key value:value]];
+        }
+        else if(_current.type == LX_TK_NAME) {
+            LXExpr *key = [self parseExpression];
+            
+            LXKVP *kvp = [[LXKVP alloc] initWithValue:key];
+
+            if(_current.type == '=') {
+                [self consumeToken:LXTokenCompletionFlagsVariables];
+                
+                kvp.value = [self parseExpression];
+            }
+            
+            [mutableKeyValuePairs addObject:kvp];
+        }
+        else if(_current.type == '}') {
+            [self consumeToken];
+            break;
+        }
+        else {
+            LXExpr *value = [self parseExpression];
+            
+            [mutableKeyValuePairs addObject:[[LXKVP alloc] initWithValue:value]];
+        }
+        
+        if(_current.type ==';' || _current.type == ',') {
+            [self consumeToken:LXTokenCompletionFlagsVariables];
+        }
+        else if(_current.type == '}') {
+            [self consumeToken];
+            break;
+        }
+        else {
+            [self addError:[NSString stringWithFormat:@"Expected ';', ',' or '}' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+            break;
+        }
+    } while(YES);
+    
+    expr.keyValuePairs = mutableKeyValuePairs;
+    
+    return expr;
 }
 
 - (LXExpr *)parseSimpleExpression {
     switch((NSInteger)_current.type) {
         case LX_TK_NUMBER: {
-            LXNumberExpression *expr = [[LXNumberExpression alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXNumberExpr *expr = [[LXNumberExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
             expr.value = [self tokenValue:_current];
             [self consumeToken];
             return expr;
         }
             
         case LX_TK_STRING: {
-            LXStringExpression *expr = [[LXStringExpression alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXStringExpr *expr = [[LXStringExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
             expr.value = [self tokenValue:_current];
             [self consumeToken];
             return expr;
         }
             
         case LX_TK_NIL: {
-            LXNilExpression *expr = [[LXNilExpression alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXNilExpr *expr = [[LXNilExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
             [self consumeToken];
             return expr;
         }
             
         case LX_TK_TRUE:
         case LX_TK_FALSE: {
-            LXBoolExpression *expr = [[LXBoolExpression alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXBoolExpr *expr = [[LXBoolExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
             expr.value = [self tokenValue:_current];
             [self consumeToken];
             return expr;
         }
             
         case LX_TK_DOTS: {
-            LXDotsExpression *expr = [[LXDotsExpression alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXDotsExpr *expr = [[LXDotsExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
             [self consumeToken];
             return expr;
         }
@@ -122,88 +189,10 @@
             
         case '{': {
             return [self parseTable];
-            
-            /*[self consumeToken:LXTokenCompletionFlagsVariables];
-            [expression addChunk:@"{" line:token.line column:token.column];
-            
-            do {
-                token = [self currentToken];
-                
-                if(token.type == '[') {
-                    [self consumeToken:LXTokenCompletionFlagsVariables];
-                    
-                    [expression addChunk:@"[" line:token.line column:token.column];
-                    [expression addChild:[self parseExpression:scope]];
-                    
-                    LXToken *endBracketToken = [self currentToken];
-                    
-                    if(endBracketToken.type != ']') {
-                        [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:endBracketToken]] range:endBracketToken.range line:endBracketToken.line column:endBracketToken.column];
-                        break;
-                    }
-                    
-                    [self consumeToken];
-                    
-                    [expression addChunk:@"]" line:endBracketToken.line column:endBracketToken.column];
-                    
-                    LXToken *equalsToken = [self currentToken];
-                    
-                    if(equalsToken.type != '=') {
-                        [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:equalsToken]] range:equalsToken.range line:equalsToken.line column:equalsToken.column];
-                        break;
-                    }
-                    
-                    [self consumeToken:LXTokenCompletionFlagsVariables];
-                    
-                    [expression addChunk:@"=" line:equalsToken.line column:equalsToken.column];
-                    [expression addChild:[self parseExpression:scope]];
-                }
-                else if(token.type == LX_TK_NAME) {
-                    [expression addChild:[self parseExpression:scope]];
-                    
-                    LXToken *equalsToken = [self currentToken];
-                    
-                    if(equalsToken.type == '=') {
-                        [self consumeToken:LXTokenCompletionFlagsVariables];
-                        
-                        [expression addChunk:@"=" line:equalsToken.line column:equalsToken.column];
-                        [expression addChild:[self parseExpression:scope]];
-                    }
-                }
-                else if(token.type == '}') {
-                    [self consumeToken];
-                    
-                    [expression addChunk:@"}" line:token.line column:token.column];
-                    break;
-                }
-                else {
-                    [expression addChild:[self parseExpression:scope]];
-                }
-                
-                token = [self currentToken];
-                
-                if(token.type ==';' || token.type == ',') {
-                    [self consumeToken:LXTokenCompletionFlagsVariables];
-                    
-                    [expression addChunk:@"," line:token.line column:token.column];
-                }
-                else if(token.type == '}') {
-                    [self consumeToken];
-                    
-                    [expression addChunk:@"}" line:token.line column:token.column];
-                    break;
-                }
-                else {
-                    [self addError:[NSString stringWithFormat:@"Expected ';', ',' or '}' near: %@", [self tokenValue:token]] range:token.range line:token.line column:token.column];
-                    break;
-                }
-            } while(YES);
-            
-            break;*/
         }
             
         default: {
-            return [self parseSuffixedExpression:NO];
+            return [self parseSuffixedExpression];
         }
     }
     
@@ -211,16 +200,14 @@
 }
 
 - (LXExpr *)parseSuffixedExpression {
-    /*LXExpr *expression = [self parsePrimaryExpression];
+    LXExpr *expression = [self parsePrimaryExpression];
     LXExpr *lastExpression = expression;
     
     do {
         if(_current.type == '.' ||
            _current.type == ':') {
-            //_current.variable = lastExpression.variable;
-            //[self consumeToken:token.type == ':' ? LXTokenCompletionFlagsFunctions :LXTokenCompletionFlagsMembers];
-            
-            //[expression addChunk:token.type == ':' ? @":" : @"." line:token.line column:token.column];
+            _current.variable = lastExpression.variable;
+            [self consumeToken:_current.type == ':' ? LXTokenCompletionFlagsFunctions :LXTokenCompletionFlagsMembers];
             
             if(_current.type != LX_TK_NAME) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
@@ -229,28 +216,28 @@
             }
             
             NSString *name = [self tokenValue:_current];
-            
-            [self consumeToken];
-            //[expression addNamedChunk:name line:nameToken.line column:nameToken.column];
-            //expression.assignable = YES;
+            expression = [[LXVariableExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            expression.value = name;
+            expression.assignable = YES;
             
             LXClass *type = lastExpression.variable.type;
             
             if(type.isDefined) {
                 for(LXVariable *v in type.variables) {
                     if([v.name isEqualToString:name]) {
-                        nameToken.variable = v;
-                        nameToken.isMember = YES;
+                        _current.variable = v;
+                        _current.isMember = YES;
                         expression.variable = v;
                         break;
                     }
                 }
             }
+            
+            [self consumeToken];
         }
         else if(_current.type == '[') {
             [self consumeToken:LXTokenCompletionFlagsVariables];
             
-            [expression addChunk:@"[" line:token.line column:token.column];
             [expression addChild:[self parseExpression:scope]];
             
             LXToken *endBracketToken = [self currentToken];
@@ -336,14 +323,12 @@
     
     expression.assignable = lastExpression.assignable;
     
-    return expression;*/
+    return expression;
 }
 
 - (LXExpr *)parsePrimaryExpression {
     if(_current.type == '(') {
         [self consumeToken:LXTokenCompletionFlagsVariables];
-        
-        [expression addChunk:@"(" line:token.line column:token.column];
         
         LXExpr *expr = [self parseExpression];
         
@@ -357,7 +342,6 @@
 
         [self consumeToken:LXTokenCompletionFlagsControlStructures];
         
-        expr.variable = subExpression.variable;
         expr.assignable = NO;
     }
     else if(_current.type == LX_TK_NAME) {
@@ -371,23 +355,22 @@
             [self addError:[NSString stringWithFormat:@"Global variable %@ not defined", variable.name] range:_current.range line:_current.line column:_current.column];
         }
         
-        if(variable.isMember) {
-            //[expression addAnonymousChunk:@"self."];
-        }
-        
+        _current.variable = variable;
+
+        LXVariableExpr *expr = [[LXVariableExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+        expr.isMember = variable.isMember;
+        expr.variable = variable;
+        expr.assignable = YES;
+
         [self consumeToken];
-        
-        token.variable = variable;
-        expression.variable = variable;
-        expression.assignable = YES;
     }
     else {
         NSLog(@"%@", [self tokenValue:[self currentToken]]);
-        [self addError:[NSString stringWithFormat:@"Expected 'name' or '(expression)' near: %@", [self tokenValue:token]] range:token.range line:token.line column:token.column];
+        [self addError:[NSString stringWithFormat:@"Expected 'name' or '(expression)' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
         [self skipLine];
     }
     
-    return expression;
+    return nil;
 }
 
 @end

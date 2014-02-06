@@ -69,26 +69,52 @@ typedef enum {
 - (void)compile:(LXLuaWriter *)writer;
 @end
 
-@interface LXExpr : NSObject
+@interface LXNodeNew : NSObject
+@property (nonatomic, readonly) NSInteger line;
+@property (nonatomic, readonly) NSInteger column;
+@property (nonatomic, readonly) NSRange range;
+
 - (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
 @end
 
-@interface LXNumberExpression : LXExpr
+@interface LXExpr : LXNodeNew
+@property (nonatomic, assign) BOOL assignable;
+@property (nonatomic, strong) LXVariable *variable;
+@end
+
+@interface LXNumberExpr : LXExpr
 @property (nonatomic, strong) NSString *value;
 @end
 
-@interface LXStringExpression : LXExpr
+@interface LXStringExpr : LXExpr
 @property (nonatomic, strong) NSString *value;
 @end
 
-@interface LXNilExpression : LXExpr
+@interface LXNilExpr : LXExpr
 @end
 
-@interface LXBoolExpression : LXExpr
+@interface LXBoolExpr : LXExpr
 @property (nonatomic, strong) NSString *value;
 @end
 
-@interface LXDotsExpression : LXExpr
+@interface LXDotsExpr : LXExpr
+@end
+
+@interface LXVariableExpr : LXExpr
+@property (nonatomic, strong) NSString *value;
+@property (nonatomic, assign) BOOL isMember;
+@end
+
+@interface LXKVP : NSObject
+@property (nonatomic, strong) LXExpr *key;
+@property (nonatomic, strong) LXExpr *value;
+
+- (id)initWithKey:(LXExpr *)key value:(LXExpr *)value;
+- (id)initWithValue:(LXExpr *)value;
+@end
+
+@interface LXTableCtorExpr : LXExpr
+@property (nonatomic, strong) NSArray *keyValuePairs;
 @end
 
 @interface LXUnaryExpr : LXExpr
@@ -103,12 +129,7 @@ typedef enum {
 @end
 
 
-@interface LXStmt : NSObject
-@property (nonatomic, readonly) NSInteger line;
-@property (nonatomic, readonly) NSInteger column;
-@property (nonatomic, readonly) NSRange range;
-
-- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
+@interface LXStmt : LXNodeNew
 @end
 
 @interface LXIfStmt : LXStmt
