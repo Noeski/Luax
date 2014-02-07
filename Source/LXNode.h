@@ -148,6 +148,9 @@ typedef enum {
 @interface LXStmt : LXNodeNew
 @end
 
+@interface LXEmptyStmt : LXStmt
+@end
+
 @interface LXBlock : LXNodeNew
 @property (nonatomic, strong) NSArray *stmts;
 @end
@@ -157,6 +160,11 @@ typedef enum {
 @property (nonatomic, strong) LXBlock *body;
 @property (nonatomic, strong) NSArray *elseIfStmts;
 @property (nonatomic, strong) LXBlock *elseStmt;
+@end
+
+@interface LXElseIfStmt : LXStmt
+@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXBlock *body;
 @end
 
 @interface LXWhileStmt : LXStmt
@@ -191,4 +199,13 @@ typedef enum {
 @interface LXDeclarationStmt : LXStmt
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) NSArray *exprs;
+@end
+
+@interface LXAssignmentStmt : LXStmt
+@property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) NSArray *exprs;
+@end
+
+@interface LXExprStmt : LXStmt
+@property (nonatomic, strong) LXExpr *expr;
 @end
