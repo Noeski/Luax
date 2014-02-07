@@ -155,8 +155,6 @@
 
 @interface LXContext() {
     NSMutableArray *scopeStack;
-    NSMutableArray *definedTypes;
-    NSMutableArray *definedVariables;
 }
 
 @property (nonatomic, assign) NSInteger currentTokenIndex;
@@ -255,12 +253,12 @@
         scopeStack = [[NSMutableArray alloc] init];
     }
     
-    LXScope *scope = [[LXScope alloc] initWithParent:parent openScope:openScope];
-    scope.range = NSMakeRange(NSMaxRange([self previousToken].range), 0);
+    _currentScope = [[LXScope alloc] initWithParent:parent openScope:openScope];
+    _currentScope.range = NSMakeRange(NSMaxRange([self previousToken].range), 0);
     
-    [scopeStack addObject:scope];
+    [scopeStack addObject:_currentScope];
     
-    return scope;
+    return _currentScope;
 }
 
 - (void)popScope {
@@ -268,14 +266,13 @@
         //error
     }
     
-    LXScope *scope = [scopeStack lastObject];
-    scope.range = NSMakeRange(scope.range.location, [self currentToken].range.location - scope.range.location);
-    
+    _currentScope.range = NSMakeRange(_currentScope.range.location, [self currentToken].range.location - _currentScope.range.location);
     [scopeStack removeLastObject];
+    _currentScope = [scopeStack lastObject];
 }
 
 - (LXScope *)currentScope {
-    return [scopeStack lastObject];
+    return _currentScope;
 }
 
 - (void)setCurrentTokenIndex:(NSInteger)index {

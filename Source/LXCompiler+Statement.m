@@ -10,9 +10,11 @@
 #import "LXCompiler+Expression.h"
 
 @implementation LXContext(Statement)
+
 - (LXIfStmt *)parseIfStatement {
     LXIfStmt *statement = [[LXIfStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
-    
+    [self consumeToken:LXTokenCompletionFlagsVariables];
+
     statement.expr = [self parseExpression];
     
     if(_current.type != LX_TK_THEN) {
@@ -24,18 +26,51 @@
     
     statement.body = [self parseBlock];
     
+    NSMutableArray *mutableElseIfStmts = [[NSMutableArray alloc] init];
+    
     while(_current.type == LX_TK_ELSEIF) {
-        [statement.elseIfStmts addObject:nil];
+        [mutableElseIfStmts addObject:[self parseIfStatement]];
     }
     
-    if(_current.type == LX_TK_IF) {
-        statement.elseStmt = nil;
+    statement.elseIfStmts = mutableElseIfStmts;
+    
+    if(_current.type == LX_TK_ELSE) {
+        [self consumeToken:LXTokenCompletionFlagsBlock];
+
+        statement.elseStmt = [self parseBlock];
     }
+    
+    if(_current.type != LX_TK_END) {
+        [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+        //[self skipLine];
+    }
+    
+    [self consumeToken:LXTokenCompletionFlagsBlock];
     
     return statement;
 }
 
-- (LXStmt *)parseStatement:(LXScope *)scope {
+- (LXBlock *)parseBlock {
+    static __strong NSDictionary *closeKeywords = nil;
+  
+    if(!closeKeywords)
+        closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
+    
+    LXBlock *block = [[LXBlock alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    NSMutableArray *mutableStmts = [[NSMutableArray alloc] init];
+    
+    while(!closeKeywords[@(_current.type)] && _current.type != LX_TK_EOS) {
+        [mutableStmts addObject:[self parseStatement]];
+    }
+    
+    block.stmts = mutableStmts;
+    
+    [self popScope];
+    
+    return block;
+}
+
+- (LXStmt *)parseStatement {
     switch(_current.type) {
         default:
         case LX_TK_IF:
@@ -57,75 +92,6 @@
     LXNode *statement = [[LXNode alloc] initWithLine:current.startLine column:current.column];
     
     switch((NSInteger)current.type) {
-        case LX_TK_IF: {
-            [self consumeToken:LXTokenCompletionFlagsVariables];
-            
-            [statement addChunk:@"if" line:current.startLine column:current.column];
-            [statement addAnonymousChunk:@" "];
-            [statement addChild:[self parseExpression:scope]];
-            
-            LXToken *thenToken = [self currentToken];
-            
-            if(thenToken.type != LX_TK_THEN) {
-                [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:thenToken]] range:thenToken.range line:thenToken.startLine column:thenToken.column];
-                [self skipLine];
-            }
-            
-            [self consumeToken:LXTokenCompletionFlagsBlock];
-            
-            [statement addAnonymousChunk:@" "];
-            [statement addChunk:@"then" line:thenToken.startLine column:thenToken.column];
-            [statement addChild:[self parseBlock:scope]];
-            
-            LXToken *elseIfToken = [self currentToken];
-            
-            while(elseIfToken.type == LX_TK_ELSEIF) {
-                [self consumeToken:LXTokenCompletionFlagsVariables];
-                
-                [statement addChunk:@"elseif" line:elseIfToken.startLine column:elseIfToken.column];
-                [statement addAnonymousChunk:@" "];
-                [statement addChild:[self parseExpression:scope]];
-                
-                thenToken = [self currentToken];
-                
-                if(thenToken.type != LX_TK_THEN) {
-                    [self addError:[NSString stringWithFormat:@"Expected 'then' near: %@", [self tokenValue:thenToken]] range:thenToken.range line:thenToken.startLine column:thenToken.column];
-                    [self skipLine];
-                    break;
-                }
-                
-                [self consumeToken:LXTokenCompletionFlagsBlock];
-                
-                [statement addAnonymousChunk:@" "];
-                [statement addChunk:@"then" line:thenToken.startLine column:thenToken.column];
-                [statement addChild:[self parseBlock:scope]];
-                
-                elseIfToken = [self currentToken];
-            }
-            
-            LXToken *elseToken = [self currentToken];
-            
-            if(elseToken.type == LX_TK_ELSE) {
-                [self consumeToken:LXTokenCompletionFlagsBlock];
-                
-                [statement addChunk:@"else" line:elseToken.startLine column:elseToken.column];
-                [statement addChild:[self parseBlock:scope]];
-            }
-            
-            LXToken *endToken = [self currentToken];
-            
-            if(endToken.type != LX_TK_END) {
-                [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:endToken]] range:endToken.range line:endToken.startLine column:endToken.column];
-                break;
-            }
-            
-            [self consumeToken:LXTokenCompletionFlagsBlock];
-            
-            [statement addChunk:@"end" line:endToken.startLine column:endToken.column];
-            
-            break;
-        }
-            
         case LX_TK_WHILE: {
             [self consumeToken:LXTokenCompletionFlagsVariables];
             
@@ -732,45 +698,6 @@
     }
     
     return statement;
-}
-
-- (LXNode *)parseBlock:(LXScope *)scope {
-    return [self parseBlock:scope addNewLine:YES];
-}
-
-- (LXNode *)parseBlock:(LXScope *)scope addNewLine:(BOOL)addNewLine {
-    LXScope *blockScope = nil;
-    
-    return [self parseBlock:scope addNewLine:YES blockScope:&blockScope];
-}
-
-- (LXNode *)parseBlock:(LXScope *)scope addNewLine:(BOOL)addNewLine blockScope:(LXScope **)blockScope {
-    LXToken *token = [self currentToken];
-    NSDictionary *closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
-    
-    LXNode *block = [[LXNode alloc] initWithLine:token.startLine column:token.endLine];
-    
-    *blockScope = [self pushScope:scope openScope:YES];
-    
-    BOOL firstStatement = !addNewLine;
-    
-    while(!closeKeywords[@([self currentToken].type)] && [self currentToken].type != LX_TK_EOS) {
-        if(!firstStatement)
-            [block addAnonymousChunk:@"\n"];
-        
-        LXNode *statement = [self parseStatement:*blockScope];
-        
-        [block addChild:statement];
-        
-        firstStatement = NO;
-    }
-    
-    if(!firstStatement && addNewLine)
-        [block addAnonymousChunk:@"\n"];
-    
-    [self popScope];
-    
-    return block;
 }*/
 
 @end

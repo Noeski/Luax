@@ -117,24 +117,78 @@ typedef enum {
 @property (nonatomic, strong) NSArray *keyValuePairs;
 @end
 
+@interface LXMemberExpr : LXExpr
+@property (nonatomic, strong) LXExpr *prefix;
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXIndexExpr : LXExpr
+@property (nonatomic, strong) LXExpr *prefix;
+@property (nonatomic, strong) LXExpr *expr;
+@end
+
+@interface LXFunctionCall : LXExpr
+@property (nonatomic, strong) LXExpr *prefix;
+@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) NSArray *args;
+@end
+
 @interface LXUnaryExpr : LXExpr
 @property (nonatomic, strong) id op;
-@property (nonatomic, strong) id expr;
+@property (nonatomic, strong) LXExpr *expr;
 @end
 
 @interface LXBinaryExpr : LXExpr
 @property (nonatomic, strong) id op;
-@property (nonatomic, strong) id lhs;
-@property (nonatomic, strong) id rhs;
+@property (nonatomic, strong) LXExpr *lhs;
+@property (nonatomic, strong) LXExpr *rhs;
 @end
 
 
 @interface LXStmt : LXNodeNew
 @end
 
+@interface LXBlock : LXNodeNew
+@property (nonatomic, strong) NSArray *stmts;
+@end
+
 @interface LXIfStmt : LXStmt
-@property (nonatomic, strong) id expr;
-@property (nonatomic, strong) id body;
-@property (nonatomic, strong) id elseIfStmts;
-@property (nonatomic, strong) id elseStmt;
+@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) NSArray *elseIfStmts;
+@property (nonatomic, strong) LXBlock *elseStmt;
+@end
+
+@interface LXWhileStmt : LXStmt
+@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXBlock *body;
+@end
+
+@interface LXDoStmt : LXStmt
+@property (nonatomic, strong) LXBlock *body;
+@end
+
+@interface LXRepeatStmt : LXStmt
+@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXBlock *body;
+@end
+
+@interface LXLabelStmt : LXStmt
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXGotoStmt : LXStmt
+@property (nonatomic, strong) NSString *value;
+@end
+
+@interface LXBreakStmt : LXStmt
+@end
+
+@interface LXReturnStmt : LXStmt
+@property (nonatomic, strong) NSArray *exprs;
+@end
+
+@interface LXDeclarationStmt : LXStmt
+@property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) NSArray *exprs;
 @end

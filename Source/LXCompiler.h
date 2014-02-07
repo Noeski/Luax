@@ -36,6 +36,11 @@
     LXToken *_previous;
     LXToken *_current;
     LXToken *_next;
+    
+    LXScope *_currentScope;
+    
+    NSMutableArray *definedTypes;
+    NSMutableArray *definedVariables;
 }
 @property (nonatomic, strong) LXCompiler *compiler;
 @property (nonatomic, strong) NSString *name;
@@ -61,6 +66,7 @@
 - (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags;
 - (LXToken *)consumeTokenType:(LXTokenType)type;
 - (NSString *)tokenValue:(LXToken *)token;
+- (void)skipLine;
 
 - (LXNode *)parseExpression:(LXScope *)scope;
 @end
