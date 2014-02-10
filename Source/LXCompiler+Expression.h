@@ -16,4 +16,7 @@
 - (LXFunctionCallExpr *)parseFunctionCall;
 - (LXExpr *)parseSuffixedExpression;
 - (LXFunctionExpr *)parseFunction:(BOOL)anonymous isLocal:(BOOL)isLocal class:(NSString *)class;
+- (LXTypeNode *)parseTypeNode;
+- (LXVariableNode *)parseVariableNode:(LXClass *)type isLocal:(BOOL)isLocal;
+
 @end

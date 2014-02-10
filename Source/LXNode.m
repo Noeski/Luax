@@ -469,3 +469,143 @@
 }
 
 @end
+
+@implementation LXNodeNew
+- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location {
+    if(self = [super init]) {
+        _line = line;
+        _column = column;
+        _range.location = location;
+    }
+    
+    return self;
+}
+@end
+
+@implementation LXExpr
+@end
+
+@implementation LXNumberExpr
+@end
+
+@implementation LXStringExpr
+@end
+
+@implementation LXNilExpr
+@end
+
+@implementation LXBoolExpr
+@end
+
+@implementation LXDotsExpr : LXExpr
+@end
+
+@implementation LXVariableExpr
+@end
+
+@implementation LXTypeNode
+@end
+
+@implementation LXVariableNode
+@end
+
+@implementation LXDeclarationNode
+@end
+
+@implementation LXKVP
+- (id)initWithKey:(LXExpr *)key value:(LXExpr *)value {
+    if(self = [super init]) {
+        _key = key;
+        _value = value;
+    }
+    
+    return self;
+}
+
+- (id)initWithValue:(LXExpr *)value {
+    if(self = [super init]) {
+        _value = value;
+    }
+    
+    return self;
+}
+
+@end
+
+@implementation LXTableCtorExpr
+@end
+
+@implementation LXMemberExpr
+@end
+
+@implementation LXIndexExpr
+@end
+
+@implementation LXFunctionCallExpr
+@end
+
+@implementation LXUnaryExpr
+@end
+
+@implementation LXBinaryExpr
+@end
+
+@implementation LXFunctionExpr
+@end
+
+@implementation LXStmt
+@end
+
+@implementation LXEmptyStmt
+@end
+
+@implementation LXBlock
+@end
+
+@implementation LXClassStmt
+@end
+
+@implementation LXIfStmt
+@end
+
+@implementation LXElseIfStmt
+@end
+
+@implementation LXWhileStmt
+@end
+
+@implementation LXForStmt
+@end
+
+@implementation LXNumericForStmt
+@end
+
+@implementation LXIteratorForStmt
+@end
+
+@implementation LXDoStmt
+@end
+
+@implementation LXRepeatStmt
+@end
+
+@implementation LXLabelStmt
+@end
+
+@implementation LXGotoStmt
+@end
+
+@implementation LXBreakStmt
+@end
+
+@implementation LXReturnStmt
+@end
+
+@implementation LXDeclarationStmt
+@end
+
+@implementation LXAssignmentStmt
+@end
+
+@implementation LXExprStmt
+@end

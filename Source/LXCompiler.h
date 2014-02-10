@@ -70,6 +70,4 @@
 - (NSString *)tokenValue:(LXToken *)token;
 - (void)closeBlock:(LXTokenType)type;
 - (void)skipLine;
-
-- (LXNode *)parseExpression:(LXScope *)scope;
 @end

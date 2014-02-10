@@ -251,51 +251,20 @@
 - (LXStmt *)parseDeclarationStatement {
     LXDeclarationStmt *statement = [[LXDeclarationStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
     
-    NSString *type = [self tokenValue:_current];
-    LXClass *variableType = [self findType:type];
-    _current.variableType = variableType;
-
-    [self consumeToken];
+    LXTypeNode *type = [self parseTypeNode];
     
     NSMutableArray *mutableVars = [[NSMutableArray alloc] init];
 
     do {
-        NSString *name = [self tokenValue:_current];
+        LXDeclarationNode *declarationNode = [[LXDeclarationNode alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
         
-        LXVariable *variable = nil;
-
-        if(YES) {
-            variable = [_currentScope localVariable:name];
-            
-            if(variable) {
-                [self addError:[NSString stringWithFormat:@"Variable %@ is already defined.", name] range:_current.range line:_current.line column:_current.column];
-            }
-            else {
-                variable = [_currentScope createVariable:name type:variableType];
-                variable.definedLocation = _current.range.location;
-            }
-        }
-        else {
-            variable = [self.compiler.globalScope localVariable:name];
-            
-            if(variable) {
-                if(variable.isDefined) {
-                    [self addError:[NSString stringWithFormat:@"Variable %@ is already defined.", name] range:_current.range line:_current.line column:_current.column];
-                }
-                else {
-                    variable.type = variableType;
-                }
-            }
-            else {
-                variable = [self.compiler.globalScope createVariable:name type:variableType];
-                [definedVariables addObject:variable];
-            }
-        }
+        declarationNode.type = type;
+        declarationNode.var = [self parseVariableNode:type.type isLocal:YES];
         
-        _current.variable = variable;
-        
-        [self consumeToken];
+        [mutableVars addObject:declarationNode];
     } while([self consumeTokenType:','] != nil);
+    
+    statement.vars = mutableVars;
     
     NSMutableArray *mutableExprs = [[NSMutableArray alloc] init];
     
@@ -319,7 +288,7 @@
     }
     
     for(NSInteger i = index; i < [mutableVars count]; ++i) {
-        [mutableExprs addObject:variableType.defaultExpression];
+        [mutableExprs addObject:type.type.defaultExpression];
     }
     
     statement.exprs = mutableExprs;
@@ -434,6 +403,8 @@
     if(!closeKeywords)
         closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
     
+    [self pushScope:_currentScope openScope:YES];
+
     LXBlock *block = [[LXBlock alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
     NSMutableArray *mutableStmts = [[NSMutableArray alloc] init];
     
@@ -623,7 +594,7 @@
             return [self parseRepeatStatement];
         case LX_TK_FUNCTION: {
             LXExprStmt *statement = [[LXExprStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
-            statement.expr = [self parseFunction:YES isLocal:YES function:NULL class:nil];
+            statement.expr = [self parseFunction:NO isLocal:YES class:nil];
             
             return statement;
         }

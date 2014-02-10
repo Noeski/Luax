@@ -10,6 +10,8 @@
 #import "LXParser.h"
 #import "LXToken.h"
 #import "NSString+JSON.h"
+#import "LXCompiler+Expression.h"
+#import "LXCompiler+Statement.h"
 
 @implementation LXCompilerError
 @end
@@ -196,6 +198,10 @@
     
     self.currentTokenIndex = 0;
     
+    [self pushScope:self.compiler.globalScope openScope:NO];
+    LXBlock *block = [self parseBlock];
+    [self popScope];
+    
     LXScope *blockScope;
     self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
     self.scope = blockScope;
@@ -282,6 +288,10 @@
 }
 
 - (LXToken *)previousToken:(NSInteger)index {
+    if(index >= [self.parser.tokens count]) {
+        index = [self.parser.tokens count]-1;
+    }
+    
     while(YES) {
         if(index < 0) {
             //Not really eof, but bof ;)
