@@ -79,7 +79,7 @@ typedef enum {
 
 @interface LXExpr : LXNodeNew
 @property (nonatomic, assign) BOOL assignable;
-@property (nonatomic, strong) LXVariable *variable;
+@property (nonatomic, strong) LXVariable *resultType;
 @end
 
 @interface LXNumberExpr : LXExpr
@@ -105,6 +105,19 @@ typedef enum {
 @property (nonatomic, assign) BOOL isMember;
 @end
 
+@interface LXTypeNode : LXNodeNew
+@property (nonatomic, strong) LXClass *type;
+@end
+
+@interface LXVariableNode : LXNodeNew
+@property (nonatomic, strong) LXVariable *variable;
+@end
+
+@interface LXDeclarationNode : LXNodeNew
+@property (nonatomic, strong) LXTypeNode *type;
+@property (nonatomic, strong) LXVariableNode *var;
+@end
+
 @interface LXKVP : NSObject
 @property (nonatomic, strong) LXExpr *key;
 @property (nonatomic, strong) LXExpr *value;
@@ -127,7 +140,7 @@ typedef enum {
 @property (nonatomic, strong) LXExpr *expr;
 @end
 
-@interface LXFunctionCall : LXExpr
+@interface LXFunctionCallExpr : LXExpr
 @property (nonatomic, strong) LXExpr *prefix;
 @property (nonatomic, strong) NSString *value;
 @property (nonatomic, strong) NSArray *args;
@@ -144,6 +157,14 @@ typedef enum {
 @property (nonatomic, strong) LXExpr *rhs;
 @end
 
+@class LXBlock;
+@interface LXFunctionExpr : LXExpr
+@property (nonatomic, strong) LXExpr *nameExpr;
+@property (nonatomic, strong) NSArray *returnTypes;
+@property (nonatomic, strong) NSArray *args;
+@property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, assign) BOOL isStatic;
+@end
 
 @interface LXStmt : LXNodeNew
 @end
@@ -153,6 +174,11 @@ typedef enum {
 
 @interface LXBlock : LXNodeNew
 @property (nonatomic, strong) NSArray *stmts;
+@end
+
+@interface LXClassStmt : LXStmt
+@property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) NSArray *functions;
 @end
 
 @interface LXIfStmt : LXStmt
@@ -170,6 +196,21 @@ typedef enum {
 @interface LXWhileStmt : LXStmt
 @property (nonatomic, strong) LXExpr *expr;
 @property (nonatomic, strong) LXBlock *body;
+@end
+
+@interface LXForStmt : LXStmt
+@property (nonatomic, strong) LXBlock *body;
+@end
+
+@interface LXNumericForStmt : LXForStmt
+@property (nonatomic, strong) LXExpr *exprInit;
+@property (nonatomic, strong) LXExpr *exprCond;
+@property (nonatomic, strong) LXExpr *exprInc;
+@end
+
+@interface LXIteratorForStmt : LXForStmt
+@property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) NSArray *exprs;
 @end
 
 @interface LXDoStmt : LXStmt

@@ -48,6 +48,8 @@
 @property (nonatomic, strong) LXScope *scope;
 @property (nonatomic, strong) LXNode *block;
 @property (nonatomic, strong) NSMutableArray *errors;
+@property (nonatomic, assign) NSInteger currentTokenIndex;
+@property (nonatomic, readonly) NSInteger nextTokenIndex;
 
 - (id)initWithName:(NSString *)name compiler:(LXCompiler *)compiler;
 
@@ -66,6 +68,7 @@
 - (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags;
 - (LXToken *)consumeTokenType:(LXTokenType)type;
 - (NSString *)tokenValue:(LXToken *)token;
+- (void)closeBlock:(LXTokenType)type;
 - (void)skipLine;
 
 - (LXNode *)parseExpression:(LXScope *)scope;

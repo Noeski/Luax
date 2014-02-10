@@ -10,4 +10,10 @@
 
 @interface LXContext(Expression)
 - (LXExpr *)parseExpression;
+- (LXExpr *)parseSubExpression:(NSInteger)level;
+- (LXTableCtorExpr *)parseTable;
+- (LXExpr *)parseSimpleExpression;
+- (LXFunctionCallExpr *)parseFunctionCall;
+- (LXExpr *)parseSuffixedExpression;
+- (LXFunctionExpr *)parseFunction:(BOOL)anonymous isLocal:(BOOL)isLocal class:(NSString *)class;
 @end

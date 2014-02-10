@@ -7,6 +7,7 @@
 //
 
 #import "LXCompiler+Expression.h"
+#import "LXCompiler+Statement.h"
 
 @implementation LXContext(Expression)
 
@@ -183,7 +184,7 @@
         }
             
         case LX_TK_FUNCTION: {
-            //[expression addChild:[self parseFunction:scope anonymous:YES isLocal:YES function:NULL class:nil]];
+            return [self parseFunction:YES isLocal:YES class:nil];
             break;
         }
             
@@ -199,8 +200,8 @@
     return nil;
 }
 
-- (LXFunctionCall *)parseFunctionCall {
-    LXFunctionCall *expr = [[LXFunctionCall alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+- (LXFunctionCallExpr *)parseFunctionCall {
+    LXFunctionCallExpr *expr = [[LXFunctionCallExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
     [expr setAssignable:NO];
     
     do {
@@ -296,7 +297,7 @@
     
     do {
         if(_current.type == '.') {
-            _current.variable = lastExpression.variable;
+            _current.variable = lastExpression.resultType;
             [self consumeToken:LXTokenCompletionFlagsMembers];
             
             if(_current.type != LX_TK_NAME) {
@@ -311,14 +312,14 @@
             [expression setValue:name];
             [expression setAssignable:YES];
             
-            LXClass *type = lastExpression.variable.type;
+            LXClass *type = lastExpression.resultType.type;
             
             if(type.isDefined) {
                 for(LXVariable *v in type.variables) {
                     if([v.name isEqualToString:name]) {
                         _current.variable = v;
                         _current.isMember = YES;
-                        [expression setVariable:v];
+                        [expression setResultType:v];
                         break;
                     }
                 }
@@ -346,7 +347,7 @@
                 _current.type == '(' ||
                 _current.type == '{' ||
                 _current.type == LX_TK_STRING) {
-            LXFunctionCall *functionCall = [self parseFunctionCall];
+            LXFunctionCallExpr *functionCall = [self parseFunctionCall];
             functionCall.prefix = lastExpression;
             
             expression = functionCall;
@@ -374,7 +375,7 @@
             return expr;
         }
         
-        _current.variable = expr.variable;
+        _current.variable = expr.resultType;
 
         [self consumeToken:LXTokenCompletionFlagsControlStructures];
         
@@ -395,7 +396,7 @@
 
         LXVariableExpr *expr = [[LXVariableExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
         expr.isMember = variable.isMember;
-        expr.variable = variable;
+        expr.resultType = variable;
         expr.assignable = YES;
 
         [self consumeToken];
@@ -407,6 +408,227 @@
     }
     
     return nil;
+}
+
+- (LXTypeNode *)parseTypeNode {
+    LXTypeNode *node = [[LXTypeNode alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    
+    if(![_current isType]) {
+        [self addError:[NSString stringWithFormat:@"Expected 'type' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+    }
+    
+    NSString *type = [self tokenValue:_current];
+    LXClass *variableType = [self findType:type];
+    
+    node.type = variableType;
+    _current.variableType = variableType;
+    
+    [self consumeToken];
+    
+    return node;
+}
+
+- (LXVariableNode *)parseVariableNode:(LXClass *)type {
+    LXVariableNode *node = [[LXVariableNode alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    
+    if(_current.type != LX_TK_NAME) {
+        [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+    }
+
+    NSString *name = [self tokenValue:_current];
+    LXVariable *variable = [_currentScope createVariable:name type:type];
+    
+    node.variable = variable;
+    _current.variable = variable;
+    
+    [self consumeToken];
+    
+    return node;
+}
+
+- (LXFunctionExpr *)parseFunction:(BOOL)anonymous isLocal:(BOOL)isLocal class:(NSString *)class {
+    LXFunctionExpr *functionExpr = [[LXFunctionExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    
+    functionExpr.isStatic = ([self consumeTokenType:LX_TK_STATIC] != nil);
+    
+    LXScope *functionScope = [self pushScope:_currentScope openScope:NO];
+    functionScope.type = LXScopeTypeFunction;
+    
+    BOOL checkingReturnType = NO;
+    BOOL hasReturnType = NO;
+    BOOL hasEmptyReturnType = NO;
+    
+    NSMutableArray *returnTypes = [[NSMutableArray alloc] init];
+    
+    if(_current.type == '(') {
+        checkingReturnType = YES;
+        
+        [self consumeToken:LXTokenCompletionFlagsTypes];
+        
+        if(_current.type == ')' ||
+           (([_current isType] || _current.type == LX_TK_DOTS) &&
+            (_next.type == ',' || _next.type == ')'))) {
+               hasReturnType = YES;
+               
+               while(_current.type != ')') {
+                   if([_current isType]) {
+                       [returnTypes addObject:[self parseTypeNode]];
+                       
+                       if(_current.type == ',') {
+                           [self consumeToken:LXTokenCompletionFlagsTypes];
+                       }
+                       else {
+                           break;
+                       }
+                   }
+                   else if(_current.type == LX_TK_DOTS) {
+                       [self consumeToken];
+                       break;
+                   }
+                   else {
+                       [self addError:[NSString stringWithFormat:@"Expected 'type' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+                       break;
+                   }
+               }
+               
+               if(_current.type != ')') {
+                   [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+               }
+               
+               [self consumeToken];
+           }
+    }
+    
+    functionExpr.returnTypes = returnTypes;
+    
+    LXVariable *function = nil;
+    
+    if(!anonymous) {
+        if(_current.type == LX_TK_NAME) {
+            NSString *functionName = [self tokenValue:_current];
+
+            if(class) {
+                //[node addAnonymousChunk:[NSString stringWithFormat:@"%@%c", class, isStatic ? '.' : ':']];
+            }
+            
+            if(isLocal) {
+                function = [_currentScope localVariable:functionName];
+                
+                if(function) {
+                    //ERROR
+                }
+                else {
+                    function = [_currentScope createFunction:functionName];
+                }
+            }
+            else {
+                function = [self.compiler.globalScope createFunction:functionName];
+                [definedVariables addObject:functionName];
+            }
+            
+            _current.variable = function;
+            
+            [self consumeToken];
+            
+            /*while(token.type == '.' ||
+                  token.type == ':') {
+                [self consumeToken];
+                
+                [node addChunk:token.type == ':' ? @":" : @"." line:token.line column:token.column];
+                
+                nameToken = [self currentToken];
+                functionName = [self tokenValue:nameToken];
+                
+                if(nameToken.type != LX_TK_NAME) {
+                    [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:nameToken]] range:nameToken.range line:nameToken.line column:nameToken.column];
+                    
+                    break;
+                }
+                
+                [self consumeToken];
+                [node addNamedChunk:functionName line:nameToken.line column:nameToken.column];
+                
+                token = [self currentToken];
+            }*/
+        }
+        
+        if(_current.type != '(') {
+            [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+        }
+        
+        [self consumeToken:LXTokenCompletionFlagsTypes];
+    }
+    else {
+        if(checkingReturnType && hasReturnType) {
+            if(_current.type != '(') {
+                if([returnTypes count] == 0) {
+                    hasEmptyReturnType = YES;
+                }
+                else {
+                    [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+                }
+            }
+            else {
+                [self consumeToken:LXTokenCompletionFlagsTypes];
+            }
+        }
+    }
+    
+    BOOL isVarArg = NO;
+    NSMutableArray *arguments = [NSMutableArray array];
+    
+    while(!hasEmptyReturnType && _current.type != ')') {
+        if([_current isType]) {
+            LXDeclarationNode *declarationNode = [[LXDeclarationNode alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+
+            declarationNode.type = [self parseTypeNode];
+            declarationNode.var = [self parseVariableNode:declarationNode.type.type];
+
+            [arguments addObject:declarationNode];
+            
+            if(_current.type == ',') {
+                [self consumeToken:LXTokenCompletionFlagsTypes];
+            }
+            else {
+                break;
+            }
+        }
+        else if(_current.type == LX_TK_DOTS) {
+            isVarArg = YES;
+            
+            [self consumeToken];
+            break;
+        }
+        else {
+            [self addError:[NSString stringWithFormat:@"Expected 'type' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+            break;
+        }
+    }
+    
+    functionExpr.args = arguments;
+    
+    if(!hasEmptyReturnType) {
+        if(_current.type != ')') {
+            [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+        }
+        
+        [self consumeToken:LXTokenCompletionFlagsBlock];
+    }
+    
+    functionExpr.body = [self parseBlock];
+    [self popScope];
+    
+    if(_current.type != LX_TK_END) {
+        [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+    }
+    
+    [self consumeToken:LXTokenCompletionFlagsBlock];
+    
+    function.returnTypes = returnTypes;
+    function.arguments = arguments;
+    function.isStatic = functionExpr.isStatic;
+    
+    return functionExpr;
 }
 
 @end

@@ -157,8 +157,6 @@
     NSMutableArray *scopeStack;
 }
 
-@property (nonatomic, assign) NSInteger currentTokenIndex;
-@property (nonatomic, readonly) NSInteger nextTokenIndex;
 @end
 
 @implementation LXContext
