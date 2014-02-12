@@ -93,21 +93,23 @@ typedef enum {
 @end
 
 @interface LXNumberExpr : LXExpr
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *token;
 @end
 
 @interface LXStringExpr : LXExpr
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *token;
 @end
 
 @interface LXNilExpr : LXExpr
+@property (nonatomic, strong) LXTokenNode *nilToken;
 @end
 
 @interface LXBoolExpr : LXExpr
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *token;
 @end
 
 @interface LXDotsExpr : LXExpr
+@property (nonatomic, strong) LXTokenNode *dotsToken;
 @end
 
 @interface LXVariableExpr : LXExpr
@@ -159,13 +161,13 @@ typedef enum {
 @end
 
 @interface LXUnaryExpr : LXExpr
-@property (nonatomic, strong) id op;
+@property (nonatomic, strong) LXTokenNode *opToken;
 @property (nonatomic, strong) LXExpr *expr;
 @end
 
 @interface LXBinaryExpr : LXExpr
-@property (nonatomic, strong) id op;
 @property (nonatomic, strong) LXExpr *lhs;
+@property (nonatomic, strong) LXTokenNode *opToken;
 @property (nonatomic, strong) LXExpr *rhs;
 @end
 
@@ -182,6 +184,7 @@ typedef enum {
 @end
 
 @interface LXEmptyStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *token;
 @end
 
 @interface LXBlock : LXNodeNew
@@ -189,8 +192,13 @@ typedef enum {
 @end
 
 @interface LXClassStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *classToken;
+@property (nonatomic, strong) LXTokenNode *nameToken;
+@property (nonatomic, strong) LXTokenNode *extendsToken;
+@property (nonatomic, strong) LXTokenNode *superToken;
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) NSArray *functions;
+@property (nonatomic, strong) LXTokenNode *endToken;
 @end
 
 @interface LXIfStmt : LXStmt
@@ -233,8 +241,11 @@ typedef enum {
 @end
 
 @interface LXNumericForStmt : LXForStmt
+@property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) LXExpr *exprInit;
+@property (nonatomic, strong) LXTokenNode *exprCondCommaToken;
 @property (nonatomic, strong) LXExpr *exprCond;
+@property (nonatomic, strong) LXTokenNode *exprIncCommaToken;
 @property (nonatomic, strong) LXExpr *exprInc;
 @end
 
@@ -244,32 +255,42 @@ typedef enum {
 @end
 
 @interface LXRepeatStmt : LXStmt
-@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *repeatToken;
 @property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) LXTokenNode *untilToken;
+@property (nonatomic, strong) LXExpr *expr;
 @end
 
 @interface LXLabelStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *beginLabelToken;
 @property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *endLabelToken;
 @end
 
 @interface LXGotoStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *gotoToken;
 @property (nonatomic, strong) NSString *value;
 @end
 
 @interface LXBreakStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *breakToken;
 @end
 
 @interface LXReturnStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *returnToken;
 @property (nonatomic, strong) NSArray *exprs;
 @end
 
 @interface LXDeclarationStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *typeToken;
 @property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) NSArray *exprs;
 @end
 
 @interface LXAssignmentStmt : LXStmt
 @property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) NSArray *exprs;
 @end
 

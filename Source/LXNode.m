@@ -585,18 +585,23 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXNumberExpr
+@dynamic token;
 @end
 
 @implementation LXStringExpr
+@dynamic token;
 @end
 
 @implementation LXNilExpr
+@dynamic nilToken;
 @end
 
 @implementation LXBoolExpr
+@dynamic token;
 @end
 
-@implementation LXDotsExpr : LXExpr
+@implementation LXDotsExpr
+@dynamic dotsToken;
 @end
 
 @implementation LXVariableExpr
@@ -671,12 +676,16 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXUnaryExpr
+@dynamic opToken, expr;
+
 - (void)resolve:(LXContext *)context {
     [self.expr resolve:context];
 }
 @end
 
 @implementation LXBinaryExpr
+@dynamic lhs, opToken, rhs;
+
 - (void)resolve:(LXContext *)context {
     [self.lhs resolve:context];
     [self.rhs resolve:context];
@@ -705,9 +714,12 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXEmptyStmt
+@dynamic token;
 @end
 
 @implementation LXBlock
+@dynamic stmts;
+
 - (void)resolve:(LXContext *)context {
     [context pushScope:[context currentScope] openScope:YES];
     
@@ -720,6 +732,8 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXClassStmt
+@dynamic classToken, nameToken, extendsToken, superToken, vars, functions, endToken;
+
 - (void)resolve:(LXContext *)context {
     for(LXDeclarationStmt *stmt in self.vars) {
         [stmt resolve:context];
@@ -752,28 +766,35 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXNumericForStmt
-@dynamic exprInit, exprCond, exprInc;
+@dynamic equalsToken, exprInit, exprCondCommaToken, exprCond, exprIncCommaToken, exprInc;
 @end
 
 @implementation LXIteratorForStmt
 @end
 
 @implementation LXRepeatStmt
+@dynamic repeatToken, body, untilToken, expr;
 @end
 
 @implementation LXLabelStmt
+@dynamic beginLabelToken, endLabelToken;
 @end
 
 @implementation LXGotoStmt
+@dynamic gotoToken;
 @end
 
 @implementation LXBreakStmt
+@dynamic breakToken;
 @end
 
 @implementation LXReturnStmt
+@dynamic returnToken, exprs;
 @end
 
 @implementation LXDeclarationStmt
+@dynamic typeToken, vars, equalsToken, exprs;
+
 - (void)resolve:(LXContext *)context {
     for(LXDeclarationNode *node in self.vars) {
         LXClass *type = [context findType:node.type.value];
@@ -799,7 +820,9 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXAssignmentStmt
+@dynamic vars, equalsToken, exprs;
 @end
 
 @implementation LXExprStmt
+@dynamic expr;
 @end

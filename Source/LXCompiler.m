@@ -442,6 +442,21 @@
     self.currentTokenIndex = index;
 }
 
+- (id)nodeWithType:(Class)class {
+    LXNodeNew *node = [[class alloc] init];
+    node.line = _current.line;
+    node.column = _current.column;
+    node.location = _current.range.location;
+    
+    return node;
+}
+
+- (id)finish:(LXNodeNew *)node {
+    node.length = NSMaxRange(_previous.range)-node.location;
+    
+    return node;
+}
+
 #pragma mark - Expressions 
 
 - (LXNode *)parseSimpleExpression:(LXScope *)scope {

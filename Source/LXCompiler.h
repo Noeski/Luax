@@ -70,4 +70,6 @@
 - (NSString *)tokenValue:(LXToken *)token;
 - (void)closeBlock:(LXTokenType)type;
 - (void)skipLine;
+- (id)nodeWithType:(Class)class;
+- (id)finish:(LXNodeNew *)node;
 @end

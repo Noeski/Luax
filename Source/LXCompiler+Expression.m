@@ -42,12 +42,12 @@
                          @(LX_TK_OR) : [NSValue valueWithRange:NSMakeRange(1, 1)]};
     
     if(unaryOps[@(_current.type)]) {
-        LXUnaryExpr *expr = [[LXUnaryExpr alloc] init];
-        expr.op = nil;
+        LXUnaryExpr *expr = [self nodeWithType:[LXUnaryExpr class]];
+        expr.opToken = [LXTokenNode tokenNodeWithToken:_current];
         [self consumeToken:LXTokenCompletionFlagsVariables];
         expr.expr = [self parseSubExpression:8];
         
-        return expr;
+        return [self finish:expr];
     }
     else {
         LXExpr *expr = [self parseSimpleExpression];
@@ -56,15 +56,19 @@
             NSValue *priority = priorityDict[@(_current.type)];
             
             if(priority && priority.rangeValue.location > level) {
-                LXBinaryExpr *binaryExpr = [[LXBinaryExpr alloc] init];
-                binaryExpr.lhs = expr;
-                binaryExpr.op = nil;
+                //TODO: Test this!
+                LXBinaryExpr *binaryExpr = [self nodeWithType:[LXBinaryExpr class]];
+                binaryExpr.line = expr.line;
+                binaryExpr.column = expr.column;
+                binaryExpr.location = expr.location;
                 
+                binaryExpr.lhs = expr;
+                binaryExpr.opToken = [LXTokenNode tokenNodeWithToken:_current];
                 [self consumeToken:LXTokenCompletionFlagsVariables];
                 
                 binaryExpr.rhs = [self parseSubExpression:priority.rangeValue.length];
                 
-                expr = binaryExpr;
+                expr = [self finish:binaryExpr];
             }
             else {
                 break;
@@ -77,7 +81,7 @@
 }
 
 - (LXTableCtorExpr *)parseTable {
-    LXTableCtorExpr *expr = [[LXTableCtorExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXTableCtorExpr *expr = [self nodeWithType:[LXTableCtorExpr class]];
     
     [self consumeToken:LXTokenCompletionFlagsVariables];
     
@@ -144,43 +148,45 @@
     
     expr.keyValuePairs = mutableKeyValuePairs;
     
-    return expr;
+    return [self finish:expr];
 }
 
 - (LXExpr *)parseSimpleExpression {
     switch((NSInteger)_current.type) {
         case LX_TK_NUMBER: {
-            LXNumberExpr *expr = [[LXNumberExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
-            expr.value = [self tokenValue:_current];
+            LXNumberExpr *expr = [self nodeWithType:[LXNumberExpr class]];
+            expr.token = [LXTokenNode tokenNodeWithToken:_current];
             [self consumeToken];
-            return expr;
+            return [self finish:expr];
         }
             
         case LX_TK_STRING: {
-            LXStringExpr *expr = [[LXStringExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
-            expr.value = [self tokenValue:_current];
+            LXStringExpr *expr = [self nodeWithType:[LXStringExpr class]];
+            expr.token = [LXTokenNode tokenNodeWithToken:_current];
             [self consumeToken];
-            return expr;
+            return [self finish:expr];
         }
             
         case LX_TK_NIL: {
-            LXNilExpr *expr = [[LXNilExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXNilExpr *expr = [self nodeWithType:[LXNilExpr class]];
+            expr.nilToken = [LXTokenNode tokenNodeWithToken:_current];
             [self consumeToken];
-            return expr;
+            return [self finish:expr];
         }
             
         case LX_TK_TRUE:
         case LX_TK_FALSE: {
-            LXBoolExpr *expr = [[LXBoolExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
-            expr.value = [self tokenValue:_current];
+            LXBoolExpr *expr = [self nodeWithType:[LXBoolExpr class]];
+            expr.token = [LXTokenNode tokenNodeWithToken:_current];
             [self consumeToken];
-            return expr;
+            return [self finish:expr];
         }
             
         case LX_TK_DOTS: {
-            LXDotsExpr *expr = [[LXDotsExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+            LXDotsExpr *expr = [self nodeWithType:[LXDotsExpr class]];
+            expr.dotsToken = [LXTokenNode tokenNodeWithToken:_current];
             [self consumeToken];
-            return expr;
+            return [self finish:expr];
         }
             
         case LX_TK_FUNCTION: {
@@ -201,7 +207,11 @@
 }
 
 - (LXFunctionCallExpr *)parseFunctionCall:(LXExpr *)prefix {
-    LXFunctionCallExpr *expr = [[LXFunctionCallExpr alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXFunctionCallExpr *expr = [self nodeWithType:[LXFunctionCallExpr class]];
+    expr.line = prefix.line;
+    expr.column = prefix.column;
+    expr.location = prefix.location;
+    
     expr.prefix = prefix;
     expr.assignable = NO;
     
