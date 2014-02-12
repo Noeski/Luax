@@ -46,7 +46,7 @@ typedef enum {
 @property (nonatomic) NSInteger endColumn;
 @property (nonatomic, strong) LXVariable *variable;
 @property (nonatomic, strong) LXClass *variableType;
-@property (nonatomic, strong) LXScope *scope;
+//@property (nonatomic, strong) LXScope *scope;
 @property (nonatomic) BOOL isMember;
 @property (nonatomic, assign) LXTokenCompletionFlags completionFlags;
 

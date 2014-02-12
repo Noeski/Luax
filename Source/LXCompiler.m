@@ -358,7 +358,7 @@
 
 - (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags {
     LXToken *token = _current;
-    token.scope = [self currentScope];
+    //token.scope = [self currentScope];
     token.completionFlags = completionFlags;
     
     [self advance];
@@ -369,7 +369,7 @@
     LXToken *token = _current;
     
     if(token.type == type) {
-        token.scope = [self currentScope];
+        //token.scope = [self currentScope];
         
         [self advance];
         

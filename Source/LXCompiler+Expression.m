@@ -649,6 +649,15 @@
     
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
+    //Build Function    
+    for(LXTypeNode *returnType in returnTypes) {
+        LXClass *type = returnType.type;
+    }
+    
+    for(LXDeclarationNode *argument in arguments) {
+        LXVariable *variable = argument.var;
+    }
+    
     //function.returnTypes = returnTypes;
     //function.arguments = arguments;
     function.isStatic = functionExpr.isStatic;

@@ -69,12 +69,22 @@ typedef enum {
 - (void)compile:(LXLuaWriter *)writer;
 @end
 
+@class LXContext;
 @interface LXNodeNew : NSObject
-@property (nonatomic, readonly) NSInteger line;
-@property (nonatomic, readonly) NSInteger column;
-@property (nonatomic, readonly) NSRange range;
+@property (nonatomic, assign) NSInteger line;
+@property (nonatomic, assign) NSInteger column;
+@property (nonatomic, assign) NSInteger location;
+@property (nonatomic, assign) NSInteger length;
+@property (nonatomic, readonly) NSArray *children;
 
 - (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
+- (void)resolve:(LXContext *)context;
+@end
+
+@class LXToken;
+@interface LXTokenNode : LXNodeNew
+@property (nonatomic, strong) NSString *value;
++ (LXTokenNode *)tokenNodeWithToken:(LXToken *)token;
 @end
 
 @interface LXExpr : LXNodeNew
@@ -106,10 +116,12 @@ typedef enum {
 @end
 
 @interface LXTypeNode : LXNodeNew
+@property (nonatomic, strong) NSString *value;
 @property (nonatomic, strong) LXClass *type;
 @end
 
 @interface LXVariableNode : LXNodeNew
+@property (nonatomic, strong) NSString *value;
 @property (nonatomic, strong) LXVariable *variable;
 @end
 
@@ -182,24 +194,42 @@ typedef enum {
 @end
 
 @interface LXIfStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *ifToken;
 @property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *thenToken;
 @property (nonatomic, strong) LXBlock *body;
 @property (nonatomic, strong) NSArray *elseIfStmts;
+@property (nonatomic, strong) LXTokenNode *elseToken;
 @property (nonatomic, strong) LXBlock *elseStmt;
+@property (nonatomic, strong) LXTokenNode *endToken;
 @end
 
 @interface LXElseIfStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *elseIfToken;
 @property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *thenToken;
 @property (nonatomic, strong) LXBlock *body;
 @end
 
 @interface LXWhileStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *whileToken;
 @property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *doToken;
 @property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) LXTokenNode *endToken;
+@end
+
+@interface LXDoStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *doToken;
+@property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) LXTokenNode *endToken;
 @end
 
 @interface LXForStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *forToken;
+@property (nonatomic, strong) LXTokenNode *doToken;
 @property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) LXTokenNode *endToken;
 @end
 
 @interface LXNumericForStmt : LXForStmt
@@ -211,10 +241,6 @@ typedef enum {
 @interface LXIteratorForStmt : LXForStmt
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) NSArray *exprs;
-@end
-
-@interface LXDoStmt : LXStmt
-@property (nonatomic, strong) LXBlock *body;
 @end
 
 @interface LXRepeatStmt : LXStmt

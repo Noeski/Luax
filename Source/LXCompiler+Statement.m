@@ -11,8 +11,26 @@
 
 @implementation LXContext(Statement)
 
+- (id)nodeWithType:(Class)class {
+    LXNodeNew *node = [[class alloc] init];
+    node.line = _current.line;
+    node.column = _current.column;
+    node.location = _current.range.location;
+    
+    return node;
+}
+
+- (id)finish:(LXNodeNew *)node {
+    node.length = NSMaxRange(_previous.range)-node.location;
+    
+    return node;
+}
+
 - (LXIfStmt *)parseIfStatement {
-    LXIfStmt *statement = [[LXIfStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXIfStmt *statement = [self nodeWithType:[LXIfStmt class]];
+    
+    statement.ifToken = [LXTokenNode tokenNodeWithToken:_current];
+    
     [self consumeToken:LXTokenCompletionFlagsVariables];
 
     statement.expr = [self parseExpression];
@@ -22,6 +40,7 @@
         [self skipLine];
     }
     
+    statement.thenToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
     statement.body = [self parseBlock];
@@ -35,6 +54,8 @@
     statement.elseIfStmts = mutableElseIfStmts;
     
     if(_current.type == LX_TK_ELSE) {
+        statement.elseToken = [LXTokenNode tokenNodeWithToken:_current];
+
         [self consumeToken:LXTokenCompletionFlagsBlock];
 
         statement.elseStmt = [self parseBlock];
@@ -45,13 +66,15 @@
         //[self skipLine];
     }
     
+    statement.endToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
-    
-    return statement;
+
+    return [self finish:statement];
 }
 
 - (LXElseIfStmt *)parseElseIfStatement {
-    LXElseIfStmt *statement = [[LXElseIfStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXElseIfStmt *statement = [self nodeWithType:[LXElseIfStmt class]];
+    statement.elseIfToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsVariables];
     
     statement.expr = [self parseExpression];
@@ -61,15 +84,17 @@
         [self skipLine];
     }
     
+    statement.thenToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
     statement.body = [self parseBlock];
     
-    return statement;
+    return [self finish:statement];
 }
 
 - (LXWhileStmt *)parseWhileStatement {
-    LXWhileStmt *statement = [[LXWhileStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXWhileStmt *statement = [self nodeWithType:[LXWhileStmt class]];
+    statement.whileToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsVariables];
     
     statement.expr = [self parseExpression];
@@ -79,6 +104,7 @@
         [self skipLine];
     }
     
+    statement.doToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
     statement.body = [self parseBlock];
@@ -88,13 +114,15 @@
         //[self skipLine];
     }
     
+    statement.endToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
-    return statement;
+    return [self finish:statement];
 }
 
 - (LXDoStmt *)parseDoStatement {
-    LXDoStmt *statement = [[LXDoStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXDoStmt *statement = [self nodeWithType:[LXDoStmt class]];
+    statement.doToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
     statement.body = [self parseBlock];
@@ -104,6 +132,7 @@
         //[self skipLine];
     }
     
+    statement.endToken = [LXTokenNode tokenNodeWithToken:_current];
     [self consumeToken:LXTokenCompletionFlagsBlock];
     
     return statement;
@@ -390,7 +419,7 @@
             [self addError:[NSString stringWithFormat:@"Expected ',' or '=' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
         }
         
-        LXExprStmt *statement = [[LXExprStmt alloc] initWithLine:expr.line column:expr.column location:expr.range.location];
+        LXExprStmt *statement = [[LXExprStmt alloc] initWithLine:expr.line column:expr.column location:expr.location];
         statement.expr = expr;
         
         return statement;

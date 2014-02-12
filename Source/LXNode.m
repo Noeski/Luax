@@ -7,7 +7,9 @@
 //
 
 #import "LXNode.h"
+#import "LXCompiler.h"
 #import "NSNumber+Base64VLQ.h"
+#import <objc/objc-runtime.h>
 
 @interface LXLuaWriter()
 @property (nonatomic, strong) NSMutableString *mutableString;
@@ -470,16 +472,113 @@
 
 @end
 
+@interface LXNodeNew()
+@property (nonatomic, strong) NSMutableArray *mutableChildren;
+@property (nonatomic, strong) NSMutableDictionary *mutableProperties;
+@end
+
 @implementation LXNodeNew
-- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location {
+- (id)init {
     if(self = [super init]) {
-        _line = line;
-        _column = column;
-        _range.location = location;
+        _mutableChildren = [[NSMutableArray alloc] init];
+        _mutableProperties = [[NSMutableDictionary alloc] init];
     }
     
     return self;
 }
+
+- (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location {
+    if(self = [super init]) {
+        _line = line;
+        _column = column;
+        _location = location;
+        
+        _mutableChildren = [[NSMutableArray alloc] init];
+        _mutableProperties = [[NSMutableDictionary alloc] init];
+    }
+    
+    return self;
+}
+
+//Kind of hacky, but this allows us to automatically add any child node by setting the property
+
+static id propertyIMP(id self, SEL _cmd) {
+    return [[self mutableProperties] valueForKey:
+            NSStringFromSelector(_cmd)];
+}
+
+static void setPropertyIMP(id self, SEL _cmd, id value) {
+    NSMutableString *key =
+    [NSStringFromSelector(_cmd) mutableCopy];
+    
+    // Delete "set" and ":" and lowercase first letter
+    [key deleteCharactersInRange:NSMakeRange(0, 3)];
+    [key deleteCharactersInRange:
+     NSMakeRange([key length] - 1, 1)];
+    NSString *firstChar = [key substringToIndex:1];
+    [key replaceCharactersInRange:NSMakeRange(0, 1)
+                       withString:[firstChar lowercaseString]];
+    
+    id currentValue = [[self mutableProperties] objectForKey:key];
+    
+    if(currentValue) {
+        if([value isKindOfClass:[NSArray class]]) {
+            NSInteger index = [[self children] indexOfObject:[currentValue firstObject]];
+
+            [[self mutableChildren] removeObjectsInRange:NSMakeRange(index, [currentValue count])];
+            [[self mutableChildren] insertObjects:value atIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(index, [value count])]];
+        }
+        else {
+            NSInteger index = [[self children] indexOfObject:currentValue];
+            
+            [[self mutableChildren] removeObject:currentValue];
+            [[self mutableChildren] insertObject:value atIndex:index];
+        }
+    }
+    else {
+        if([value isKindOfClass:[NSArray class]]) {
+            [[self mutableChildren] addObjectsFromArray:value];
+        }
+        else {
+            [[self mutableChildren] addObject:value];
+        }
+    }
+    
+    [[self mutableProperties] setValue:value forKey:key];
+}
+
++ (BOOL)resolveInstanceMethod:(SEL)aSEL {
+    if([NSStringFromSelector(aSEL) hasPrefix:@"set"]) {
+        class_addMethod([self class], aSEL, (IMP)setPropertyIMP, "v@:@");
+    }
+    else {
+        class_addMethod([self class], aSEL, (IMP)propertyIMP, "@@:");
+    }
+    return YES;
+}
+
+- (NSArray *)children {
+    return _mutableChildren;
+}
+
+- (void)resolve:(LXContext *)context {
+
+}
+@end
+
+@implementation LXTokenNode
+
++ (LXTokenNode *)tokenNodeWithToken:(LXToken *)token {
+    LXTokenNode *tokenNode = [[LXTokenNode alloc] init];
+    
+    tokenNode.line = token.line;
+    tokenNode.column = token.column;
+    tokenNode.location = token.range.location;
+    tokenNode.length = token.range.length;
+    
+    return tokenNode;
+}
+
 @end
 
 @implementation LXExpr
@@ -501,6 +600,13 @@
 @end
 
 @implementation LXVariableExpr
+- (void)resolve:(LXContext *)context {
+    LXVariable *variable = [context.currentScope variable:self.value];
+    
+    if(!variable) {
+        [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+    }
+}
 @end
 
 @implementation LXTypeNode
@@ -536,21 +642,63 @@
 @end
 
 @implementation LXMemberExpr
+- (void)resolve:(LXContext *)context {
+    [self.prefix resolve:context];
+}
 @end
 
 @implementation LXIndexExpr
+- (void)resolve:(LXContext *)context {
+    [self.prefix resolve:context];
+    [self.expr resolve:context];
+}
 @end
 
 @implementation LXFunctionCallExpr
+- (void)resolve:(LXContext *)context {
+    [self.prefix resolve:context];
+    
+    LXVariable *variable = [context.currentScope variable:self.value];
+    
+    if(!variable) {
+        [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+    }
+    
+    for(LXExpr *expr in self.args) {
+        [expr resolve:context];
+    }
+}
 @end
 
 @implementation LXUnaryExpr
+- (void)resolve:(LXContext *)context {
+    [self.expr resolve:context];
+}
 @end
 
 @implementation LXBinaryExpr
+- (void)resolve:(LXContext *)context {
+    [self.lhs resolve:context];
+    [self.rhs resolve:context];
+}
 @end
 
 @implementation LXFunctionExpr
+- (void)resolve:(LXContext *)context {
+    if(self.nameExpr) {
+        [self.nameExpr resolve:context];
+    }
+    
+    for(LXTypeNode *node in self.returnTypes) {
+        
+    }
+    
+    for(LXDeclarationNode *node in self.args) {
+        
+    }
+    
+    [self.body resolve:context];
+}
 @end
 
 @implementation LXStmt
@@ -560,30 +708,54 @@
 @end
 
 @implementation LXBlock
+- (void)resolve:(LXContext *)context {
+    [context pushScope:[context currentScope] openScope:YES];
+    
+    for(LXStmt *statement in self.stmts) {
+        [statement resolve:context];
+    }
+    
+    [context popScope];
+}
 @end
 
 @implementation LXClassStmt
+- (void)resolve:(LXContext *)context {
+    for(LXDeclarationStmt *stmt in self.vars) {
+        [stmt resolve:context];
+    }
+    
+    for(LXExprStmt *stmt in self.functions) {
+        [stmt resolve:context];
+    }
+}
 @end
 
 @implementation LXIfStmt
+@dynamic ifToken, expr, thenToken, body, elseIfStmts, elseToken, elseStmt, endToken;
 @end
 
 @implementation LXElseIfStmt
+@dynamic elseIfToken, expr, thenToken, body;
 @end
 
 @implementation LXWhileStmt
-@end
-
-@implementation LXForStmt
-@end
-
-@implementation LXNumericForStmt
-@end
-
-@implementation LXIteratorForStmt
+@dynamic whileToken, expr, doToken, body, endToken;
 @end
 
 @implementation LXDoStmt
+@dynamic doToken, body, endToken;
+@end
+
+@implementation LXForStmt
+@dynamic forToken, doToken, body, endToken;
+@end
+
+@implementation LXNumericForStmt
+@dynamic exprInit, exprCond, exprInc;
+@end
+
+@implementation LXIteratorForStmt
 @end
 
 @implementation LXRepeatStmt
@@ -602,6 +774,28 @@
 @end
 
 @implementation LXDeclarationStmt
+- (void)resolve:(LXContext *)context {
+    for(LXDeclarationNode *node in self.vars) {
+        LXClass *type = [context findType:node.type.value];
+        
+        if(!type) {
+            [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+        }
+        
+        LXVariable *variable = [context.currentScope variable:node.var.value];
+        
+        if(variable) {
+            [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+        }
+        else {
+            [context.currentScope createVariable:node.var.value type:type];
+        }
+    }
+    
+    for(LXExpr *expr in self.exprs) {
+        [expr resolve:context];
+    }
+}
 @end
 
 @implementation LXAssignmentStmt
