@@ -101,6 +101,7 @@
     
     if(!type) {
         type = [[LXClassBase alloc] init];
+        type.name = name;
         type.isDefined = NO;
         
         self.typeMap[name] = type;
@@ -110,9 +111,6 @@
 }
 
 - (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType {
-    if(!name)
-        return nil;
-    
     LXClass *type = self.baseTypeMap[name];
     
     if(!type) {
@@ -198,25 +196,14 @@
     
     self.currentTokenIndex = 0;
     
-    [self pushScope:self.compiler.globalScope openScope:NO];
+    _currentScope = self.compiler.globalScope;
+    
     LXBlock *block = [self parseBlock];
-    [self popScope];
+    [block verify];
+    [block resolveVariables:self];
+    [block resolveTypes:self];
     
-    LXScope *blockScope;
-    self.block = [self parseBlock:self.compiler.globalScope addNewLine:NO blockScope:&blockScope];
-    self.scope = blockScope;
-    
-    for(LXVariable *variable in definedVariables) {
-        if(!variable.isDefined) {
-            //[self addError:[NSString stringWithFormat:@"Global variable %@ not defined", variable.name] range:NSMakeRange(0, 0) line:0 column:0];
-        }
-    }
-    
-    for(LXClass *type in definedTypes) {
-        if(!type.isDefined) {
-            //[self addError:[NSString stringWithFormat:@"Class %@ not defined", type.name] range:NSMakeRange(0, 0) line:0 column:0];
-        }
-    }
+    self.scope = block.scope;
 }
 
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column {
@@ -244,6 +231,12 @@
     return [self.compiler findType:name];
 }
 
+- (void)declareType:(LXClass *)type {
+    type.isDefined = YES;
+    
+    [definedTypes addObject:type];
+}
+
 - (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType {
     LXClass *type = [self.compiler declareType:name objectType:objectType];
     
@@ -263,6 +256,29 @@
     [scopeStack addObject:_currentScope];
     
     return _currentScope;
+}
+
+- (LXScope *)createScope:(BOOL)openScope {
+    if(scopeStack == nil) {
+        scopeStack = [[NSMutableArray alloc] init];
+    }
+    
+    _currentScope = [[LXScope alloc] initWithParent:_currentScope openScope:openScope];
+    _currentScope.range = NSMakeRange(NSMaxRange([self previousToken].range), 0);
+    
+    [scopeStack addObject:_currentScope];
+    
+    return _currentScope;
+}
+
+- (void)pushScope:(LXScope *)scope {
+    if(scopeStack == nil) {
+        scopeStack = [[NSMutableArray alloc] init];
+    }
+    
+    _currentScope = scope;
+    
+    [scopeStack addObject:_currentScope];
 }
 
 - (void)popScope {
@@ -455,6 +471,14 @@
     node.length = NSMaxRange(_previous.range)-node.location;
     
     return node;
+}
+
+- (LXTokenNode *)consumeTokenNode {
+    LXTokenNode *tokenNode = [LXTokenNode tokenNodeWithToken:_current];
+    tokenNode.value = [self tokenValue:_current];
+    [self advance];
+    
+    return tokenNode;
 }
 
 #pragma mark - Expressions 

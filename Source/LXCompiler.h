@@ -57,8 +57,11 @@
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column;
 - (void)reportErrors;
 - (LXClass *)findType:(NSString *)name;
+- (void)declareType:(LXClass *)type;
 - (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType;
 - (LXScope *)pushScope:(LXScope *)parent openScope:(BOOL)openScope;
+- (LXScope *)createScope:(BOOL)openScope;
+- (void)pushScope:(LXScope *)scope;
 - (void)popScope;
 - (LXScope *)currentScope;
 - (LXToken *)currentToken;
@@ -72,4 +75,5 @@
 - (void)skipLine;
 - (id)nodeWithType:(Class)class;
 - (id)finish:(LXNodeNew *)node;
+- (LXTokenNode *)consumeTokenNode;
 @end

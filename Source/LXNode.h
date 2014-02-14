@@ -78,7 +78,10 @@ typedef enum {
 @property (nonatomic, readonly) NSArray *children;
 
 - (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
-- (void)resolve:(LXContext *)context;
+- (void)resolveVariables:(LXContext *)context;
+- (void)resolveTypes:(LXContext *)context;
+- (void)verify;
+- (void)print:(NSInteger)indent;
 @end
 
 @class LXToken;
@@ -90,6 +93,12 @@ typedef enum {
 @interface LXExpr : LXNodeNew
 @property (nonatomic, assign) BOOL assignable;
 @property (nonatomic, strong) LXVariable *resultType;
+@end
+
+@interface LXBoxedExpr : LXExpr
+@property (nonatomic, strong) LXTokenNode *leftParenToken;
+@property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *rightParenToken;
 @end
 
 @interface LXNumberExpr : LXExpr
@@ -113,23 +122,13 @@ typedef enum {
 @end
 
 @interface LXVariableExpr : LXExpr
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *token;
 @property (nonatomic, assign) BOOL isMember;
 @end
 
-@interface LXTypeNode : LXNodeNew
-@property (nonatomic, strong) NSString *value;
-@property (nonatomic, strong) LXClass *type;
-@end
-
-@interface LXVariableNode : LXNodeNew
-@property (nonatomic, strong) NSString *value;
-@property (nonatomic, strong) LXVariable *variable;
-@end
-
 @interface LXDeclarationNode : LXNodeNew
-@property (nonatomic, strong) LXTypeNode *type;
-@property (nonatomic, strong) LXVariableNode *var;
+@property (nonatomic, strong) LXTokenNode *type;
+@property (nonatomic, strong) LXTokenNode *var;
 @end
 
 @interface LXKVP : NSObject
@@ -146,18 +145,30 @@ typedef enum {
 
 @interface LXMemberExpr : LXExpr
 @property (nonatomic, strong) LXExpr *prefix;
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *memberToken;
+@property (nonatomic, strong) LXTokenNode *value;
+
++ (LXMemberExpr *)memberExpressionWithPrefix:(LXExpr *)prefix;
 @end
 
 @interface LXIndexExpr : LXExpr
 @property (nonatomic, strong) LXExpr *prefix;
+@property (nonatomic, strong) LXTokenNode *leftBracketToken;
 @property (nonatomic, strong) LXExpr *expr;
+@property (nonatomic, strong) LXTokenNode *rightBracketToken;
+
++ (LXIndexExpr *)indexExpressionWithPrefix:(LXExpr *)prefix;
 @end
 
 @interface LXFunctionCallExpr : LXExpr
 @property (nonatomic, strong) LXExpr *prefix;
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *memberToken;
+@property (nonatomic, strong) LXTokenNode *value;
+@property (nonatomic, strong) LXTokenNode *leftParenToken;
 @property (nonatomic, strong) NSArray *args;
+@property (nonatomic, strong) LXTokenNode *rightParenToken;
+
++ (LXFunctionCallExpr *)functionCallWithPrefix:(LXExpr *)prefix;
 @end
 
 @interface LXUnaryExpr : LXExpr
@@ -169,15 +180,38 @@ typedef enum {
 @property (nonatomic, strong) LXExpr *lhs;
 @property (nonatomic, strong) LXTokenNode *opToken;
 @property (nonatomic, strong) LXExpr *rhs;
+
++ (LXBinaryExpr *)binaryExprWithExpr:(LXExpr *)expr;
+@end
+
+@interface LXFunctionReturnTypes : LXNodeNew
+@property (nonatomic, strong) LXTokenNode *leftParenToken;
+@property (nonatomic, strong) NSArray *returnTypes;
+@property (nonatomic, strong) LXTokenNode *rightParenToken;
+
++ (LXFunctionReturnTypes *)returnTypes:(NSArray *)types leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken;
+@end
+
+@interface LXFunctionArguments : LXNodeNew
+@property (nonatomic, strong) LXTokenNode *leftParenToken;
+@property (nonatomic, strong) NSArray *args;
+@property (nonatomic, strong) LXTokenNode *rightParenToken;
+
++ (LXFunctionArguments *)arguments:(NSArray *)args leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken;
 @end
 
 @class LXBlock;
 @interface LXFunctionExpr : LXExpr
-@property (nonatomic, strong) LXExpr *nameExpr;
-@property (nonatomic, strong) NSArray *returnTypes;
-@property (nonatomic, strong) NSArray *args;
+@property (nonatomic, strong) LXTokenNode *scopeToken;
+@property (nonatomic, strong) LXTokenNode *staticToken;
+@property (nonatomic, strong) LXTokenNode *functionToken;
+@property (nonatomic, strong) LXFunctionReturnTypes *returnTypes;
+@property (nonatomic, strong) LXTokenNode *nameExpr;
+@property (nonatomic, strong) LXFunctionArguments *args;
 @property (nonatomic, strong) LXBlock *body;
+@property (nonatomic, strong) LXTokenNode *endToken;
 @property (nonatomic, assign) BOOL isStatic;
+@property (nonatomic, assign) BOOL isGlobal;
 @end
 
 @interface LXStmt : LXNodeNew
@@ -189,6 +223,7 @@ typedef enum {
 
 @interface LXBlock : LXNodeNew
 @property (nonatomic, strong) NSArray *stmts;
+@property (nonatomic, strong) LXScope *scope;
 @end
 
 @interface LXClassStmt : LXStmt
@@ -199,6 +234,7 @@ typedef enum {
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) NSArray *functions;
 @property (nonatomic, strong) LXTokenNode *endToken;
+@property (nonatomic, strong) LXScope *scope;
 @end
 
 @interface LXIfStmt : LXStmt
@@ -282,10 +318,12 @@ typedef enum {
 @end
 
 @interface LXDeclarationStmt : LXStmt
+@property (nonatomic, strong) LXTokenNode *scopeToken;
 @property (nonatomic, strong) LXTokenNode *typeToken;
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) NSArray *exprs;
+@property (nonatomic, assign) BOOL isGlobal;
 @end
 
 @interface LXAssignmentStmt : LXStmt

@@ -337,10 +337,6 @@
 }
 
 - (LXVariable *)createVariable:(NSString *)name type:(LXClass *)type {
-    if([name isEqualToString:@"A"]) {
-        NSLog(@"Break");
-    }
-    
     LXVariable *variable = [LXVariable variableWithName:name type:type];
     variable.isGlobal = [self isGlobalScope];
     
@@ -478,6 +474,7 @@
 @end
 
 @implementation LXNodeNew
+
 - (id)init {
     if(self = [super init]) {
         _mutableChildren = [[NSMutableArray alloc] init];
@@ -501,7 +498,6 @@
 }
 
 //Kind of hacky, but this allows us to automatically add any child node by setting the property
-
 static id propertyIMP(id self, SEL _cmd) {
     return [[self mutableProperties] valueForKey:
             NSStringFromSelector(_cmd)];
@@ -561,9 +557,48 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
     return _mutableChildren;
 }
 
-- (void)resolve:(LXContext *)context {
-
+- (NSRange)range {
+    return NSMakeRange(self.location, self.length);
 }
+
+- (void)resolveVariables:(LXContext *)context {
+}
+
+- (void)resolveTypes:(LXContext *)context {
+}
+
+BOOL rangeInside(NSRange range1, NSRange range2) {
+    if(range2.location < range1.location)
+        return NO;
+    
+    if(NSMaxRange(range2) > NSMaxRange(range1))
+        return NO;
+    
+    return YES;
+}
+
+- (void)verify {
+    NSRange range = self.range;
+    
+    for(LXNodeNew *child in self.children) {
+        if(!rangeInside(range, child.range)) {
+            NSLog(@"%@ - %@ : %@ - %@", [self class], NSStringFromRange(range), [child class], NSStringFromRange(child.range));
+        }
+    }
+    
+    for(LXNodeNew *child in self.children) {
+        [child verify];
+    }
+}
+
+- (void)print:(NSInteger)indent {
+    NSLog(@"%@%@ : %ld - %ld", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], [self class], self.line, self.column);
+    
+    for(LXNodeNew *child in self.children) {
+        [child print:indent+1];
+    }
+}
+
 @end
 
 @implementation LXTokenNode
@@ -579,9 +614,17 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
     return tokenNode;
 }
 
+- (void)print:(NSInteger)indent {
+    NSLog(@"%@%@", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], self.value);
+}
+
 @end
 
 @implementation LXExpr
+@end
+
+@implementation LXBoxedExpr
+@dynamic leftParenToken, expr, rightParenToken;
 @end
 
 @implementation LXNumberExpr
@@ -605,22 +648,20 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXVariableExpr
-- (void)resolve:(LXContext *)context {
-    LXVariable *variable = [context.currentScope variable:self.value];
+@dynamic token;
+
+- (void)resolveTypes:(LXContext *)context {
+    LXVariable *variable = [context.currentScope variable:self.token.value];
     
     if(!variable) {
-        [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+        [context addError:[NSString stringWithFormat:@"Variable %@ is undefined.", self.token.value] range:self.token.range line:self.token.line column:self.token.column];
     }
 }
-@end
 
-@implementation LXTypeNode
-@end
-
-@implementation LXVariableNode
 @end
 
 @implementation LXDeclarationNode
+@dynamic type, var;
 @end
 
 @implementation LXKVP
@@ -647,30 +688,78 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @end
 
 @implementation LXMemberExpr
-- (void)resolve:(LXContext *)context {
-    [self.prefix resolve:context];
+@dynamic prefix, memberToken, value;
+
++ (LXMemberExpr *)memberExpressionWithPrefix:(LXExpr *)prefix {
+    LXMemberExpr *memberExpr = [[LXMemberExpr alloc] init];
+    memberExpr.line = prefix.line;
+    memberExpr.column = prefix.column;
+    memberExpr.location = prefix.location;
+    memberExpr.prefix = prefix;
+    
+    return memberExpr;
 }
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.prefix resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.prefix resolveTypes:context];
+}
+
 @end
 
 @implementation LXIndexExpr
-- (void)resolve:(LXContext *)context {
-    [self.prefix resolve:context];
-    [self.expr resolve:context];
+@dynamic prefix, leftBracketToken, expr, rightBracketToken;
+
++ (LXIndexExpr *)indexExpressionWithPrefix:(LXExpr *)prefix {
+    LXIndexExpr *indexExpr = [[LXIndexExpr alloc] init];
+    indexExpr.line = prefix.line;
+    indexExpr.column = prefix.column;
+    indexExpr.location = prefix.location;
+    indexExpr.prefix = prefix;
+    
+    return indexExpr;
+}
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.prefix resolveVariables:context];
+    [self.expr resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.prefix resolveTypes:context];
+    [self.expr resolveTypes:context];
 }
 @end
 
 @implementation LXFunctionCallExpr
-- (void)resolve:(LXContext *)context {
-    [self.prefix resolve:context];
+@dynamic prefix, memberToken, value, leftParenToken, args, rightParenToken;
+
++ (LXFunctionCallExpr *)functionCallWithPrefix:(LXExpr *)prefix {
+    LXFunctionCallExpr *functionCall = [[LXFunctionCallExpr alloc] init];
+    functionCall.line = prefix.line;
+    functionCall.column = prefix.column;
+    functionCall.location = prefix.location;
+    functionCall.prefix = prefix;
     
-    LXVariable *variable = [context.currentScope variable:self.value];
-    
-    if(!variable) {
-        [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
-    }
+    return functionCall;
+}
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.prefix resolveVariables:context];
     
     for(LXExpr *expr in self.args) {
-        [expr resolve:context];
+        [expr resolveVariables:context];
+    }
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.prefix resolveTypes:context];
+    
+    for(LXExpr *expr in self.args) {
+        [expr resolveTypes:context];
     }
 }
 @end
@@ -678,36 +767,103 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @implementation LXUnaryExpr
 @dynamic opToken, expr;
 
-- (void)resolve:(LXContext *)context {
-    [self.expr resolve:context];
+- (void)resolveVariables:(LXContext *)context {
+    [self.expr resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
 }
 @end
 
 @implementation LXBinaryExpr
 @dynamic lhs, opToken, rhs;
 
-- (void)resolve:(LXContext *)context {
-    [self.lhs resolve:context];
-    [self.rhs resolve:context];
++ (LXBinaryExpr *)binaryExprWithExpr:(LXExpr *)expr {
+    LXBinaryExpr *binaryExpr = [[LXBinaryExpr alloc] init];
+    binaryExpr.line = expr.line;
+    binaryExpr.column = expr.column;
+    binaryExpr.location = expr.location;
+    binaryExpr.lhs = expr;
+    
+    return binaryExpr;
+}
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.lhs resolveVariables:context];
+    [self.rhs resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.lhs resolveTypes:context];
+    [self.rhs resolveTypes:context];
 }
 @end
 
-@implementation LXFunctionExpr
-- (void)resolve:(LXContext *)context {
-    if(self.nameExpr) {
-        [self.nameExpr resolve:context];
-    }
-    
-    for(LXTypeNode *node in self.returnTypes) {
-        
-    }
-    
-    for(LXDeclarationNode *node in self.args) {
-        
-    }
-    
-    [self.body resolve:context];
+@implementation LXFunctionReturnTypes
+@dynamic leftParenToken, returnTypes, rightParenToken;
+
++ (LXFunctionReturnTypes *)returnTypes:(NSArray *)types leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken {
+    LXFunctionReturnTypes *returnTypes = [[LXFunctionReturnTypes alloc] init];
+    returnTypes.leftParenToken = leftToken;
+    returnTypes.returnTypes = types;
+    returnTypes.rightParenToken = rightToken;
+    returnTypes.line = leftToken.line;
+    returnTypes.column = leftToken.column;
+    returnTypes.location = leftToken.location;
+    returnTypes.length = NSMaxRange(rightToken.range) - leftToken.location;
+
+    return returnTypes;
 }
+
+@end
+
+@implementation LXFunctionArguments
+@dynamic leftParenToken, args, rightParenToken;
+
++ (LXFunctionArguments *)arguments:(NSArray *)args leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken {
+    LXFunctionArguments *arguments = [[LXFunctionArguments alloc] init];
+    arguments.leftParenToken = leftToken;
+    arguments.args = args;
+    arguments.rightParenToken = rightToken;
+    arguments.line = leftToken.line;
+    arguments.column = leftToken.column;
+    arguments.location = leftToken.location;
+    arguments.length = NSMaxRange(rightToken.range) - leftToken.location;
+    
+    return arguments;
+}
+
+@end
+
+@implementation LXFunctionExpr
+@dynamic scopeToken, staticToken, functionToken, returnTypes, nameExpr, args, body, endToken;
+
+- (void)resolveVariables:(LXContext *)context {
+    if(self.nameExpr) {
+        LXScope *scope = self.isGlobal ? context.compiler.globalScope : context.currentScope;
+        LXVariable *variable = [scope localVariable:self.nameExpr.value];
+        
+        if(variable) {
+            [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", self.nameExpr.value] range:self.nameExpr.range line:self.nameExpr.line column:self.nameExpr.column];
+        }
+        else {
+            variable = [scope createFunction:self.nameExpr.value];
+            variable.definedLocation = self.nameExpr.location;
+        }
+    }
+    
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    /*if(self.nameExpr) {
+        [self.nameExpr resolveTypes:context];
+    }*/
+    
+    [self.body resolveTypes:context];
+}
+
 @end
 
 @implementation LXStmt
@@ -720,45 +876,166 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 @implementation LXBlock
 @dynamic stmts;
 
-- (void)resolve:(LXContext *)context {
-    [context pushScope:[context currentScope] openScope:YES];
+- (void)resolveVariables:(LXContext *)context {
+    self.scope = [context createScope:YES];
     
     for(LXStmt *statement in self.stmts) {
-        [statement resolve:context];
+        [statement resolveVariables:context];
     }
     
     [context popScope];
 }
+
+- (void)resolveTypes:(LXContext *)context {
+    [context pushScope:self.scope];
+    
+    for(LXStmt *statement in self.stmts) {
+        [statement resolveTypes:context];
+    }
+    
+    [context popScope];
+}
+
 @end
 
 @implementation LXClassStmt
 @dynamic classToken, nameToken, extendsToken, superToken, vars, functions, endToken;
 
-- (void)resolve:(LXContext *)context {
+- (void)resolveVariables:(LXContext *)context {
+    if(self.superToken) {
+        [context findType:self.superToken.value];
+    }
+    
+    LXClass *type = [context findType:self.nameToken.value];
+    
+    if(type.isDefined) {
+        [context addError:[NSString stringWithFormat:@"Class %@ is already defined.", self.nameToken.value] range:self.nameToken.range line:self.nameToken.line column:self.nameToken.column];
+    }
+    else {
+        [context declareType:type];
+        type.isDefined = YES;
+    }
+    
+    self.scope = [context createScope:YES];
+
     for(LXDeclarationStmt *stmt in self.vars) {
-        [stmt resolve:context];
+        [stmt resolveVariables:context];
     }
     
     for(LXExprStmt *stmt in self.functions) {
-        [stmt resolve:context];
+        [stmt resolveVariables:context];
     }
+    
+    [context popScope];
+    
+    NSMutableArray *mutableVariables = [[NSMutableArray alloc] init];
+    NSMutableArray *mutableFunctions = [[NSMutableArray alloc] init];
+
+    for(LXVariable *variable in self.scope.localVariables) {
+        if(variable.isFunction) {
+            [mutableFunctions addObject:variable];
+        }
+        else {
+            [mutableVariables addObject:variable];
+        }
+    }
+    
+    type.variables = mutableVariables;
+    type.functions = mutableFunctions;
 }
+
+- (void)resolveTypes:(LXContext *)context {
+    if(self.superToken) {
+        LXClass *type = [context findType:self.superToken.value];
+        
+        if(!type.isDefined) {
+            [context addError:[NSString stringWithFormat:@"Type %@ is undefined.", self.superToken.value] range:self.superToken.range line:self.superToken.line column:self.superToken.column];
+        }
+    }
+    
+    [context pushScope:self.scope];
+    
+    for(LXDeclarationStmt *stmt in self.vars) {
+        [stmt resolveTypes:context];
+    }
+    
+    for(LXExprStmt *stmt in self.functions) {
+        [stmt resolveTypes:context];
+    }
+    
+    [context popScope];
+}
+
 @end
 
 @implementation LXIfStmt
 @dynamic ifToken, expr, thenToken, body, elseIfStmts, elseToken, elseStmt, endToken;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.expr resolveVariables:context];
+    [self.body resolveVariables:context];
+
+    for(LXElseIfStmt *stmt in self.elseIfStmts) {
+        [stmt resolveVariables:context];
+    }
+    
+    [self.elseStmt resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
+    [self.body resolveTypes:context];
+    
+    for(LXElseIfStmt *stmt in self.elseIfStmts) {
+        [stmt resolveTypes:context];
+    }
+    
+    [self.elseStmt resolveTypes:context];
+}
+
 @end
 
 @implementation LXElseIfStmt
 @dynamic elseIfToken, expr, thenToken, body;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.expr resolveVariables:context];
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
+    [self.body resolveTypes:context];
+}
+
 @end
 
 @implementation LXWhileStmt
 @dynamic whileToken, expr, doToken, body, endToken;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.expr resolveVariables:context];
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
+    [self.body resolveTypes:context];
+}
+
 @end
 
 @implementation LXDoStmt
 @dynamic doToken, body, endToken;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.body resolveTypes:context];
+}
+
 @end
 
 @implementation LXForStmt
@@ -774,6 +1051,17 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 
 @implementation LXRepeatStmt
 @dynamic repeatToken, body, untilToken, expr;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.body resolveVariables:context];
+    [self.expr resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.body resolveTypes:context];
+    [self.expr resolveTypes:context];
+}
+
 @end
 
 @implementation LXLabelStmt
@@ -790,39 +1078,96 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 
 @implementation LXReturnStmt
 @dynamic returnToken, exprs;
+
+- (void)resolveVariables:(LXContext *)context {
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveVariables:context];
+    }
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveTypes:context];
+    }
+}
+
 @end
 
 @implementation LXDeclarationStmt
-@dynamic typeToken, vars, equalsToken, exprs;
+@dynamic scopeToken, typeToken, vars, equalsToken, exprs;
 
-- (void)resolve:(LXContext *)context {
-    for(LXDeclarationNode *node in self.vars) {
-        LXClass *type = [context findType:node.type.value];
+- (void)resolveVariables:(LXContext *)context {
+    LXClass *type = [context findType:self.typeToken.value];
+    
+    for(LXTokenNode *node in self.vars) {
+        if([node.value isEqualToString:@","])
+            continue;
         
-        if(!type) {
-            [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
-        }
-        
-        LXVariable *variable = [context.currentScope variable:node.var.value];
+        LXScope *scope = self.isGlobal ? context.compiler.globalScope : context.currentScope;
+        LXVariable *variable = [scope localVariable:node.value];
         
         if(variable) {
-            [context addError:@"" range:NSMakeRange(0, 0) line:0 column:0];
+            [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", node.value] range:node.range line:node.line column:node.column];
         }
         else {
-            [context.currentScope createVariable:node.var.value type:type];
+            variable = [scope createVariable:node.value type:type];
+            variable.definedLocation = node.location;
         }
     }
     
     for(LXExpr *expr in self.exprs) {
-        [expr resolve:context];
+        [expr resolveVariables:context];
     }
 }
+
+- (void)resolveTypes:(LXContext *)context {
+    LXClass *type = [context findType:self.typeToken.value];
+
+    if(!type.isDefined) {
+        [context addError:[NSString stringWithFormat:@"Type %@ is undefined.", self.typeToken.value] range:self.typeToken.range line:self.typeToken.line column:self.typeToken.column];
+    }
+    
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveTypes:context];
+    }
+}
+
 @end
 
 @implementation LXAssignmentStmt
 @dynamic vars, equalsToken, exprs;
+
+- (void)resolveVariables:(LXContext *)context {
+    for(LXExpr *expr in self.vars) {
+        [expr resolveVariables:context];
+    }
+     
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveVariables:context];
+    }
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    for(LXExpr *expr in self.vars) {
+        [expr resolveTypes:context];
+    }
+    
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveTypes:context];
+    }
+}
+
 @end
 
 @implementation LXExprStmt
 @dynamic expr;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.expr resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
+}
+
 @end

@@ -13,10 +13,7 @@
 - (LXExpr *)parseSubExpression:(NSInteger)level;
 - (LXTableCtorExpr *)parseTable;
 - (LXExpr *)parseSimpleExpression;
-- (LXFunctionCallExpr *)parseFunctionCall;
+- (LXFunctionCallExpr *)parseFunctionCall:(LXExpr *)prefix;
 - (LXExpr *)parseSuffixedExpression;
-- (LXFunctionExpr *)parseFunction:(BOOL)anonymous isLocal:(BOOL)isLocal class:(NSString *)class;
-- (LXTypeNode *)parseTypeNode;
-- (LXVariableNode *)parseVariableNode:(LXClass *)type isLocal:(BOOL)isLocal;
-
+- (LXFunctionExpr *)parseFunction:(BOOL)anonymous;
 @end

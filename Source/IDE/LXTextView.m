@@ -390,7 +390,7 @@ NSTrackingArea *_trackingArea;
 - (void)recompile:(NSString *)string {
     [self.file.context compile:string];
     [self colorTokensInRange:NSMakeRange(0, [string length])];
-    [self setNeedsDisplay:YES];
+    [self setNeedsDisplayInRect:self.visibleRect];
 }
 
 - (void)recompile {
@@ -995,7 +995,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     return [self shouldChangeTextInRange:affectedCharRange replacementString:replacementString undo:YES];
 }
 
-- (BOOL)shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString undo:(BOOL)undo {
+- (BOOL)shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString undo:(BOOL)undo {    
     settingAutoCompleteRange = YES;
     
     if(insertAutoComplete) {
@@ -1063,7 +1063,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 
     [self scrollRangeToVisible:NSMakeRange(affectedCharRange.location + [replacementString length], 0)];
     [self didChangeText];
-    [self setNeedsDisplay:YES];
+    [self setNeedsDisplayInRect:self.visibleRect];
 
     settingAutoCompleteRange = NO;
     
