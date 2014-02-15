@@ -103,8 +103,7 @@
 }
 
 - (LXForStmt *)parseForStatement {
-    //TODO: We need to check 2 tokens ahead.. how can we do this?
-    [self consumeToken:LXTokenCompletionFlagsTypes | LXTokenCompletionFlagsVariables];
+    LXTokenNode *forToken = [self consumeTokenNode];
     
     if(![_current isType]) {
         [self addError:[NSString stringWithFormat:@"Expected 'name' or 'type' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
@@ -114,11 +113,9 @@
     LXForStmt *statement = nil;
     
     if(_next.type == '=') {
-        LXNumericForStmt *numericForStatement = [self nodeWithType:[LXNumericForStmt class]];
+        LXNumericForStmt *numericForStatement = [LXNumericForStmt forStatementWithToken:forToken];
         
-        NSString *name = [self tokenValue:_current];
-        [self consumeToken];
-        
+        numericForStatement.nameToken = [self consumeTokenNode];
         numericForStatement.equalsToken = [self consumeTokenNode];
         numericForStatement.exprInit = [self parseExpression];
         
@@ -138,7 +135,8 @@
         statement = numericForStatement;
     }
     else {
-        LXIteratorForStmt *iteratorForStatement = [[LXIteratorForStmt alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+        //TODO: Fix this
+        LXIteratorForStmt *iteratorForStatement = [LXIteratorForStmt forStatementWithToken:forToken];
 
         NSMutableArray *mutableVars = [[NSMutableArray alloc] init];
         
@@ -321,7 +319,7 @@
     if(!closeKeywords)
         closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
     
-    LXBlock *block = [[LXBlock alloc] initWithLine:_current.line column:_current.column location:_current.range.location];
+    LXBlock *block = [self nodeWithType:[LXBlock class]];
     NSMutableArray *mutableStmts = [[NSMutableArray alloc] init];
     
     while(!closeKeywords[@(_current.type)] && _current.type != LX_TK_EOS) {

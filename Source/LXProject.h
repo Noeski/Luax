@@ -33,6 +33,7 @@
 - (BOOL)hasErrors;
 - (void)addBreakpoint:(NSInteger)line;
 - (void)removeBreakpoint:(NSInteger)line;
+- (void)setBreakpoint:(NSInteger)line;
 @end
 
 @interface LXProjectFileReference : NSObject

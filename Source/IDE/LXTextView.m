@@ -282,7 +282,6 @@ NSTrackingArea *_trackingArea;
 	[self setRichText:NO];
 	[self setImportsGraphics:NO];
 	[self setUsesFontPanel:NO];
-	[self setTextContainerInset:NSMakeSize(20, 0)];
 	[self setContinuousSpellCheckingEnabled:NO];
 	[self setGrammarCheckingEnabled:NO];
 	
@@ -290,6 +289,10 @@ NSTrackingArea *_trackingArea;
 	[self setAutomaticLinkDetectionEnabled:NO];
 	[self setAutomaticQuoteSubstitutionEnabled:NO];
 	
+    //
+    
+    //
+    
 	[self setFont:font];
     
 	_trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
@@ -300,12 +303,6 @@ NSTrackingArea *_trackingArea;
     [self setString:self.file.contents];
 }
 
-- (NSPoint)textContainerOrigin {
-    NSPoint origin = [super textContainerOrigin];
-    NSPoint newOrigin = NSMakePoint(origin.x + 20, origin.y);
-    return newOrigin;
-}
-
 - (void)updateTrackingAreas {
     [super updateTrackingAreas];
     [self removeTrackingArea:_trackingArea];
@@ -314,17 +311,8 @@ NSTrackingArea *_trackingArea;
 }
 
 - (void)mouseMoved:(NSEvent *)theEvent {
-    //[super mouseMoved:theEvent];
-    
     NSPoint eventLocation = [theEvent locationInWindow];
     eventLocation = [self convertPoint:eventLocation fromView:nil];
-    
-    if(eventLocation.x < 40) {
-        [[NSCursor arrowCursor] set];
-    }
-    else {
-        [[NSCursor IBeamCursor] set];
-    }
     
     BOOL found = NO;
     
@@ -1108,6 +1096,22 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (void)setSelectedRange:(NSRange)charRange affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag {
+    LXNodeNew *closestNode = [self.file.context.block closestNode:charRange.location];
+    
+    while(closestNode) {
+        if([closestNode isKindOfClass:[LXExpr class]]) {
+            LXExpr *expr = (LXExpr *)closestNode;
+            
+            if(expr.resultType) {
+                NSLog(@"Result Type: %@", expr.resultType.type.name);
+                break;
+            }
+        }
+        
+        closestNode = closestNode.parent;
+    }
+    //[closestNode print:0];
+    
     //if(settingAutoComplete)
     //   [self cancelAutoComplete]; TODO cancel setting autocomplete
     
@@ -1418,48 +1422,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     }
 }
 
-- (void)drawLineNumbers {
-    NSFont *lineFont = [[NSFontManager sharedFontManager]
-                    fontWithFamily:@"Menlo"
-                    traits:0
-                    weight:0
-                    size:8];
-    NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
-    [style setAlignment:NSRightTextAlignment];
-    
-    NSMutableDictionary *textAttributes = [NSMutableDictionary dictionaryWithDictionary:@{NSFontAttributeName : lineFont, NSParagraphStyleAttributeName : style}];
-    
-    NSPoint point = NSMakePoint(0, 0);
-    
-    for(NSInteger i = 0; i < self.file.context.parser.numberOfLines+1; ++i) {
-        textAttributes[NSForegroundColorAttributeName] = [NSColor colorWithCalibratedWhite:0.8 alpha:1];
-        
-        NSInteger lineNumber = i+1;
-        
-        NSRect stringBounds = NSMakeRect(point.x, point.y, 40-4, self.lineHeight);
-        NSString *st = [NSString stringWithFormat:@"%ld", lineNumber];
-        NSSize stringSize = [st sizeWithAttributes:textAttributes];
-        NSPoint stringOrigin = NSMakePoint(point.x, NSMidY(stringBounds) - (stringSize.height * 0.5));
-        
-        [st drawInRect:NSMakeRect(stringOrigin.x, stringOrigin.y, stringBounds.size.width, stringSize.height) withAttributes:textAttributes];
-        point.y += self.lineHeight;
-    }
-    
-    [[NSColor lightGrayColor] set];
-    
-    NSBezierPath *dottedLine = [NSBezierPath bezierPathWithRect:NSMakeRect(40, 0, 0, self.bounds.size.height)];
-    CGFloat dash[2];
-    dash[0] = 1.0;
-    dash[1] = 3.0;
-    [dottedLine setLineWidth:1];
-    [dottedLine setLineDash:dash count:2 phase:1];
-    [dottedLine stroke];
-}
-
 - (void)drawViewBackgroundInRect:(NSRect)rect {
     [super drawViewBackgroundInRect:rect];
-    
-    [self drawLineNumbers];
     
     if(highlightedLine != -1) {
         NSInteger index, lineNumber;

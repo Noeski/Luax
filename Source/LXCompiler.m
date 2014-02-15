@@ -203,6 +203,7 @@
     [block resolveVariables:self];
     [block resolveTypes:self];
     
+    self.block = block;
     self.scope = block.scope;
 }
 

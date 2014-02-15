@@ -46,7 +46,7 @@
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXParser *parser;
 @property (nonatomic, strong) LXScope *scope;
-@property (nonatomic, strong) LXNode *block;
+@property (nonatomic, strong) LXNodeNew *block;
 @property (nonatomic, strong) NSMutableArray *errors;
 @property (nonatomic, assign) NSInteger currentTokenIndex;
 @property (nonatomic, readonly) NSInteger nextTokenIndex;

@@ -17,6 +17,7 @@
 @property (nonatomic, strong) NSString *lastName;
 @property (nonatomic, assign) NSInteger lastLine;
 @property (nonatomic, assign) NSInteger lastColumn;
+@property (nonatomic, assign) NSInteger indentationLevel;
 @end
 
 @implementation LXLuaWriter
@@ -38,18 +39,53 @@
     return _mutableMappings;
 }
 
+- (NSString *)indentedString:(NSString *)string {
+    NSArray *lines = [string componentsSeparatedByString:@"\n"];
+    NSMutableArray *mutableLines = [[NSMutableArray alloc] init];
+    
+    for(NSString *line in lines) {
+        [mutableLines addObject:[line stringByPaddingToLength:[line length]+self.indentationLevel withString:@" " startingAtIndex:0]];
+    }
+    
+    return [mutableLines componentsJoinedByString:@"\n"];
+}
+
+- (void)writeSpace {
+    [self write:@" "];
+}
+
+- (void)writeNewline {
+    [self.mutableString appendString:@"\n"];
+
+    self.currentLine++;
+    self.currentColumn = 0;
+    
+    [self write:[@"" stringByPaddingToLength:self.indentationLevel*2 withString:@" " startingAtIndex:0]];
+}
+
 - (void)write:(NSString *)generated {
     [self.mutableString appendString:generated];
+    self.currentColumn += [generated length];
     
-    NSArray *lines = [generated componentsSeparatedByString:@"\n"];
+    /*NSArray *lines = [generated componentsSeparatedByString:@"\n"];
     
     if([lines count] == 1) {
+        [self.mutableString appendString:generated];
         self.currentColumn += [generated length];
     }
     else {
+        NSString *line = nil;
+        for(NSInteger i = 0; i < [lines count]; ++i) {
+            line = lines[i];
+            line = (i == 0) ? line : [line stringByPaddingToLength:[line length]+self.indentationLevel*2 withString:@" " startingAtIndex:0];
+            line = (i == [lines count]-1) ? line : [line stringByAppendingString:@"\n"];
+            
+            [self.mutableString appendString:line];
+        }
+        
         self.currentLine += [lines count] - 1;
-        self.currentColumn = [lines.lastObject length];
-    }
+        self.currentColumn = [line length];
+    }*/
 }
 
 - (void)write:(NSString *)generated line:(NSInteger)line column:(NSInteger)column {
@@ -522,21 +558,34 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
             NSInteger index = [[self children] indexOfObject:[currentValue firstObject]];
 
             [[self mutableChildren] removeObjectsInRange:NSMakeRange(index, [currentValue count])];
-            [[self mutableChildren] insertObjects:value atIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(index, [value count])]];
+            
+            for(LXNodeNew *node in value) {
+                [[self mutableChildren] insertObject:node atIndex:index++];
+                node.parent = self;
+            }            
         }
         else {
             NSInteger index = [[self children] indexOfObject:currentValue];
             
             [[self mutableChildren] removeObject:currentValue];
             [[self mutableChildren] insertObject:value atIndex:index];
+            
+            LXNodeNew *node = value;
+            node.parent = self;
         }
     }
     else {
         if([value isKindOfClass:[NSArray class]]) {
-            [[self mutableChildren] addObjectsFromArray:value];
+            for(LXNodeNew *node in value) {
+                [[self mutableChildren] addObject:node];
+                node.parent = self;
+            }
         }
         else {
             [[self mutableChildren] addObject:value];
+            
+            LXNodeNew *node = value;
+            node.parent = self;
         }
     }
     
@@ -561,11 +610,8 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
     return NSMakeRange(self.location, self.length);
 }
 
-- (void)resolveVariables:(LXContext *)context {
-}
-
-- (void)resolveTypes:(LXContext *)context {
-}
+- (void)resolveVariables:(LXContext *)context {}
+- (void)resolveTypes:(LXContext *)context {}
 
 BOOL rangeInside(NSRange range1, NSRange range2) {
     if(range2.location < range1.location)
@@ -591,6 +637,43 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
 }
 
+- (LXNodeNew *)closestNode:(NSInteger)location {
+    if([self.children count] == 0)
+        return self;
+    
+    NSInteger closestDistance = NSIntegerMax;
+    LXNodeNew *closestChild = nil;
+    
+    for(LXNodeNew *child in self.children) {
+        if(location < child.location) {
+            NSInteger distance = child.location - location;
+            
+            if(distance < closestDistance) {
+                closestDistance = distance;
+                closestChild = child;
+            }
+        }
+        else if(location > NSMaxRange(child.range)) {
+            NSInteger distance = location - NSMaxRange(child.range);
+            
+            if(distance < closestDistance) {
+                closestDistance = distance;
+                closestChild = child;
+            }
+        }
+        else {
+            closestDistance = 0;
+            closestChild = child;
+            break;
+        }
+    }
+    
+    if(closestDistance > 0)
+        return closestChild;
+    else
+        return [closestChild closestNode:location];
+}
+
 - (void)print:(NSInteger)indent {
     NSLog(@"%@%@ : %ld - %ld", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], [self class], self.line, self.column);
     
@@ -598,6 +681,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [child print:indent+1];
     }
 }
+
+- (void)compile:(LXLuaWriter *)writer {}
 
 @end
 
@@ -618,6 +703,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     NSLog(@"%@%@", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], self.value);
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [writer write:self.value line:self.line column:self.column];
+}
+
 @end
 
 @implementation LXExpr
@@ -625,26 +714,79 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 @implementation LXBoxedExpr
 @dynamic leftParenToken, expr, rightParenToken;
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.expr resolveTypes:context];
+    self.resultType = self.expr.resultType;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.leftParenToken compile:writer];
+    [self.expr compile:writer];
+    [self.rightParenToken compile:writer];
+}
+
 @end
 
 @implementation LXNumberExpr
 @dynamic token;
+
+- (void)resolveTypes:(LXContext *)context {
+    self.resultType = [LXVariable variableWithType:[LXClassNumber classNumber]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.token compile:writer];
+}
+
 @end
 
 @implementation LXStringExpr
 @dynamic token;
+
+- (void)resolveTypes:(LXContext *)context {
+    self.resultType = [LXVariable variableWithType:[LXClassString classString]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.token compile:writer];
+}
+
 @end
 
 @implementation LXNilExpr
 @dynamic nilToken;
+
+- (void)resolveTypes:(LXContext *)context {
+    self.resultType = nil;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.nilToken compile:writer];
+}
+
 @end
 
 @implementation LXBoolExpr
 @dynamic token;
+
+- (void)resolveTypes:(LXContext *)context {
+    self.resultType = [LXVariable variableWithType:[LXClassBool classBool]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.token compile:writer];
+}
+
 @end
 
 @implementation LXDotsExpr
 @dynamic dotsToken;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.dotsToken compile:writer];
+}
+
 @end
 
 @implementation LXVariableExpr
@@ -656,15 +798,33 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     if(!variable) {
         [context addError:[NSString stringWithFormat:@"Variable %@ is undefined.", self.token.value] range:self.token.range line:self.token.line column:self.token.column];
     }
+    
+    self.resultType = variable;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    LXVariable *variable = self.resultType;
+    
+    if(variable.isMember) {
+        [writer write:@"self."];
+    }
+    
+    [writer write:self.token.value name:self.token.value line:self.line column:self.column];
 }
 
 @end
 
 @implementation LXDeclarationNode
 @dynamic type, var;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.var compile:writer];
+}
+
 @end
 
 @implementation LXKVP
+
 - (id)initWithKey:(LXExpr *)key value:(LXExpr *)value {
     if(self = [super init]) {
         _key = key;
@@ -685,6 +845,11 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXTableCtorExpr
+
+- (void)resolveTypes:(LXContext *)context {
+    self.resultType = [LXVariable variableWithType:[LXClassTable classTable]];
+}
+
 @end
 
 @implementation LXMemberExpr
@@ -706,6 +871,19 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     [self.prefix resolveTypes:context];
+    
+    for(LXVariable *variable in self.prefix.resultType.type.variables) {
+        if([variable.name isEqualToString:self.value.value]) {
+            self.resultType = variable;
+            break;
+        }
+    }
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.prefix compile:writer];
+    [self.memberToken compile:writer];
+    [self.value compile:writer];
 }
 
 @end
@@ -732,6 +910,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.prefix resolveTypes:context];
     [self.expr resolveTypes:context];
 }
+
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.prefix compile:writer];
+    [self.leftBracketToken compile:writer];
+    [self.expr compile:writer];
+    [self.rightBracketToken compile:writer];
+}
+
 @end
 
 @implementation LXFunctionCallExpr
@@ -747,7 +934,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     return functionCall;
 }
 
-- (void)resolveVariables:(LXContext *)context {
+- (void)resolveVariables:(LXContext *)context {    
     [self.prefix resolveVariables:context];
     
     for(LXExpr *expr in self.args) {
@@ -761,7 +948,33 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     for(LXExpr *expr in self.args) {
         [expr resolveTypes:context];
     }
+    
+    if([self.prefix isKindOfClass:[LXVariableExpr class]]) {
+        self.resultType = self.prefix.resultType.returnTypes.firstObject;
+    }
+    else {
+        for(LXVariable *function in self.prefix.resultType.type.functions) {
+            if([function.name isEqualToString:self.value.value]) {
+                self.resultType = function.returnTypes.firstObject;
+                break;
+            }
+        }
+    }
 }
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.prefix compile:writer];
+    [self.memberToken compile:writer];
+    [self.value compile:writer];
+    [self.leftParenToken compile:writer];
+    
+    for(LXNodeNew *arg in self.args) {
+        [arg compile:writer];
+    }
+    
+    [self.rightParenToken compile:writer];
+}
+
 @end
 
 @implementation LXUnaryExpr
@@ -773,7 +986,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
+    
+    self.resultType = self.expr.resultType;
 }
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.opToken compile:writer];
+    [self.expr compile:writer];
+}
+
 @end
 
 @implementation LXBinaryExpr
@@ -797,7 +1018,17 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.lhs resolveTypes:context];
     [self.rhs resolveTypes:context];
+    
+    //TODO: Find the type resulting from the operation
+    self.resultType = self.lhs.resultType;
 }
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.lhs compile:writer];
+    [self.opToken compile:writer];
+    [self.rhs compile:writer];
+}
+
 @end
 
 @implementation LXFunctionReturnTypes
@@ -834,14 +1065,26 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     return arguments;
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.leftParenToken compile:writer];
+    
+    for(LXNodeNew *node in self.args) {
+        [node compile:writer];
+    }
+    
+    [self.rightParenToken compile:writer];
+}
+
 @end
 
 @implementation LXFunctionExpr
 @dynamic scopeToken, staticToken, functionToken, returnTypes, nameExpr, args, body, endToken;
 
 - (void)resolveVariables:(LXContext *)context {
+    self.scope = [context createScope:NO];
+
     if(self.nameExpr) {
-        LXScope *scope = self.isGlobal ? context.compiler.globalScope : context.currentScope;
+        LXScope *scope = self.isGlobal ? context.compiler.globalScope : self.scope.parent;
         LXVariable *variable = [scope localVariable:self.nameExpr.value];
         
         if(variable) {
@@ -850,18 +1093,101 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         else {
             variable = [scope createFunction:self.nameExpr.value];
             variable.definedLocation = self.nameExpr.location;
+            
+            NSMutableArray *mutableReturnTypes = [[NSMutableArray alloc] init];
+            for(LXTokenNode *node in self.returnTypes.returnTypes) {
+                if([node.value isEqualToString:@","])
+                    continue;
+                
+                LXClass *type = [context findType:node.value];
+                [mutableReturnTypes addObject:[LXVariable variableWithType:type]];
+            }
+            
+            NSMutableArray *mutableArguments = [[NSMutableArray alloc] init];
+            for(LXDeclarationNode *node in self.args.args) {
+                if(![node isKindOfClass:[LXDeclarationNode class]])
+                    continue;
+                
+                LXClass *type = [context findType:node.type.value];
+                LXVariable *variable = [self.scope localVariable:node.var.value];
+                
+                if(variable) {
+                    [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", node.var.value] range:node.var.range line:node.var.line column:node.var.column];
+                }
+                else {
+                    variable = [self.scope createVariable:node.var.value type:type];
+                    variable.definedLocation = node.var.location;
+                    
+                    [mutableArguments addObject:variable];
+                }
+            }
+            
+            variable.returnTypes = mutableReturnTypes;
+            variable.arguments = mutableArguments;
+            
+            if(self.isGlobal) {
+                //TODO: Keep track of globals
+            }
         }
     }
     
     [self.body resolveVariables:context];
+    
+    [context popScope];
 }
 
 - (void)resolveTypes:(LXContext *)context {
+    [context pushScope:self.scope];
     /*if(self.nameExpr) {
         [self.nameExpr resolveTypes:context];
     }*/
     
     [self.body resolveTypes:context];
+    
+    self.resultType = [LXVariable variableWithType:[LXClassFunction classFunction]];
+    [context popScope];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self compile:writer class:nil];
+}
+
+- (void)compile:(LXLuaWriter *)writer class:(LXClass *)class {
+    if(!class && !self.isGlobal && self.nameExpr) {
+        if(self.scopeToken) {
+            [self.scopeToken compile:writer];
+        }
+        else {
+            [writer write:@"local"];
+        }
+        
+        [writer writeSpace];
+    }
+    
+    [self.functionToken compile:writer];
+    
+    if(self.nameExpr) {
+        [writer writeSpace];
+        
+        if(class) {
+            [writer write:class.name];
+            [writer write:@":"];
+        }
+        
+        [self.nameExpr compile:writer];
+    }
+    
+    [self.args compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+    
+    [writer writeNewline];
+    [self.endToken compile:writer];
 }
 
 @end
@@ -871,6 +1197,11 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 @implementation LXEmptyStmt
 @dynamic token;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.token compile:writer];
+}
+
 @end
 
 @implementation LXBlock
@@ -896,6 +1227,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [context popScope];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    for(LXStmt *statement in self.stmts) {
+        [statement compile:writer];
+        
+        if(statement != self.stmts.lastObject)
+            [writer writeNewline];
+    }
+}
+
 @end
 
 @implementation LXClassStmt
@@ -906,14 +1246,14 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [context findType:self.superToken.value];
     }
     
-    LXClass *type = [context findType:self.nameToken.value];
+    self.type = [context findType:self.nameToken.value];
     
-    if(type.isDefined) {
+    if(self.type.isDefined) {
         [context addError:[NSString stringWithFormat:@"Class %@ is already defined.", self.nameToken.value] range:self.nameToken.range line:self.nameToken.line column:self.nameToken.column];
     }
     else {
-        [context declareType:type];
-        type.isDefined = YES;
+        [context declareType:self.type];
+        self.type.isDefined = YES;
     }
     
     self.scope = [context createScope:YES];
@@ -932,6 +1272,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     NSMutableArray *mutableFunctions = [[NSMutableArray alloc] init];
 
     for(LXVariable *variable in self.scope.localVariables) {
+        variable.isMember = YES;
+        
         if(variable.isFunction) {
             [mutableFunctions addObject:variable];
         }
@@ -940,8 +1282,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         }
     }
     
-    type.variables = mutableVariables;
-    type.functions = mutableFunctions;
+    self.type.variables = mutableVariables;
+    self.type.functions = mutableFunctions;
 }
 
 - (void)resolveTypes:(LXContext *)context {
@@ -964,6 +1306,51 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     [context popScope];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    if(self.type.parent) {
+        [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class})", self.type.name, self.type.parent.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  return obj"]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"end})"]];
+        [writer writeNewline];
+
+        [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", self.type.parent.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  %@[k] = v", self.type.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"end"]];
+        [writer writeNewline];
+
+        /*[writer write:[NSString stringWithFormat:@"function %@:init(...)", name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"%@.init(self, ...)", superclass]];
+        [writer writeNewline];*/
+    }
+    else {
+        [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\"}, {__index = class})", self.type.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  return obj"]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"end})"]];
+        [writer writeNewline];
+        
+        /*[writer write:[NSString stringWithFormat:@"function %@:init(...)", name]];
+        [writer writeNewline];*/
+    }
+    
+    for(LXFunctionExpr *function in self.functions) {
+        [function compile:writer class:self.type];
+        [writer writeNewline];
+    }
 }
 
 @end
@@ -993,6 +1380,39 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.elseStmt resolveTypes:context];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.ifToken compile:writer];
+    [writer writeSpace];
+    [self.expr compile:writer];
+    [writer writeSpace];
+    [self.thenToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+    
+    [writer writeNewline];
+
+    for(LXElseIfStmt *stmt in self.elseIfStmts) {
+        [stmt compile:writer];
+        [writer writeNewline];
+    }
+    
+    if(self.elseToken) {
+        [self.elseToken compile:writer];
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.elseStmt compile:writer];
+        writer.indentationLevel--;
+        [writer writeNewline];
+    }
+
+    [self.endToken compile:writer];
+}
+
 @end
 
 @implementation LXElseIfStmt
@@ -1006,6 +1426,21 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
     [self.body resolveTypes:context];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.elseIfToken compile:writer];
+    [writer writeSpace];
+    [self.expr compile:writer];
+    [writer writeSpace];
+    [self.thenToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
 }
 
 @end
@@ -1023,6 +1458,24 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.body resolveTypes:context];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.whileToken compile:writer];
+    [writer writeSpace];
+    [self.expr compile:writer];
+    [writer writeSpace];
+    [self.doToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+  
+    [writer writeNewline];
+    [self.endToken compile:writer];
+}
+
 @end
 
 @implementation LXDoStmt
@@ -1036,10 +1489,35 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.body resolveTypes:context];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.doToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+
+    [writer writeNewline];
+    [self.endToken compile:writer];
+}
+
 @end
 
 @implementation LXForStmt
 @dynamic forToken, doToken, body, endToken;
+
++ (instancetype)forStatementWithToken:(LXTokenNode *)forToken {
+    LXForStmt *statement = [[self alloc] init];
+    statement.line = forToken.line;
+    statement.column = forToken.column;
+    statement.location = forToken.location;
+    statement.forToken = forToken;
+    
+    return statement;
+}
+
 @end
 
 @implementation LXNumericForStmt
@@ -1062,18 +1540,53 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.expr resolveTypes:context];
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    [self.repeatToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+
+    [writer writeNewline];
+    [self.untilToken compile:writer];
+    [self.expr compile:writer];
+}
+
 @end
 
 @implementation LXLabelStmt
 @dynamic beginLabelToken, endLabelToken;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.beginLabelToken compile:writer];
+    [writer writeSpace];
+    //[self.value compile:writer];
+    [writer writeSpace];
+    [self.endLabelToken compile:writer];
+}
+
 @end
 
 @implementation LXGotoStmt
 @dynamic gotoToken;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.gotoToken compile:writer];
+    [writer writeSpace];
+}
+
 @end
 
 @implementation LXBreakStmt
 @dynamic breakToken;
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.breakToken compile:writer];
+}
+
 @end
 
 @implementation LXReturnStmt
@@ -1088,6 +1601,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     for(LXExpr *expr in self.exprs) {
         [expr resolveTypes:context];
+    }
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.returnToken compile:writer];
+    [writer writeSpace];
+
+    for(LXExpr *expr in self.exprs) {
+        [expr compile:writer];
     }
 }
 
@@ -1112,6 +1634,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         else {
             variable = [scope createVariable:node.value type:type];
             variable.definedLocation = node.location;
+            
+            if(self.isGlobal) {
+                //TODO: Keep track of globals
+            }
         }
     }
     
@@ -1129,6 +1655,29 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     for(LXExpr *expr in self.exprs) {
         [expr resolveTypes:context];
+    }
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    if(!self.isGlobal) {
+        if(self.scopeToken) {
+            [self.scopeToken compile:writer];
+        }
+        else {
+            [writer write:@"local"];
+        }
+        
+        [writer writeSpace];
+    }
+    
+    for(LXNodeNew *node in self.vars) {
+        [node compile:writer];
+    }
+    
+    [self.equalsToken compile:writer];
+    
+    for(LXNodeNew *node in self.exprs) {
+        [node compile:writer];
     }
 }
 
@@ -1157,6 +1706,18 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
 }
 
+- (void)compile:(LXLuaWriter *)writer {
+    for(LXNodeNew *node in self.vars) {
+        [node compile:writer];
+    }
+    
+    [self.equalsToken compile:writer];
+    
+    for(LXNodeNew *node in self.exprs) {
+        [node compile:writer];
+    }
+}
+
 @end
 
 @implementation LXExprStmt
@@ -1168,6 +1729,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.expr compile:writer];
 }
 
 @end

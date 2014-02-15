@@ -136,6 +136,17 @@ typedef enum {
     }
 }
 
+- (void)setBreakpoint:(NSInteger)line {
+    BOOL breakpoint = self.mutableBreakpoints[@(line)];
+    
+    if(breakpoint) {
+        [self removeBreakpoint:line];
+    }
+    else {
+        [self addBreakpoint:line];
+    }
+}
+
 - (NSDictionary *)save {
     return [NSDictionary dictionaryWithObjectsAndKeys:self.uid, @"uid", self.name, @"name", self.mutablePath, @"path", [[LXProjectFile dateFormatter] stringFromDate:self.lastModifiedDate], @"modified", [[LXProjectFile dateFormatter] stringFromDate:self.lastCompileDate], @"build", self.isMain ? @(YES) : nil, @"isMain", nil];
 }
@@ -151,7 +162,7 @@ typedef enum {
 
 - (void)compile {
     if([self isCompiled]) {
-        return;
+        //return;
     }
     
     self.cachedCompiledContents = nil;
@@ -160,7 +171,7 @@ typedef enum {
     [self.context compile:self.contents];
     
     if([self hasErrors]) {
-        return;
+    //    return;
     }
     
     LXLuaWriter *writer = [[LXLuaWriter alloc] init];

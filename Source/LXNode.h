@@ -71,17 +71,20 @@ typedef enum {
 
 @class LXContext;
 @interface LXNodeNew : NSObject
+@property (nonatomic, weak) LXNodeNew *parent;
+@property (nonatomic, readonly) NSArray *children;
 @property (nonatomic, assign) NSInteger line;
 @property (nonatomic, assign) NSInteger column;
 @property (nonatomic, assign) NSInteger location;
 @property (nonatomic, assign) NSInteger length;
-@property (nonatomic, readonly) NSArray *children;
 
 - (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
 - (void)resolveVariables:(LXContext *)context;
 - (void)resolveTypes:(LXContext *)context;
 - (void)verify;
+- (LXNodeNew *)closestNode:(NSInteger)location;
 - (void)print:(NSInteger)indent;
+- (void)compile:(LXLuaWriter *)writer;
 @end
 
 @class LXToken;
@@ -210,6 +213,7 @@ typedef enum {
 @property (nonatomic, strong) LXFunctionArguments *args;
 @property (nonatomic, strong) LXBlock *body;
 @property (nonatomic, strong) LXTokenNode *endToken;
+@property (nonatomic, strong) LXScope *scope;
 @property (nonatomic, assign) BOOL isStatic;
 @property (nonatomic, assign) BOOL isGlobal;
 @end
@@ -235,6 +239,7 @@ typedef enum {
 @property (nonatomic, strong) NSArray *functions;
 @property (nonatomic, strong) LXTokenNode *endToken;
 @property (nonatomic, strong) LXScope *scope;
+@property (nonatomic, strong) LXClass *type;
 @end
 
 @interface LXIfStmt : LXStmt
@@ -274,9 +279,12 @@ typedef enum {
 @property (nonatomic, strong) LXTokenNode *doToken;
 @property (nonatomic, strong) LXBlock *body;
 @property (nonatomic, strong) LXTokenNode *endToken;
+
++ (instancetype)forStatementWithToken:(LXTokenNode *)forToken;
 @end
 
 @interface LXNumericForStmt : LXForStmt
+@property (nonatomic, strong) LXTokenNode *nameToken;
 @property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) LXExpr *exprInit;
 @property (nonatomic, strong) LXTokenNode *exprCondCommaToken;

@@ -353,15 +353,14 @@
     BOOL hasReturnType = NO;
     BOOL hasEmptyReturnType = NO;
     
-    LXToken *leftParenToken = nil;
-    LXToken *rightParenToken = nil;
+    LXTokenNode *leftParenToken = nil;
+    LXTokenNode *rightParenToken = nil;
     NSMutableArray *mutableReturnTypes = [[NSMutableArray alloc] init];
 
     if(_current.type == '(') {
         checkingReturnType = YES;
         
-        leftParenToken = _current;
-        [self consumeToken:LXTokenCompletionFlagsTypes];
+        leftParenToken = [self consumeTokenNode];
         
         if(_current.type == ')' ||
            (([_current isType] || _current.type == LX_TK_DOTS) &&
@@ -393,14 +392,13 @@
                [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
            }
            
-           rightParenToken = _current;
-           [self consumeToken];
+           rightParenToken = [self consumeTokenNode];
         }
     }
     
     if(!anonymous) {
         if(hasReturnType) {
-            functionExpr.returnTypes = [LXFunctionReturnTypes returnTypes:mutableReturnTypes leftToken:[LXTokenNode tokenNodeWithToken:leftParenToken] rightToken:[LXTokenNode tokenNodeWithToken:rightParenToken]];
+            functionExpr.returnTypes = [LXFunctionReturnTypes returnTypes:mutableReturnTypes leftToken:leftParenToken rightToken:rightParenToken];
         }
         
         if(_current.type != LX_TK_NAME) {
@@ -434,25 +432,23 @@
             [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
         }
         
-        leftParenToken = _current;
-        [self consumeToken:LXTokenCompletionFlagsTypes];
+        leftParenToken = [self consumeTokenNode];
     }
     else {
         if(hasReturnType) {
             if(_current.type != '(') {
                 if([functionExpr.returnTypes.returnTypes count] == 0) {
                     hasEmptyReturnType = YES;
-                    functionExpr.args = [LXFunctionArguments arguments:@[] leftToken:[LXTokenNode tokenNodeWithToken:leftParenToken] rightToken:[self consumeTokenNode]];
+                    functionExpr.args = [LXFunctionArguments arguments:@[] leftToken:leftParenToken rightToken:rightParenToken];
                 }
                 else {
                     [self addError:[NSString stringWithFormat:@"Expected '(' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
                 }
             }
             else {
-                functionExpr.returnTypes = [LXFunctionReturnTypes returnTypes:mutableReturnTypes leftToken:[LXTokenNode tokenNodeWithToken:leftParenToken] rightToken:[LXTokenNode tokenNodeWithToken:rightParenToken]];
+                functionExpr.returnTypes = [LXFunctionReturnTypes returnTypes:mutableReturnTypes leftToken:leftParenToken rightToken:rightParenToken];
 
-                leftParenToken = _current;
-                [self consumeToken:LXTokenCompletionFlagsTypes];
+                leftParenToken = [self consumeTokenNode];
             }
         }
     }
@@ -497,7 +493,7 @@
             [self addError:[NSString stringWithFormat:@"Expected ')' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
         }
         
-        functionExpr.args = [LXFunctionArguments arguments:mutableArguments leftToken:[LXTokenNode tokenNodeWithToken:leftParenToken] rightToken:[self consumeTokenNode]];
+        functionExpr.args = [LXFunctionArguments arguments:mutableArguments leftToken:leftParenToken rightToken:[self consumeTokenNode]];
     }
     
     functionExpr.body = [self parseBlock];
