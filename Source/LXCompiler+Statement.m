@@ -114,7 +114,7 @@
     
     if(_next.type == '=') {
         LXNumericForStmt *numericForStatement = [LXNumericForStmt forStatementWithToken:forToken];
-        
+        numericForStatement.scope = [self createScope:NO];
         numericForStatement.nameToken = [self consumeTokenNode];
         numericForStatement.equalsToken = [self consumeTokenNode];
         numericForStatement.exprInit = [self parseExpression];
@@ -137,6 +137,7 @@
     else {
         //TODO: Fix this
         LXIteratorForStmt *iteratorForStatement = [LXIteratorForStmt forStatementWithToken:forToken];
+        iteratorForStatement.scope = [self createScope:NO];
 
         NSMutableArray *mutableVars = [[NSMutableArray alloc] init];
         
@@ -151,9 +152,19 @@
                 [self skipLine];
             }
             
-            [self consumeToken];
-            [self consumeToken];
-        } while(NO);//while([self consumeTokenType:','] != nil);
+            LXDeclarationNode *declarationNode = [self nodeWithType:[LXDeclarationNode class]];
+            declarationNode.type = [self consumeTokenNode];
+            declarationNode.var = [self consumeTokenNode];
+            
+            [mutableVars addObject:[self finish:declarationNode]];
+            
+            if(_current.type == ',') {
+                [mutableVars addObject:[self consumeTokenNode]];
+            }
+            else {
+                break;
+            }
+        } while(YES);
         
         iteratorForStatement.vars = mutableVars;
         
@@ -162,7 +173,7 @@
             [self skipLine];
         }
         
-        [self consumeToken];
+        iteratorForStatement.inToken = [self consumeTokenNode];
         
         NSMutableArray *mutableExprs = [[NSMutableArray alloc] init];
         
@@ -170,7 +181,7 @@
             [mutableExprs addObject:[self parseExpression]];
             
             if(_current.type == ',') {
-                [self consumeToken];
+                [mutableExprs addObject:[self consumeTokenNode]];
             }
             else {
                 break;
@@ -184,11 +195,10 @@
     
     if(_current.type != LX_TK_DO) {
         [self addError:[NSString stringWithFormat:@"Expected 'do' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
-        [self skipLine];
+        //[self skipLine];
     }
     
-    //[self consumeToken:LXTokenCompletionFlagsBlock];
-    
+    statement.doToken = [self consumeTokenNode];
     statement.body = [self parseBlock];
     
     if(_current.type != LX_TK_END) {
@@ -196,9 +206,10 @@
         //[self skipLine];
     }
     
-    //[self consumeToken:LXTokenCompletionFlagsBlock];
+    [self finishScope];
+    statement.endToken = [self consumeTokenNode];
     
-    return statement;
+    return [self finish:statement];
 }
 
 - (LXRepeatStmt *)parseRepeatStatement {

@@ -728,11 +728,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             
             if([autoCompleteDefinitions count] > 0) {
                 autoCompleteWordRange = range;
-                //autoCompleteWordRange = NSMakeRange(affectedCharRange.location+replacementString.length, 0);//isMemberAccessor ? NSMakeRange(startIndex+2, 0) : NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
                 settingAutoComplete = YES;
             }
-            
-            //}
         }
     }
 }

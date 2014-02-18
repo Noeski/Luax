@@ -136,7 +136,9 @@ typedef enum {
 @end
 
 @interface LXTableCtorExpr : LXExpr
+@property (nonatomic, strong) LXTokenNode *leftBraceToken;
 @property (nonatomic, strong) NSArray *keyValuePairs;
+@property (nonatomic, strong) LXTokenNode *rightBraceToken;
 @end
 
 @interface LXMemberExpr : LXExpr
@@ -273,6 +275,7 @@ typedef enum {
 @property (nonatomic, strong) LXTokenNode *doToken;
 @property (nonatomic, strong) LXBlock *body;
 @property (nonatomic, strong) LXTokenNode *endToken;
+@property (nonatomic, strong) LXScope *scope;
 
 + (instancetype)forStatementWithToken:(LXTokenNode *)forToken;
 @end
@@ -289,6 +292,7 @@ typedef enum {
 
 @interface LXIteratorForStmt : LXForStmt
 @property (nonatomic, strong) NSArray *vars;
+@property (nonatomic, strong) LXTokenNode *inToken;
 @property (nonatomic, strong) NSArray *exprs;
 @end
 

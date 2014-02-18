@@ -1261,10 +1261,131 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXNumericForStmt
-@dynamic equalsToken, exprInit, exprCondCommaToken, exprCond, exprIncCommaToken, exprInc;
+@dynamic nameToken, equalsToken, exprInit, exprCondCommaToken, exprCond, exprIncCommaToken, exprInc;
+
+- (void)resolveVariables:(LXContext *)context {
+    LXClass *type = [LXClassNumber classNumber];
+    LXVariable *variable = [self.scope createVariable:self.nameToken.value type:type];
+    variable.definedLocation = self.nameToken.location;
+
+    [self.exprInit resolveVariables:context];
+    [self.exprCond resolveVariables:context];
+    [self.exprInc resolveVariables:context];
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.exprInit resolveTypes:context];
+    [self.exprCond resolveTypes:context];
+    [self.exprInc resolveTypes:context];
+    
+    [context pushScope:self.scope];
+    [self.body resolveTypes:context];
+    [context popScope];
+
+    self.equalsToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.exprCondCommaToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.exprIncCommaToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.doToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.forToken compile:writer];
+    [writer writeSpace];
+    [self.nameToken compile:writer];
+    [self.equalsToken compile:writer];
+    [self.exprInit compile:writer];
+    [self.exprCondCommaToken compile:writer];
+    [self.exprCond compile:writer];
+    [self.exprIncCommaToken compile:writer];
+    [self.exprInc compile:writer];
+    [writer writeSpace];
+    [self.doToken compile:writer];
+
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+    
+    [writer writeNewline];
+    [self.endToken compile:writer];
+}
+
 @end
 
 @implementation LXIteratorForStmt
+@dynamic vars, inToken, exprs;
+
+- (void)resolveVariables:(LXContext *)context {
+    for(LXDeclarationNode *node in self.vars) {
+        if(![node isKindOfClass:[LXDeclarationNode class]])
+            continue;
+        
+        LXClass *type = [context findType:node.type.value];
+        LXVariable *variable = [self.scope localVariable:node.var.value];
+        
+        if(variable) {
+            [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", node.var.value] range:node.var.range line:node.var.line column:node.var.column];
+        }
+        else {
+            variable = [self.scope createVariable:node.var.value type:type];
+            variable.definedLocation = node.var.location;
+        }
+    }
+    
+    for(LXNode *node in self.exprs) {
+        [node resolveVariables:context];
+    }
+    
+    [self.body resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    for(LXExpr *expr in self.exprs) {
+        [expr resolveTypes:context];
+    }
+    
+    [context pushScope:self.scope];
+    [self.body resolveTypes:context];
+    [context popScope];
+
+    self.doToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.forToken compile:writer];
+    [writer writeSpace];
+    
+    for(LXNode *node in self.vars) {
+        [node compile:writer];
+    }
+    
+    [writer writeSpace];
+    [self.inToken compile:writer];
+    [writer writeSpace];
+    
+    for(LXNode *node in self.exprs) {
+        [node compile:writer];
+    }
+    
+    [writer writeSpace];
+    [self.doToken compile:writer];
+    
+    if([self.body.stmts count]) {
+        writer.indentationLevel++;
+        [writer writeNewline];
+        [self.body compile:writer];
+        writer.indentationLevel--;
+    }
+    
+    [writer writeNewline];
+    [self.endToken compile:writer];
+}
+
 @end
 
 @implementation LXRepeatStmt

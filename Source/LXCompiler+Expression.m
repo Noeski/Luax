@@ -73,14 +73,13 @@
 
 - (LXTableCtorExpr *)parseTable {
     LXTableCtorExpr *expr = [self nodeWithType:[LXTableCtorExpr class]];
-    
-    /*[self consumeToken:LXTokenCompletionFlagsVariables];
+    expr.leftBraceToken = [self consumeTokenNode];
     
     NSMutableArray *mutableKeyValuePairs = [[NSMutableArray alloc] init];
     
     do {
         if(_current.type == '[') {
-            [self consumeToken:LXTokenCompletionFlagsVariables];
+            [self consumeTokenNode];
             LXExpr *key = [self parseExpression];
             
             if(_current.type != ']') {
@@ -88,14 +87,14 @@
                 break;
             }
             
-            [self consumeToken];
+            [self consumeTokenNode];
             
             if(_current.type != '=') {
                 [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
                 break;
             }
             
-            [self consumeToken:LXTokenCompletionFlagsVariables];
+            [self consumeTokenNode];
             
             LXExpr *value = [self parseExpression];
             
@@ -107,7 +106,7 @@
             LXKVP *kvp = [[LXKVP alloc] initWithValue:key];
 
             if(_current.type == '=') {
-                [self consumeToken:LXTokenCompletionFlagsVariables];
+                [self consumeTokenNode];
                 
                 kvp.value = [self parseExpression];
             }
@@ -115,7 +114,6 @@
             [mutableKeyValuePairs addObject:kvp];
         }
         else if(_current.type == '}') {
-            [self consumeToken];
             break;
         }
         else {
@@ -125,19 +123,20 @@
         }
         
         if(_current.type ==';' || _current.type == ',') {
-            [self consumeToken:LXTokenCompletionFlagsVariables];
-        }
-        else if(_current.type == '}') {
-            [self consumeToken];
-            break;
+            [mutableKeyValuePairs addObject:[self consumeTokenNode]];
         }
         else {
-            [self addError:[NSString stringWithFormat:@"Expected ';', ',' or '}' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
             break;
         }
     } while(YES);
-    
-    expr.keyValuePairs = mutableKeyValuePairs;*/
+
+    expr.keyValuePairs = mutableKeyValuePairs;
+
+    if(_current.type != '}') {
+        [self addError:[NSString stringWithFormat:@"Expected ';', ',' or '}' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
+    }
+
+    expr.rightBraceToken = [self consumeTokenNode];
     
     return [self finish:expr];
 }
