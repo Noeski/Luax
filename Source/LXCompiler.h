@@ -17,6 +17,7 @@
 @property (nonatomic, assign) NSRange range;
 @property (nonatomic, assign) NSInteger line;
 @property (nonatomic, assign) NSInteger column;
+@property (nonatomic, assign) BOOL isWarning;
 @end
 
 @interface LXCompiler : NSObject
@@ -42,25 +43,33 @@
     NSMutableArray *definedTypes;
     NSMutableArray *definedVariables;
 }
+
 @property (nonatomic, strong) LXCompiler *compiler;
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXParser *parser;
 @property (nonatomic, strong) LXScope *scope;
-@property (nonatomic, strong) LXNodeNew *block;
+@property (nonatomic, strong) LXNode *block;
 @property (nonatomic, strong) NSMutableArray *errors;
+@property (nonatomic, strong) NSMutableArray *warnings;
 @property (nonatomic, assign) NSInteger currentTokenIndex;
 @property (nonatomic, readonly) NSInteger nextTokenIndex;
 
 - (id)initWithName:(NSString *)name compiler:(LXCompiler *)compiler;
 
 - (void)compile:(NSString *)string;
+- (NSArray *)completionsForLocation:(NSInteger)location range:(NSRangePointer)range;
+- (LXTokenNode *)firstToken;
+- (LXTokenNode *)tokenForLine:(NSInteger)line;
 - (void)addError:(NSString *)error range:(NSRange)range line:(NSInteger)line column:(NSInteger)column;
+- (void)addWarning:(NSString *)warning range:(NSRange)range line:(NSInteger)line column:(NSInteger)column;
 - (void)reportErrors;
 - (LXClass *)findType:(NSString *)name;
+- (LXVariable *)createGlobalVariable:(NSString *)name type:(LXClass *)type;
+- (LXVariable *)createGlobalFunction:(NSString *)name;
 - (void)declareType:(LXClass *)type;
 - (LXClass *)declareType:(NSString *)name objectType:(LXClass *)objectType;
-- (LXScope *)pushScope:(LXScope *)parent openScope:(BOOL)openScope;
 - (LXScope *)createScope:(BOOL)openScope;
+- (void)finishScope;
 - (void)pushScope:(LXScope *)scope;
 - (void)popScope;
 - (LXScope *)currentScope;
@@ -68,12 +77,10 @@
 - (LXToken *)previousToken;
 - (LXToken *)nextToken;
 - (LXToken *)consumeToken;
-- (LXToken *)consumeToken:(LXTokenCompletionFlags)completionFlags;
-- (LXToken *)consumeTokenType:(LXTokenType)type;
 - (NSString *)tokenValue:(LXToken *)token;
 - (void)closeBlock:(LXTokenType)type;
 - (void)skipLine;
 - (id)nodeWithType:(Class)class;
-- (id)finish:(LXNodeNew *)node;
+- (id)finish:(LXNode *)node;
 - (LXTokenNode *)consumeTokenNode;
 @end

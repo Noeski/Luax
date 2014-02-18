@@ -424,8 +424,6 @@
 }
 
 - (void)processData:(NSData *)data {
-    NSDictionary *dictionary = [data JSONValue];
-    NSString *type = [dictionary objectForKey:@"type"];
 }
 
 #pragma mark - NSComboBoxDataSource

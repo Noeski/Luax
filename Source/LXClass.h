@@ -6,14 +6,14 @@
 //  Copyright (c) 2013 Noah Hilt. All rights reserved.
 //
 
-@class LXNode;
+@class LXExpr;
 @interface LXClass : NSObject
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXClass *parent;
 @property (nonatomic, strong) NSArray *variables;
 @property (nonatomic, strong) NSArray *functions;
 @property (nonatomic, assign) BOOL isDefined;
-@property (nonatomic, strong) LXNode *defaultExpression;
+@property (nonatomic, strong) LXExpr *defaultExpression;
 @end
 
 @interface LXClassNumber : LXClass
@@ -34,6 +34,10 @@
 
 @interface LXClassFunction : LXClass
 + (LXClassFunction *)classFunction;
+@end
+
+@interface LXClassVar : LXClass
++ (LXClassVar *)classVar;
 @end
 
 @interface LXClassBase : LXClass

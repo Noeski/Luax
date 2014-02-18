@@ -153,7 +153,7 @@
             
             [self consumeToken];
             [self consumeToken];
-        } while([self consumeTokenType:','] != nil);
+        } while(NO);//while([self consumeTokenType:','] != nil);
         
         iteratorForStatement.vars = mutableVars;
         
@@ -187,7 +187,7 @@
         [self skipLine];
     }
     
-    [self consumeToken:LXTokenCompletionFlagsBlock];
+    //[self consumeToken:LXTokenCompletionFlagsBlock];
     
     statement.body = [self parseBlock];
     
@@ -196,7 +196,7 @@
         //[self skipLine];
     }
     
-    [self consumeToken:LXTokenCompletionFlagsBlock];
+    //[self consumeToken:LXTokenCompletionFlagsBlock];
     
     return statement;
 }
@@ -315,17 +315,24 @@
 
 - (LXBlock *)parseBlock {
     static __strong NSDictionary *closeKeywords = nil;
-  
+    
     if(!closeKeywords)
         closeKeywords = @{@(LX_TK_END) : @YES, @(LX_TK_ELSE) : @YES, @(LX_TK_ELSEIF) : @YES, @(LX_TK_UNTIL) : @YES};
     
+    return [self parseBlock:closeKeywords];
+}
+
+- (LXBlock *)parseBlock:(NSDictionary *)closeKeywords {
     LXBlock *block = [self nodeWithType:[LXBlock class]];
+    block.scope = [self createScope:YES];
+
     NSMutableArray *mutableStmts = [[NSMutableArray alloc] init];
     
     while(!closeKeywords[@(_current.type)] && _current.type != LX_TK_EOS) {
         [mutableStmts addObject:[self parseStatement]];
     }
     
+    [self finishScope];
     block.stmts = mutableStmts;
     
     return [self finish:block];
@@ -354,6 +361,8 @@
         statement.superToken = [self consumeTokenNode];
     }
     
+    statement.scope = [self createScope:YES];
+
     while(_current.type != LX_TK_END) {
         if(_current.type == LX_TK_STATIC || _current.type == LX_TK_FUNCTION) {
             [mutableFunctions addObject:[self parseFunction:NO]];
@@ -371,6 +380,8 @@
         [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
     }
     
+    [self finishScope];
+    
     statement.vars = mutableVariables;
     statement.functions = mutableFunctions;
     statement.endToken = [self consumeTokenNode];
@@ -379,7 +390,7 @@
 }
 
 - (LXStmt *)parseStatement {
-    switch(_current.type) {
+    switch((NSInteger)_current.type) {
         case LX_TK_IF:
             return [self parseIfStatement];
         case LX_TK_WHILE:
@@ -407,8 +418,7 @@
                 //[self skipLine];
             }
             
-            statement.value = [self tokenValue:_current];
-            [self consumeToken];
+            statement.labelToken = [self consumeTokenNode];
             
             if(_current.type != LX_TK_DBCOLON) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
@@ -428,8 +438,7 @@
                 //[self skipLine];
             }
             
-            statement.value = [self tokenValue:_current];
-            [self consumeToken:LXTokenCompletionFlagsBlock];
+            statement.labelToken = [self consumeTokenNode];
             
             return [self finish:statement];
         }

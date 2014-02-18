@@ -8,18 +8,11 @@
 
 #import "LXVariable.h"
 
-@interface LXLuaWriter : NSObject
-@property (nonatomic, assign) NSString *currentSource;
-@property (nonatomic, assign) NSInteger currentLine;
-@property (nonatomic, assign) NSInteger currentColumn;
-@property (nonatomic, readonly) NSString *string;
-@property (nonatomic, readonly) NSArray *mappings;
-
-- (void)write:(NSString *)generated;
-- (void)write:(NSString *)generated line:(NSInteger)line column:(NSInteger)column;
-- (void)write:(NSString *)generated name:(NSString *)name line:(NSInteger)line column:(NSInteger)column;
-- (NSDictionary *)generateSourceMap;
-@end
+@class LXToken;
+@class LXLuaWriter;
+@class LXContext;
+@class LXTokenNode;
+@class LXBlock;
 
 typedef enum {
     LXScopeTypeBlock,
@@ -49,51 +42,51 @@ typedef enum {
 @end
 
 @interface LXNode : NSObject
-@property (nonatomic, readonly) NSInteger line;
-@property (nonatomic, readonly) NSInteger column;
-@property (nonatomic, readonly) NSString *chunk;
-@property (nonatomic, readonly) NSString *name;
-@property (nonatomic, readonly) NSArray *children;
-@property (nonatomic, strong) LXVariable *variable;
-@property (nonatomic, assign) BOOL assignable;
-
-- (id)initWithName:(NSString *)name line:(NSInteger)line column:(NSInteger)column;
-- (id)initWithChunk:(NSString *)chunk line:(NSInteger)line column:(NSInteger)column;
-- (id)initWithLine:(NSInteger)line column:(NSInteger)column;
-
-- (void)addChild:(LXNode *)child;
-- (void)addChunk:(NSString *)child line:(NSInteger)line column:(NSInteger)column;
-- (void)addNamedChunk:(NSString *)child line:(NSInteger)line column:(NSInteger)column;
-- (void)addAnonymousChunk:(NSString *)child;
-
-- (void)compile:(LXLuaWriter *)writer;
-@end
-
-@class LXContext;
-@interface LXNodeNew : NSObject
-@property (nonatomic, weak) LXNodeNew *parent;
+@property (nonatomic, weak) LXNode *parent;
 @property (nonatomic, readonly) NSArray *children;
 @property (nonatomic, assign) NSInteger line;
 @property (nonatomic, assign) NSInteger column;
 @property (nonatomic, assign) NSInteger location;
 @property (nonatomic, assign) NSInteger length;
+@property (nonatomic, readonly) NSRange range;
 
 - (id)initWithLine:(NSInteger)line column:(NSInteger)column location:(NSInteger)location;
 - (void)resolveVariables:(LXContext *)context;
 - (void)resolveTypes:(LXContext *)context;
 - (void)verify;
-- (LXNodeNew *)closestNode:(NSInteger)location;
+- (LXTokenNode *)closestCompletionNode:(NSInteger)location;
 - (void)print:(NSInteger)indent;
 - (void)compile:(LXLuaWriter *)writer;
 @end
 
-@class LXToken;
-@interface LXTokenNode : LXNodeNew
+
+typedef enum {
+    LXTokenCompletionFlagsTypes = 1,
+    LXTokenCompletionFlagsVariables = 2,
+    LXTokenCompletionFlagsMembers = 4,
+    LXTokenCompletionFlagsFunctions = 8,
+    LXTokenCompletionFlagsControlStructures = 16,
+    LXTokenCompletionFlagsClass = /*LXTokenCompletionFlagsFunction |*/LXTokenCompletionFlagsTypes,
+    LXTokenCompletionFlagsBlock = LXTokenCompletionFlagsControlStructures | LXTokenCompletionFlagsVariables | LXTokenCompletionFlagsTypes
+} LXTokenCompletionFlags;
+
+@interface LXTokenNode : LXNode
+@property (nonatomic, assign) LXTokenNode *prev;
+@property (nonatomic, strong) LXTokenNode *next;
 @property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXClass *type;
+@property (nonatomic, assign) NSInteger tokenType;
+@property (nonatomic, assign) NSInteger completionFlags;
+@property (nonatomic, assign) BOOL isType;
+@property (nonatomic, assign) BOOL isMember;
+@property (nonatomic, readonly) BOOL isKeyword;
+@property (nonatomic, readonly) BOOL isReserved;
+@property (nonatomic, readonly) LXScope *scope;
+
 + (LXTokenNode *)tokenNodeWithToken:(LXToken *)token;
 @end
 
-@interface LXExpr : LXNodeNew
+@interface LXExpr : LXNode
 @property (nonatomic, assign) BOOL assignable;
 @property (nonatomic, strong) LXVariable *resultType;
 @end
@@ -129,7 +122,7 @@ typedef enum {
 @property (nonatomic, assign) BOOL isMember;
 @end
 
-@interface LXDeclarationNode : LXNodeNew
+@interface LXDeclarationNode : LXNode
 @property (nonatomic, strong) LXTokenNode *type;
 @property (nonatomic, strong) LXTokenNode *var;
 @end
@@ -187,7 +180,7 @@ typedef enum {
 + (LXBinaryExpr *)binaryExprWithExpr:(LXExpr *)expr;
 @end
 
-@interface LXFunctionReturnTypes : LXNodeNew
+@interface LXFunctionReturnTypes : LXNode
 @property (nonatomic, strong) LXTokenNode *leftParenToken;
 @property (nonatomic, strong) NSArray *returnTypes;
 @property (nonatomic, strong) LXTokenNode *rightParenToken;
@@ -195,7 +188,7 @@ typedef enum {
 + (LXFunctionReturnTypes *)returnTypes:(NSArray *)types leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken;
 @end
 
-@interface LXFunctionArguments : LXNodeNew
+@interface LXFunctionArguments : LXNode
 @property (nonatomic, strong) LXTokenNode *leftParenToken;
 @property (nonatomic, strong) NSArray *args;
 @property (nonatomic, strong) LXTokenNode *rightParenToken;
@@ -203,7 +196,6 @@ typedef enum {
 + (LXFunctionArguments *)arguments:(NSArray *)args leftToken:(LXTokenNode *)leftToken rightToken:(LXTokenNode *)rightToken;
 @end
 
-@class LXBlock;
 @interface LXFunctionExpr : LXExpr
 @property (nonatomic, strong) LXTokenNode *scopeToken;
 @property (nonatomic, strong) LXTokenNode *staticToken;
@@ -218,14 +210,14 @@ typedef enum {
 @property (nonatomic, assign) BOOL isGlobal;
 @end
 
-@interface LXStmt : LXNodeNew
+@interface LXStmt : LXNode
 @end
 
 @interface LXEmptyStmt : LXStmt
 @property (nonatomic, strong) LXTokenNode *token;
 @end
 
-@interface LXBlock : LXNodeNew
+@interface LXBlock : LXNode
 @property (nonatomic, strong) NSArray *stmts;
 @property (nonatomic, strong) LXScope *scope;
 @end
@@ -240,6 +232,8 @@ typedef enum {
 @property (nonatomic, strong) LXTokenNode *endToken;
 @property (nonatomic, strong) LXScope *scope;
 @property (nonatomic, strong) LXClass *type;
+
+- (void)compileInitFunction:(LXLuaWriter *)writer;
 @end
 
 @interface LXIfStmt : LXStmt
@@ -307,13 +301,13 @@ typedef enum {
 
 @interface LXLabelStmt : LXStmt
 @property (nonatomic, strong) LXTokenNode *beginLabelToken;
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *labelToken;
 @property (nonatomic, strong) LXTokenNode *endLabelToken;
 @end
 
 @interface LXGotoStmt : LXStmt
 @property (nonatomic, strong) LXTokenNode *gotoToken;
-@property (nonatomic, strong) NSString *value;
+@property (nonatomic, strong) LXTokenNode *labelToken;
 @end
 
 @interface LXBreakStmt : LXStmt

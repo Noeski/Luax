@@ -74,7 +74,7 @@
 - (LXTableCtorExpr *)parseTable {
     LXTableCtorExpr *expr = [self nodeWithType:[LXTableCtorExpr class]];
     
-    [self consumeToken:LXTokenCompletionFlagsVariables];
+    /*[self consumeToken:LXTokenCompletionFlagsVariables];
     
     NSMutableArray *mutableKeyValuePairs = [[NSMutableArray alloc] init];
     
@@ -137,7 +137,7 @@
         }
     } while(YES);
     
-    expr.keyValuePairs = mutableKeyValuePairs;
+    expr.keyValuePairs = mutableKeyValuePairs;*/
     
     return [self finish:expr];
 }
@@ -197,9 +197,7 @@
     expr.assignable = NO;
     
     do {
-        if(_current.type == ':') {
-            _current.variable = prefix.resultType;
-            
+        if(_current.type == ':') {            
             expr.memberToken = [self consumeTokenNode];
             
             if(_current.type != LX_TK_NAME) {
@@ -255,8 +253,7 @@
             
             if(_current.type != LX_TK_NAME) {
                 [self addError:[NSString stringWithFormat:@"Expected 'name' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
-                [self skipLine];
-                break;
+                //[self skipLine];
             }
             
             memberExpression.value = [self consumeTokenNode];
@@ -272,8 +269,7 @@
             
             if(_current.type != ']') {
                 [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
-                [self skipLine];
-                break;
+                //[self skipLine];
             }
             
             indexExpression.rightBracketToken = [self consumeTokenNode];
@@ -322,7 +318,6 @@
     }
     else {
         LXExpr *emptyExpr = [self nodeWithType:[LXExpr class]];
-        NSLog(@"%@", [self tokenValue:[self currentToken]]);
         [self addError:[NSString stringWithFormat:@"Expected 'name' or '(expression)' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
         [self skipLine];
         
@@ -453,6 +448,8 @@
         }
     }
     
+    functionExpr.scope = [self createScope:NO];
+
     if(!hasEmptyReturnType) {
         NSMutableArray *mutableArguments = [[NSMutableArray alloc] init];
         BOOL isVarArg = NO;
@@ -502,6 +499,7 @@
         [self addError:[NSString stringWithFormat:@"Expected 'end' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
     }
     
+    [self finishScope];
     functionExpr.endToken = [self consumeTokenNode];
     
     return [self finish:functionExpr];

@@ -5,6 +5,7 @@
 #import "NSString+JSON.h"
 #import "LXProjectWindowController.h"
 #import "LXTextFieldCell.h"
+#import "LXBlurWindow.h"
 
 @interface LXAutoCompleteCell : NSTextFieldCell
 @end
@@ -43,6 +44,10 @@
     return self;
 }
 
+- (NSString *)description {
+    return self.string;
+}
+
 @end
 
 @implementation LXTextViewUndoManager
@@ -73,13 +78,6 @@
 @end
 
 @implementation LXTextView
-
-typedef int CGSConnection;
-typedef int CGSWindow;
-extern CGSConnection _CGSDefaultConnection( void );
-extern OSStatus CGSNewCIFilterByName( CGSConnection cid, CFStringRef filterName, void * fid );
-extern OSStatus CGSAddWindowFilter( CGSConnection cid, CGSWindow wid, void * fid, int value );
-extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, CFDictionaryRef filterValues );
 
 - (id)initWithFrame:(NSRect)frame file:(LXProjectFile *)file {
 	if(self = [super initWithFrame:frame]) {
@@ -157,33 +155,10 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
         
         autoCompleteWindow.contentView = contentView;
         
-        errorWindow = [[NSWindow alloc] initWithContentRect:frame
-                                                  styleMask:NSBorderlessWindowMask
-                                                    backing:NSBackingStoreBuffered
-                                                      defer:NO];
-        
-        errorWindow.alphaValue = 0.0f;
-        errorWindow.hasShadow = NO;
-        
-        [errorWindow setOpaque:NO];
-        [errorWindow setBackgroundColor:[NSColor clearColor]];
-        
-        uint32_t compositingFilter;
-        CGSConnection thisConnection = _CGSDefaultConnection();
-        
-        /* Create a CoreImage filter and set it up */
-        CGSNewCIFilterByName(thisConnection, (CFStringRef)@"CIGaussianBlur", &compositingFilter);
-        NSDictionary *options = [NSDictionary dictionaryWithObject:[NSNumber numberWithFloat:2.0] forKey:@"inputRadius"];
-        CGSSetCIFilterValuesFromDictionary(thisConnection, compositingFilter, (__bridge CFDictionaryRef)options);
-        
-        /* Now apply the filter to the window */
-        CGSAddWindowFilter(thisConnection, (int)[errorWindow windowNumber], compositingFilter, 1);
+        errorWindow = [[LXBlurWindow alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
+        [errorWindow setBackgroundColor:[NSColor colorWithCalibratedRed:1 green:0 blue:0 alpha:0.5]];
         
         contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        [contentView setWantsLayer:YES];
-        [contentView.layer setBackgroundColor:[NSColor colorWithDeviceRed:0.8 green:0.208 blue:0.169 alpha:0.75].CGColor];
-        [contentView.layer setCornerRadius:2.0];
-        [contentView.layer setMasksToBounds:YES];
         errorLabel = [[NSTextField alloc] initWithFrame:contentView.bounds];
         [errorLabel setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
         [errorLabel setFont:[[NSFontManager sharedFontManager]
@@ -193,7 +168,7 @@ extern void CGSSetCIFilterValuesFromDictionary( CGSConnection cid, void * fid, C
                              size:11]];
         
         [errorLabel setTextColor:[NSColor colorWithDeviceRed:0.943 green:0.943 blue:0.943 alpha:1]];
-        [errorLabel setStringValue:@"My Label"];
+        [errorLabel setStringValue:@""];
         [errorLabel setBezeled:NO];
         [errorLabel setDrawsBackground:NO];
         [errorLabel setEditable:NO];
@@ -288,11 +263,7 @@ NSTrackingArea *_trackingArea;
 	[self setSmartInsertDeleteEnabled:NO];
 	[self setAutomaticLinkDetectionEnabled:NO];
 	[self setAutomaticQuoteSubstitutionEnabled:NO];
-	
-    //
-    
-    //
-    
+
 	[self setFont:font];
     
 	_trackingArea = [[NSTrackingArea alloc] initWithRect:[self frame] options:(NSTrackingMouseEnteredAndExited | NSTrackingActiveWhenFirstResponder) owner:self userInfo:nil];
@@ -314,9 +285,11 @@ NSTrackingArea *_trackingArea;
     NSPoint eventLocation = [theEvent locationInWindow];
     eventLocation = [self convertPoint:eventLocation fromView:nil];
     
-    BOOL found = NO;
+    BOOL found = NO;    
     
-    for(LXCompilerError *error in self.file.context.errors) {
+    NSArray *errors = [self.file.context.errors arrayByAddingObjectsFromArray:self.file.context.warnings];
+    
+    for(LXCompilerError *error in errors) {
         NSRange range = error.range;
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
@@ -336,6 +309,13 @@ NSTrackingArea *_trackingArea;
             NSRect screenRect = [[self window] convertRectToScreen:windowRect];
             
             [errorWindow setFrame:NSMakeRect(screenRect.origin.x, screenRect.origin.y - (textRect.size.height + 4), textRect.size.width + 6, textRect.size.height + 4) display:YES];
+            
+            if(error.isWarning) {
+                [errorWindow setBackgroundColor:[NSColor colorWithCalibratedRed:1.0 green:0.865 blue:0.275 alpha:0.5]];
+            }
+            else {
+                [errorWindow setBackgroundColor:[NSColor colorWithCalibratedRed:1 green:0 blue:0 alpha:0.5]];
+            }
             
             if(!showingErrorWindow) {
                 [self.window addChildWindow:errorWindow ordered:NSWindowAbove];
@@ -459,19 +439,123 @@ NSTrackingArea *_trackingArea;
     [NSAnimationContext endGrouping];
 }
 
+- (void)adjustSpacesForLine:(NSInteger)line {
+    LXTokenNode *token = [self.file.context tokenForLine:line];
+    
+    if(token) {
+        LXScope *scope = [self scopeAtLocation:token.location];
+        
+        NSInteger numberOfSpaces = 0;
+        NSInteger expectedSpaces = scope.scopeLevel * 2;
+        
+        NSInteger location = token.range.location-1;
+        
+        while(location > 0) {
+            char ch = [self.string characterAtIndex:location];
+            
+            if(ch != ' ')
+                break;
+            
+            numberOfSpaces++;
+            location--;
+        }
+        
+        if(numberOfSpaces > expectedSpaces) {
+            NSInteger diff = numberOfSpaces-expectedSpaces;
+            
+            [self shouldChangeTextInRange:NSMakeRange(token.range.location-diff, diff) replacementString:@"" undo:YES];
+        }
+        else if(numberOfSpaces < expectedSpaces) {
+            NSInteger diff = expectedSpaces-numberOfSpaces;
+            
+            [self shouldChangeTextInRange:NSMakeRange(token.range.location, 0) replacementString:[@"" stringByPaddingToLength:diff withString:@" " startingAtIndex:0] undo:YES];
+        }
+        
+        NSLog(@"%ld Number of spaces: %ld - expected: %ld", line, numberOfSpaces, scope.scopeLevel * 2);
+    }
+}
+
 - (void)insertNewline:(id)sender {
     if(insertAutoComplete) {
         [self finishAutoComplete];
         return;
     }
     
-    NSRange currentRange = [self selectedRange];
-    LXScope *scope = [self scopeAtLocation:currentRange.location];
+    NSInteger currentLocation = [self selectedRange].location;
+    NSInteger currentLine = [self lineForLocation:currentLocation];
     
-    NSString *string = [@"" stringByPaddingToLength:scope.scopeLevel * 2 withString:@" " startingAtIndex:0];
-    string = [@"\n" stringByAppendingString:string];
+    [self insertText:@"\n"];
+
+    NSInteger nextLocation = [self selectedRange].location;
+
+    LXTokenNode *currentLineToken = [self.file.context tokenForLine:currentLine];
+
+    if(currentLineToken) {
+        LXScope *scope = [self scopeAtLocation:currentLineToken.location];
+        
+        NSInteger numberOfSpaces = 0;
+        NSInteger expectedSpaces = scope.scopeLevel * 2;
+        
+        NSInteger location = currentLineToken.range.location-1;
+        
+        while(location > 0) {
+            char ch = [self.string characterAtIndex:location];
+            
+            if(ch != ' ')
+                break;
+            
+            numberOfSpaces++;
+            location--;
+        }
+        
+        NSInteger diff = expectedSpaces - numberOfSpaces;
+        
+        if(diff < 0) {
+            [self shouldChangeTextInRange:NSMakeRange(currentLineToken.range.location+diff, -diff) replacementString:@"" undo:YES];
+        }
+        else if(diff > 0) {
+            [self shouldChangeTextInRange:NSMakeRange(currentLineToken.range.location, 0) replacementString:[@"" stringByPaddingToLength:diff withString:@" " startingAtIndex:0] undo:YES];
+        }
+        
+        nextLocation += diff;
+    }
     
-    [self insertText:string];
+    LXTokenNode *nextLineToken = [self.file.context tokenForLine:currentLine+1];
+
+    if(nextLineToken) {
+        LXScope *scope = [self scopeAtLocation:nextLineToken.location];
+        
+        NSInteger numberOfSpaces = 0;
+        NSInteger expectedSpaces = scope.scopeLevel * 2;
+        
+        NSInteger location = nextLineToken.range.location-1;
+        
+        while(location > 0) {
+            char ch = [self.string characterAtIndex:location];
+            
+            if(ch != ' ')
+                break;
+            
+            numberOfSpaces++;
+            location--;
+        }
+        
+        NSInteger diff = expectedSpaces - numberOfSpaces;
+        
+        if(diff < 0) {
+            [self shouldChangeTextInRange:NSMakeRange(nextLineToken.range.location+diff, -diff) replacementString:@"" undo:YES];
+        }
+        else if(diff > 0) {
+            [self shouldChangeTextInRange:NSMakeRange(nextLineToken.range.location, 0) replacementString:[@"" stringByPaddingToLength:diff withString:@" " startingAtIndex:0] undo:YES];
+        }
+        
+        [self setSelectedRange:NSMakeRange(nextLineToken.range.location+diff, 0)];
+    }
+    else {
+        LXScope *scope = [self scopeAtLocation:nextLocation];
+        [self shouldChangeTextInRange:NSMakeRange(nextLocation, 0) replacementString:[@"" stringByPaddingToLength:scope.scopeLevel*2 withString:@" " startingAtIndex:0] undo:YES];
+        [self setSelectedRange:NSMakeRange(nextLocation+scope.scopeLevel*2, 0)];
+    }
 }
 
 - (void)moveUp:(id)sender {
@@ -518,52 +602,60 @@ BOOL NSRangesTouch(NSRange range,NSRange otherRange){
     [self.layoutManager removeTemporaryAttribute:NSBackgroundColorAttributeName forCharacterRange:range];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineColorAttributeName forCharacterRange:range];
     [self.layoutManager removeTemporaryAttribute:NSUnderlineStyleAttributeName forCharacterRange:range];
+    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:textColor forCharacterRange:range];
+
+    LXTokenNode *token = self.file.context.firstToken;
     
-    for(LXToken *token in self.file.context.parser.tokens) {
+    while(token) {
         if(token.range.location > NSMaxRange(range))
             break;
         
-        if(!NSRangesTouch(range, token.range))
-            continue;
-        
-        switch((NSInteger)token.type) {
-            case LX_TK_COMMENT:
-            case LX_TK_LONGCOMMENT:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:commentsColor forCharacterRange:token.range];
-                break;
-            case LX_TK_NUMBER:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:numbersColor forCharacterRange:token.range];
-                break;
-            case LX_TK_STRING:
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:stringsColor forCharacterRange:token.range];
-                break;
-            case '(':
-            case ')':
-            case '{':
-            case '}':
-            case '[':
-            case ']':
-                [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
-                break;
-            default:
-                if([token isKeyword]) {
+        if(NSRangesTouch(range, token.range)) {
+            switch((NSInteger)token.tokenType) {
+                case LX_TK_COMMENT:
+                case LX_TK_LONGCOMMENT:
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:commentsColor forCharacterRange:token.range];
+                    break;
+                case LX_TK_NUMBER:
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:numbersColor forCharacterRange:token.range];
+                    break;
+                case LX_TK_STRING:
+                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:stringsColor forCharacterRange:token.range];
+                    break;
+                case '(':
+                case ')':
+                case '{':
+                case '}':
+                case '[':
+                case ']':
                     [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
-                }
-                else if(token.isMember) {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
-                }
-                else if(token.variableType.isDefined) {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
-                }
-                else {
-                    [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:textColor forCharacterRange:token.range];
-                }
+                    break;
+                default:
+                    if([token isKeyword]) {
+                        [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:keywordsColor forCharacterRange:token.range];
+                    }
+                    else if(token.isMember) {
+                        [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
+                    }
+                    else if(token.isType) {
+                        [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:typesColor forCharacterRange:token.range];
+                    }
+            }
         }
+        
+        token = token.next;
     }
     
+    NSArray *errors = [self.file.context.errors arrayByAddingObjectsFromArray:self.file.context.warnings];
     
-    for(LXCompilerError *error in self.file.context.errors) {
-        [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
+    for(LXCompilerError *error in errors) {
+        if(error.isWarning) {
+            [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor colorWithCalibratedRed:1.0 green:0.865 blue:0.275 alpha:1] forCharacterRange:error.range];
+        }
+        else {
+            [self.layoutManager addTemporaryAttribute:NSUnderlineColorAttributeName value:[NSColor redColor] forCharacterRange:error.range];
+        }
+        
         [self.layoutManager addTemporaryAttribute:NSUnderlineStyleAttributeName value:@(NSUnderlinePatternDot | NSUnderlineStyleThick | NSUnderlineByWordMask) forCharacterRange:error.range];
     }
 }
@@ -623,287 +715,24 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         BOOL isMemberAccessor = (ch == '.' || ch == ':');
         
         if([identifierCharacterSet characterIsMember:ch] || isMemberAccessor) {
-            NSInteger startIndex = affectedCharRange.location-1;
+            //NSInteger startIndex = affectedCharRange.location-1;
             
-            LXToken *previousToken = nil;
+            //NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
             
-            if(isMemberAccessor) {
-                previousToken = [self tokenBeforeRange:NSMakeRange(startIndex+1, 0)];
+            //if(isMemberAccessor ||
+            //   ([string length] >= 1 && ![[NSCharacterSet decimalDigitCharacterSet] characterIsMember:[string characterAtIndex:0]])) {
+            
+            NSRange range;
+            
+            [autoCompleteDefinitions addObjectsFromArray:[self.file.context completionsForLocation:affectedCharRange.location+replacementString.length range:&range]];
+            
+            if([autoCompleteDefinitions count] > 0) {
+                autoCompleteWordRange = range;
+                //autoCompleteWordRange = NSMakeRange(affectedCharRange.location+replacementString.length, 0);//isMemberAccessor ? NSMakeRange(startIndex+2, 0) : NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
+                settingAutoComplete = YES;
             }
-            else {
-                previousToken = [self tokenBeforeRange:affectedCharRange];
             
-                if(LXLocationInRange(affectedCharRange.location, previousToken.range)) {
-                    if([previousToken isType] || [previousToken isKeyword]) {
-                        startIndex = previousToken.range.location-1;
-                        previousToken = [self tokenBeforeRange:previousToken.range];
-                    }
-                }
-            }
-            
-            NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
-            
-            if(isMemberAccessor ||
-               ([string length] >= 1 && ![[NSCharacterSet decimalDigitCharacterSet] characterIsMember:[string characterAtIndex:0]])) {
-                NSLog(@"Previous Token: %@ %@", [self.string substringWithRange:previousToken.range], string);
-
-                if((previousToken.completionFlags & LXTokenCompletionFlagsControlStructures) == LXTokenCompletionFlagsControlStructures) {
-                    NSInteger line = [self lineForLocation:affectedCharRange.location];
-                    
-                    if(line != previousToken.endLine) {
-                        for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-                            BOOL found = NO;
-                            
-                            for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-                                if([otherDefinition.key isEqualToString:definition.key]) {
-                                    found = YES;
-                                    break;
-                                }
-                            }
-                            
-                            if(found)
-                                continue;
-                            
-                            [autoCompleteDefinitions addObject:definition];
-                        }
-                    }
-                }
-                
-                if((previousToken.completionFlags & LXTokenCompletionFlagsVariables) == LXTokenCompletionFlagsVariables) {
-                    LXScope *scope = [self scopeAtLocation:affectedCharRange.location];
-                    
-                    while(scope) {
-                        for(LXVariable *variable in scope.localVariables) {
-                            if(!variable.isFunction && !variable.type.isDefined) {
-                                continue;
-                            }
-                            
-                            if(!scope.isGlobalScope && variable.definedLocation >= startIndex) {
-                                continue;
-                            }
-                            
-                            BOOL found = NO;
-                            
-                            for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-                                if([definition.key isEqualToString:variable.name]) {
-                                    found = YES;
-                                    break;
-                                }
-                            }
-                            
-                            if(found)
-                                continue;
-
-                            if([variable isFunction]) {
-                                LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                                
-                                autoCompleteDefinition.key = variable.name;
-                                
-                                if([variable.returnTypes count]) {
-                                    LXVariable *returnType = variable.returnTypes[0];
-
-                                    autoCompleteDefinition.type = returnType.type.name;
-                                    
-                                    for(NSInteger i = 1; i < [variable.returnTypes count]; ++i) {
-                                        returnType = variable.returnTypes[i];
-
-                                        autoCompleteDefinition.type = [autoCompleteDefinition.type stringByAppendingFormat:@", %@", returnType.type.name];
-                                    }
-                                }
-                                else {
-                                    autoCompleteDefinition.type = @"void";
-                                }
-                                
-                                autoCompleteDefinition.string = [NSString stringWithFormat:@"%@(", variable.name];
-                                autoCompleteDefinition.title = [NSString stringWithFormat:@"%@(", variable.name];
-
-                                NSMutableArray *markers = nil;
-
-                                if([variable.arguments count]) {
-                                    markers = [NSMutableArray array];
-                                    
-                                    LXVariable *argument = variable.arguments[0];
-                                    
-                                    NSRange marker = NSMakeRange(autoCompleteDefinition.string.length, argument.name.length);
-                                    [markers addObject:[NSValue valueWithRange:marker]];
-                                    
-                                    autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@"%@", argument.name];
-                                    autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@"%@", argument.type.name];
-                                    
-                                    for(NSInteger i = 1; i < [variable.arguments count]; ++i) {
-                                        argument = variable.arguments[i];
-                                        
-                                        marker = NSMakeRange(autoCompleteDefinition.string.length+2, argument.name.length);
-                                        [markers addObject:[NSValue valueWithRange:marker]];
-                                        
-                                        autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@", %@", argument.name];
-                                        autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@", %@", argument.type.name];
-                                    }
-                                }
-                                
-                                autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingString:@")"];
-                                autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
-
-                                autoCompleteDefinition.markers = markers;
-                                autoCompleteDefinition.description = nil;
-                                
-                                [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                            }
-                            
-                            if(variable.type.isDefined) {
-                                LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                                
-                                autoCompleteDefinition.key = variable.name;
-                                
-                                autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                                autoCompleteDefinition.string = variable.name;
-                                autoCompleteDefinition.title = variable.name;
-                                autoCompleteDefinition.description = nil;
-                                autoCompleteDefinition.markers = nil;
-                                
-                                [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                            }
-                        }
-                        
-                        scope = scope.parent;
-                    }
-                }
-                
-                if((previousToken.completionFlags & LXTokenCompletionFlagsTypes) == LXTokenCompletionFlagsTypes) {
-                    NSMutableDictionary *typeMap = [self.file.context.compiler.baseTypeMap mutableCopy];
-                    [typeMap addEntriesFromDictionary:self.file.context.compiler.typeMap];
-                    
-                    for(NSString *key in [typeMap allKeys]) {
-                        if(![typeMap[key] isDefined])
-                            continue;
-                        
-                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                        
-                        autoCompleteDefinition.key = key;
-                        autoCompleteDefinition.type = @"Class";
-                        autoCompleteDefinition.string = key;
-                        autoCompleteDefinition.title = key;
-                        autoCompleteDefinition.description = nil;
-                        autoCompleteDefinition.markers = nil;
-                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                    }
-                }
-                
-                if(isMemberAccessor ||
-                   (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers ||
-                   (previousToken.completionFlags & LXTokenCompletionFlagsFunctions) == LXTokenCompletionFlagsFunctions) {
-                    if(previousToken.variable.type.isDefined) {
-                        LXClass *tokenClass = previousToken.variable.type;
-                        
-                        while(tokenClass) {
-                            for(LXVariable *variable in tokenClass.variables) {
-                                if(![variable isFunction] && !variable.type.isDefined) {
-                                    continue;
-                                }
-                                
-                                if((isMemberAccessor && ch == '.') ||
-                                   (previousToken.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers) {
-                                    if([variable isFunction]) {
-                                        if(!variable.isStatic)
-                                            continue;
-                                    }
-                                }
-                                else {
-                                    if([variable isFunction]) {
-                                        if(variable.isStatic)
-                                            continue;
-                                    }
-                                    else {
-                                        continue;
-                                    }
-                                }
-                                
-                                BOOL found = NO;
-                                
-                                for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-                                    if([definition.key isEqualToString:variable.name]) {
-                                        found = YES;
-                                        break;
-                                    }
-                                }
-                                
-                                if(found)
-                                    continue;
-                                
-                                LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                                
-                                autoCompleteDefinition.key = variable.name;
-                                
-                                if([variable isFunction]) {
-                                    if([variable.returnTypes count]) {
-                                        LXVariable *returnType = variable.returnTypes[0];
-                                        
-                                        autoCompleteDefinition.type = returnType.type.name;
-                                        
-                                        for(NSInteger i = 1; i < [variable.returnTypes count]; ++i) {
-                                            returnType = variable.returnTypes[i];
-                                            
-                                            autoCompleteDefinition.type = [autoCompleteDefinition.type stringByAppendingFormat:@", %@", returnType.type.name];
-                                        }
-                                    }
-                                    else {
-                                        autoCompleteDefinition.type = @"void";
-                                    }
-                                    
-                                    autoCompleteDefinition.string = [NSString stringWithFormat:@"%@(", variable.name];
-                                    autoCompleteDefinition.title = [NSString stringWithFormat:@"%@(", variable.name];
-                                    
-                                    NSMutableArray *markers = nil;
-                                    
-                                    if([variable.arguments count]) {
-                                        markers = [NSMutableArray array];
-                                        
-                                        LXVariable *argument = variable.arguments[0];
-                                        
-                                        NSRange marker = NSMakeRange(autoCompleteDefinition.string.length, argument.name.length);
-                                        [markers addObject:[NSValue valueWithRange:marker]];
-                                        
-                                        autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@"%@", argument.name];
-                                        autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@"%@", argument.type.name];
-                                        
-                                        for(NSInteger i = 1; i < [variable.arguments count]; ++i) {
-                                            argument = variable.arguments[i];
-                                            
-                                            marker = NSMakeRange(autoCompleteDefinition.string.length+2, argument.name.length);
-                                            [markers addObject:[NSValue valueWithRange:marker]];
-                                            
-                                            autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@", %@", argument.name];
-                                            autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@", %@", argument.type.name];
-                                        }
-                                    }
-                                    
-                                    autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingString:@")"];
-                                    autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
-                                    
-                                    autoCompleteDefinition.markers = markers;
-                                    autoCompleteDefinition.description = nil;
-                                }
-                                else {
-                                    autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                                    autoCompleteDefinition.string = variable.name;
-                                    autoCompleteDefinition.title = variable.name;
-                                    autoCompleteDefinition.description = nil;
-                                    autoCompleteDefinition.markers = nil;
-                                }
-                                
-                                [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                            }
-                            
-                            tokenClass = tokenClass.parent;
-                        }
-                    }
-                }
-                
-                if([autoCompleteDefinitions count] > 0) {
-                    autoCompleteWordRange = isMemberAccessor ? NSMakeRange(startIndex+2, 0) : NSMakeRange(startIndex+1, (affectedCharRange.location-(startIndex+1))+[replacementString length]);
-                    settingAutoComplete = YES;
-                }
-            }
+            //}
         }
     }
 }
@@ -989,8 +818,10 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     if(insertAutoComplete) {
         insertAutoComplete = NO;
 
-        [self shouldChangeTextInRange:autoCompleteRange replacementString:@"" undo:NO];
-        autoCompleteRange = NSMakeRange(0, 0);
+        if(autoCompleteRange.location != NSNotFound) {
+            [self shouldChangeTextInRange:autoCompleteRange replacementString:@"" undo:NO];
+            autoCompleteRange = NSMakeRange(NSNotFound, 0);
+        }
         
         settingAutoCompleteRange = YES;
     }
@@ -1022,14 +853,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
                 
     NSMutableArray *newMarkers = [NSMutableArray arrayWithCapacity:[autoCompleteMarkers count]];
     
-    if(undo) {
-        [self updateAutoComplete:affectedCharRange replacementString:replacementString];
-    }
-    
     [self replaceCharactersInRange:affectedCharRange withString:replacementString];
-
-    //[self colorTokensInRange:[self.file.context.parser replaceCharactersInRange:affectedCharRange replacementString:replacementString]];
-   
     [self recompile:self.string];
     
     NSInteger diff = [replacementString length] - affectedCharRange.length;
@@ -1056,6 +880,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     settingAutoCompleteRange = NO;
     
     if(undo) {
+        [self updateAutoComplete:affectedCharRange replacementString:replacementString];
         [self updateCurrentAutoCompleteDefinitions];
     }
     
@@ -1096,25 +921,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (void)setSelectedRange:(NSRange)charRange affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag {
-    LXNodeNew *closestNode = [self.file.context.block closestNode:charRange.location];
-    
-    while(closestNode) {
-        if([closestNode isKindOfClass:[LXExpr class]]) {
-            LXExpr *expr = (LXExpr *)closestNode;
-            
-            if(expr.resultType) {
-                NSLog(@"Result Type: %@", expr.resultType.type.name);
-                break;
-            }
-        }
-        
-        closestNode = closestNode.parent;
-    }
-    //[closestNode print:0];
-    
-    //if(settingAutoComplete)
-    //   [self cancelAutoComplete]; TODO cancel setting autocomplete
-    
     if(insertAutoComplete && !settingAutoCompleteRange) {
         [self cancelAutoComplete];
     }
@@ -1209,7 +1015,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [self shouldChangeTextInRange:NSMakeRange(NSMaxRange(autoCompleteWordRange), 0) replacementString:autoCompleteString undo:NO];
         
         autoCompleteRange = NSMakeRange(NSMaxRange(autoCompleteWordRange), [autoCompleteString length]);
-        
+
         [self.layoutManager addTemporaryAttribute:NSForegroundColorAttributeName value:[NSColor colorWithCalibratedRed:0.937 green:0.902 blue:0.588 alpha:0.6] forCharacterRange:autoCompleteRange];
         
         [self setSelectedRange:NSMakeRange(autoCompleteRange.location, 0)];
@@ -1269,7 +1075,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             }
         }
         
-        autoCompleteRange = NSMakeRange(0, 0);
+        autoCompleteRange = NSMakeRange(NSNotFound, 0);
+
         //autoCompleteWordRange = NSMakeRange(0, 0);
         [self setSelectedRange:selectedRange];
         
@@ -1283,8 +1090,12 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [autoCompleteDefinitions removeAllObjects];
         
         insertAutoComplete = NO;
-        [self shouldChangeTextInRange:autoCompleteRange replacementString:@"" undo:NO];
-        autoCompleteRange = NSMakeRange(0, 0);
+        
+        if(autoCompleteRange.location != NSNotFound) {
+            [self shouldChangeTextInRange:autoCompleteRange replacementString:@"" undo:NO];
+            autoCompleteRange = NSMakeRange(NSNotFound, 0);
+        }
+
         //autoCompleteWordRange = NSMakeRange(0, 0);
 
         [self hideAutoCompleteWindow];
@@ -1458,7 +1269,9 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [NSBezierPath fillRect:rect];
     }
     
-    for(LXCompilerError *error in self.file.context.errors) {
+    NSArray *errors = [self.file.context.errors arrayByAddingObjectsFromArray:self.file.context.warnings];
+
+    for(LXCompilerError *error in errors) {
         NSRange range = error.range;
         
         NSRect rangeRect = [[self layoutManager] boundingRectForGlyphRange:range inTextContainer:[self textContainer]];
@@ -1468,7 +1281,14 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         [path lineToPoint:NSMakePoint(rangeRect.origin.x+2, NSMaxY(rangeRect)+2)];
         [path lineToPoint:NSMakePoint(rangeRect.origin.x-2, NSMaxY(rangeRect)+2)];
         [path closePath];
-        [[NSColor colorWithDeviceRed:0.8 green:0.0 blue:0.0 alpha:1.0] set];
+        
+        if(error.isWarning) {
+            [[NSColor colorWithCalibratedRed:0.865 green:0.665 blue:0.275 alpha:1] set];
+        }
+        else {
+            [[NSColor colorWithDeviceRed:0.8 green:0.0 blue:0.0 alpha:1.0] set];
+        }
+        
         [path fill];
     }
     

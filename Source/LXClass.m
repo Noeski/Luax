@@ -10,7 +10,6 @@
 #import "LXNode.h"
 
 @implementation LXClass
-
 @end
 
 @implementation LXClassNumber
@@ -20,7 +19,7 @@
         self.name = @"Number";
         self.isDefined = YES;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"0" line:-1 column:-1];
+        self.defaultExpression = [[LXNumberExpr alloc] initWithLine:-1 column:-1 location:-1];
     }
     
     return self;
@@ -47,7 +46,7 @@
         self.name = @"Bool";
         self.isDefined = YES;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"false" line:-1 column:-1];
+        self.defaultExpression = [[LXBoolExpr alloc] initWithLine:-1 column:-1 location:-1];
     }
     
     return self;
@@ -73,7 +72,7 @@
         self.name = @"String";
         self.isDefined = YES;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"\"\"" line:-1 column:-1];
+        self.defaultExpression = [[LXStringExpr alloc] initWithLine:-1 column:-1 location:-1];
         
         
         LXVariable *byteFunction = [LXVariable functionWithName:@"byte"];
@@ -260,7 +259,7 @@
         self.name = @"Table";
         self.isDefined = YES;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"{}" line:-1 column:-1];
+        self.defaultExpression = [[LXTableCtorExpr alloc] initWithLine:-1 column:-1 location:-1];
     }
     
     return self;
@@ -286,7 +285,7 @@
         self.name = @"Function";
         self.isDefined = YES;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"function() end" line:-1 column:-1];
+        self.defaultExpression = [[LXFunctionExpr alloc] initWithLine:-1 column:-1 location:-1];
     }
     
     return self;
@@ -305,6 +304,32 @@
 
 @end
 
+@implementation LXClassVar
+
+- (id)init {
+    if(self = [super init]) {
+        self.name = @"var";
+        self.isDefined = YES;
+        
+        self.defaultExpression = [[LXNilExpr alloc] initWithLine:-1 column:-1 location:-1];
+    }
+    
+    return self;
+}
+
++ (LXClassVar *)classVar {
+    static LXClassVar *class = nil;
+    
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        class = [[LXClassVar alloc] init];
+    });
+    
+    return class;
+}
+
+@end
+
 @implementation LXClassBase
 
 - (id)init {
@@ -312,7 +337,7 @@
         self.name = @"";
         self.isDefined = NO;
         
-        self.defaultExpression = [[LXNode alloc] initWithChunk:@"nil" line:-1 column:-1];
+        self.defaultExpression = [[LXNilExpr alloc] initWithLine:-1 column:-1 location:-1];
     }
     
     return self;

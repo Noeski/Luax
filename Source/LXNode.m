@@ -6,318 +6,11 @@
 //  Copyright (c) 2013 Noah Hilt. All rights reserved.
 //
 
-#import "LXNode.h"
-#import "LXCompiler.h"
-#import "NSNumber+Base64VLQ.h"
 #import <objc/objc-runtime.h>
 
-@interface LXLuaWriter()
-@property (nonatomic, strong) NSMutableString *mutableString;
-@property (nonatomic, strong) NSMutableArray *mutableMappings;
-@property (nonatomic, strong) NSString *lastName;
-@property (nonatomic, assign) NSInteger lastLine;
-@property (nonatomic, assign) NSInteger lastColumn;
-@property (nonatomic, assign) NSInteger indentationLevel;
-@end
-
-@implementation LXLuaWriter
-
-- (id)init {
-    if(self = [super init]) {
-        _mutableString = [[NSMutableString alloc] init];
-        _mutableMappings = [[NSMutableArray alloc] init];
-    }
-    
-    return self;
-}
-
-- (NSString *)string {
-    return _mutableString;
-}
-
-- (NSArray *)mappings {
-    return _mutableMappings;
-}
-
-- (NSString *)indentedString:(NSString *)string {
-    NSArray *lines = [string componentsSeparatedByString:@"\n"];
-    NSMutableArray *mutableLines = [[NSMutableArray alloc] init];
-    
-    for(NSString *line in lines) {
-        [mutableLines addObject:[line stringByPaddingToLength:[line length]+self.indentationLevel withString:@" " startingAtIndex:0]];
-    }
-    
-    return [mutableLines componentsJoinedByString:@"\n"];
-}
-
-- (void)writeSpace {
-    [self write:@" "];
-}
-
-- (void)writeNewline {
-    [self.mutableString appendString:@"\n"];
-
-    self.currentLine++;
-    self.currentColumn = 0;
-    
-    [self write:[@"" stringByPaddingToLength:self.indentationLevel*2 withString:@" " startingAtIndex:0]];
-}
-
-- (void)write:(NSString *)generated {
-    [self.mutableString appendString:generated];
-    self.currentColumn += [generated length];
-    
-    /*NSArray *lines = [generated componentsSeparatedByString:@"\n"];
-    
-    if([lines count] == 1) {
-        [self.mutableString appendString:generated];
-        self.currentColumn += [generated length];
-    }
-    else {
-        NSString *line = nil;
-        for(NSInteger i = 0; i < [lines count]; ++i) {
-            line = lines[i];
-            line = (i == 0) ? line : [line stringByPaddingToLength:[line length]+self.indentationLevel*2 withString:@" " startingAtIndex:0];
-            line = (i == [lines count]-1) ? line : [line stringByAppendingString:@"\n"];
-            
-            [self.mutableString appendString:line];
-        }
-        
-        self.currentLine += [lines count] - 1;
-        self.currentColumn = [line length];
-    }*/
-}
-
-- (void)write:(NSString *)generated line:(NSInteger)line column:(NSInteger)column {
-    [self write:generated name:nil line:line column:column];
-}
-
-- (void)write:(NSString *)generated name:(NSString *)name line:(NSInteger)line column:(NSInteger)column {
-    if(line != self.lastLine ||
-       column != self.lastColumn ||
-       ![name isEqual:self.lastName]) {
-        NSDictionary *dictionary = @{@"source" : self.currentSource, @"name" : name ? name : @"", @"original" : @{@"line" : @(line), @"column" : @(column)}, @"generated" : @{@"line" : @(self.currentLine), @"column" : @(self.currentColumn)}};
-        
-        [self.mutableMappings addObject:dictionary];
-        
-        self.lastName = name;
-        self.lastLine = line;
-        self.lastColumn = column;
-    }
-    
-    [self write:generated];
-}
-
-/*- (NSDictionary *)originalPosition:(NSInteger)line column:(NSInteger)column {
-    NSDictionary *mapping = recursiveSearch(-1, [self.mappings count], @{@"generated" : @{@"line" : @(line), @"column" : @(column)}}, self.mappings, ^(NSDictionary *obj1, NSDictionary *obj2) {
-        NSInteger cmp = [obj1[@"generated"][@"line"] integerValue] - [obj2[@"generated"][@"line"] integerValue];
-        
-        if(cmp > 0)
-            return cmp;
-        else if(cmp < 0)
-            return cmp;
-        
-        cmp = [obj1[@"generated"][@"column"] integerValue] - [obj2[@"generated"][@"column"] integerValue];
-        
-        if(cmp > 0)
-            return cmp;
-        else if(cmp < 0)
-            return cmp;
-        
-        return cmp;
-    });
-    
-    return mapping;
-}
-
-- (NSDictionary *)generatedPosition:(NSInteger)line column:(NSInteger)column {
-    NSInteger index = [self.mappings indexOfObject:@{@"original" : @{@"line" : @(line), @"column" : @(column)}} inSortedRange:NSMakeRange(0, [self.mappings count]) options:NSBinarySearchingFirstEqual usingComparator:^NSComparisonResult(NSDictionary *obj1, NSDictionary *obj2) {
-        NSInteger cmp = [obj1[@"original"][@"line"] integerValue] - [obj2[@"original"][@"line"] integerValue];
-        
-        if(cmp > 0)
-            return NSOrderedAscending;
-        else if(cmp < 0)
-            return NSOrderedDescending;
-        
-        cmp = [obj1[@"original"][@"column"] integerValue] - [obj2[@"original"][@"column"] integerValue];
-        
-        if(cmp > 0)
-            return NSOrderedAscending;
-        else if(cmp < 0)
-            return NSOrderedDescending;
-        
-        return NSOrderedSame;
-    }];
-    
-    return self.mappings[index];
-}*/
-
-- (NSDictionary *)generateSourceMap {
-    NSMutableArray *sourcesArray = [NSMutableArray array];
-    NSMutableDictionary *sourcesMap = [NSMutableDictionary dictionary];
-    NSInteger currentSourceIndex = 0;
-
-    NSMutableArray *namesArray = [NSMutableArray array];
-    NSMutableDictionary *namesMap = [NSMutableDictionary dictionary];
-    NSInteger currentNameIndex = 0;
-    
-    NSInteger previousGeneratedColumn = 0;
-    NSInteger previousGeneratedLine = 0;
-    NSInteger previousOriginalColumn = 0;
-    NSInteger previousOriginalLine = 0;
-    NSInteger previousSource = 0;
-    NSInteger previousName = 0;
-
-    NSString *mappings = @"";
-    
-    for(NSInteger i = 0; i < [self.mappings count]; ++i) {
-        NSDictionary *mapping = self.mappings[i];
-        NSInteger generatedLine = [mapping[@"generated"][@"line"] integerValue];
-        NSInteger generatedColumn = [mapping[@"generated"][@"column"] integerValue];
-        NSInteger originalLine = [mapping[@"original"][@"line"] integerValue];
-        NSInteger originalColumn = [mapping[@"original"][@"column"] integerValue];
-        NSString *source = mapping[@"source"];
-        NSString *name = mapping[@"name"];
-        
-        if(generatedLine != previousGeneratedLine) {
-            previousGeneratedColumn = 0;
-            while(generatedLine != previousGeneratedLine) {
-                mappings = [mappings stringByAppendingString:@";"];
-                previousGeneratedLine++;
-            }
-        }
-        else {
-            if(i > 0) {
-                NSDictionary *lastMapping = self.mappings[i-1];
-                
-                if([lastMapping isEqualToDictionary:mapping])
-                    continue;
-                    
-                mappings = [mappings stringByAppendingString:@","];
-            }
-        }
-        
-        
-        mappings = [mappings stringByAppendingString:[@(generatedColumn - previousGeneratedColumn) encode]];
-
-        previousGeneratedColumn = generatedColumn;
-        
-        NSNumber *sourceIndex = sourcesMap[source];
-        
-        if(!sourceIndex) {
-            sourceIndex = [NSNumber numberWithInteger:currentSourceIndex++];
-            sourcesMap[source] = sourceIndex;
-            
-            [sourcesArray addObject:source];
-        }
-        
-        mappings = [mappings stringByAppendingString:[@([sourceIndex integerValue] - previousSource) encode]];
-        previousSource = [sourceIndex integerValue];
-        
-        mappings = [mappings stringByAppendingString:[@(originalLine - previousOriginalLine) encode]];
-        
-        previousOriginalLine = originalLine;
-        
-        mappings = [mappings stringByAppendingString:[@(originalColumn - previousOriginalColumn) encode]];
-        
-        previousOriginalColumn = originalColumn;
-        
-        if([name length] > 0) {
-            NSNumber *nameIndex = namesMap[name];
-            
-            if(!nameIndex) {
-                nameIndex = [NSNumber numberWithInteger:currentNameIndex++];
-                namesMap[name] = nameIndex;
-                
-                [namesArray addObject:name];
-
-            }
-            
-            mappings = [mappings stringByAppendingString:[@([nameIndex integerValue] - previousName) encode]];
-            previousName = [nameIndex integerValue];
-        }
-    }
-    
-    
-    return @{@"version" : @(3), @"sources" : sourcesArray, @"names" : namesArray, @"mappings" : mappings};
-}
-
-- (NSArray *)parseMapping:(NSString *)string {
-    NSMutableString *mutableString = [NSMutableString stringWithString:string];
-    NSMutableArray *newMappings = [NSMutableArray array];
-    
-    NSInteger generatedLine = 0;
-    NSInteger previousGeneratedColumn = 0;
-    NSInteger previousOriginalLine = 0;
-    NSInteger previousOriginalColumn = 0;
-    NSInteger previousSource = 0;
-    NSInteger previousName = 0;
-    NSCharacterSet *mappingSeparator = [NSCharacterSet characterSetWithCharactersInString:@",;"];
-    
-    while([mutableString length] > 0) {
-        if([mutableString characterAtIndex:0] == ';') {
-            generatedLine++;
-            [mutableString deleteCharactersInRange:NSMakeRange(0, 1)];
-            previousGeneratedColumn = 0;
-        }
-        else if([string characterAtIndex:0] == ',') {
-            string = [string substringFromIndex:1];
-        }
-        else {
-            NSMutableDictionary *mapping = [NSMutableDictionary dictionary];
-            NSInteger temp;
-
-            temp = [[mutableString decode] integerValue];
-            previousGeneratedColumn = previousGeneratedColumn + temp;
-
-            mapping[@"generated"] = @{@"line" : @(generatedLine), @"column" : @(previousGeneratedColumn)};
-            
-            if([mutableString length] > 0 && ![mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
-                // Original source.
-                temp = [[mutableString decode] integerValue];
-                
-                NSInteger source = previousSource + temp;
-                previousSource += temp;
-                
-                if([mutableString length] == 0 || [mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
-                    //error
-                }
-                
-                temp = [[mutableString decode] integerValue];
-                
-                // Original line.
-                NSInteger originalLine = previousOriginalLine + temp;
-                previousOriginalLine = originalLine;
-                
-                if([mutableString length] == 0 || [mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
-                    //error
-                }
-                
-                temp = [[mutableString decode] integerValue];
-                
-                NSInteger originalColumn = previousOriginalColumn + temp;
-                previousOriginalColumn = originalColumn;
-                
-                mapping[@"original"] = @{@"line" : @(originalLine), @"column" : @(originalColumn)};
-                
-                if([mutableString length] > 0 && ![mappingSeparator characterIsMember:[mutableString characterAtIndex:0]]) {
-                    // Original name.
-                    temp = [[mutableString decode] integerValue];
-                    
-                    mapping[@"name"] = @(previousName+temp);
-                    
-                    previousName += temp;
-                }
-            }
-            
-            [newMappings addObject:mapping];
-        }
-    }
-    
-    return newMappings;
-}
-
-@end
+#import "LXNode.h"
+#import "LXCompiler.h"
+#import "LXLuaWriter.h"
 
 @implementation LXScope
 
@@ -420,96 +113,10 @@
 
 @interface LXNode()
 @property (nonatomic, strong) NSMutableArray *mutableChildren;
-@end
-
-@implementation LXNode
-
-- (id)initWithName:(NSString *)name line:(NSInteger)line column:(NSInteger)column {
-    if(self = [super init]) {
-        _line = line;
-        _column = column;
-        
-        _chunk = name;
-        _name = name;
-        _mutableChildren = [NSMutableArray array];
-    }
-    
-    return self;
-}
-
-- (id)initWithChunk:(NSString *)chunk line:(NSInteger)line column:(NSInteger)column {
-    if(self = [super init]) {
-        _line = line;
-        _column = column;
-        
-        _chunk = chunk;
-        _mutableChildren = [NSMutableArray array];
-    }
-    
-    return self;
-}
-
-- (id)initWithLine:(NSInteger)line column:(NSInteger)column {
-    if(self = [super init]) {
-        _line = line;
-        _column = column;
-        
-        _mutableChildren = [NSMutableArray array];
-    }
-    
-    return self;
-}
-
-- (NSArray *)children {
-    return _mutableChildren;
-}
-
-- (void)addChild:(LXNode *)child {
-    [self.mutableChildren addObject:child];
-}
-
-- (void)addChunk:(NSString *)child line:(NSInteger)line column:(NSInteger)column {
-    LXNode *node = [[LXNode alloc] initWithChunk:child line:line column:column];
-    
-    [self addChild:node];
-}
-
-- (void)addNamedChunk:(NSString *)child line:(NSInteger)line column:(NSInteger)column {
-    LXNode *node = [[LXNode alloc] initWithName:child line:line column:column];
-    
-    [self addChild:node];
-}
-
-- (void)addAnonymousChunk:(NSString *)child {
-    LXNode *node = [[LXNode alloc] initWithChunk:child line:-1 column:-1];
-    
-    [self addChild:node];
-}
-
-- (void)compile:(LXLuaWriter *)writer {
-    if(self.name) {
-        [writer write:self.chunk name:self.name line:self.line column:self.column];
-    }
-    else if(self.chunk) {
-        if(self.line == -1)
-            [writer write:self.chunk];
-        else
-            [writer write:self.chunk line:self.line column:self.column];
-    }
-    
-    for(LXNode *child in self.children) {
-        [child compile:writer];
-    }
-}
-
-@end
-
-@interface LXNodeNew()
-@property (nonatomic, strong) NSMutableArray *mutableChildren;
 @property (nonatomic, strong) NSMutableDictionary *mutableProperties;
 @end
 
-@implementation LXNodeNew
+@implementation LXNode
 
 - (id)init {
     if(self = [super init]) {
@@ -559,7 +166,7 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
 
             [[self mutableChildren] removeObjectsInRange:NSMakeRange(index, [currentValue count])];
             
-            for(LXNodeNew *node in value) {
+            for(LXNode *node in value) {
                 [[self mutableChildren] insertObject:node atIndex:index++];
                 node.parent = self;
             }            
@@ -568,15 +175,18 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
             NSInteger index = [[self children] indexOfObject:currentValue];
             
             [[self mutableChildren] removeObject:currentValue];
-            [[self mutableChildren] insertObject:value atIndex:index];
             
-            LXNodeNew *node = value;
-            node.parent = self;
+            if(value) {
+                [[self mutableChildren] insertObject:value atIndex:index];
+                
+                LXNode *node = value;
+                node.parent = self;
+            }
         }
     }
-    else {
+    else if(value) {
         if([value isKindOfClass:[NSArray class]]) {
-            for(LXNodeNew *node in value) {
+            for(LXNode *node in value) {
                 [[self mutableChildren] addObject:node];
                 node.parent = self;
             }
@@ -584,7 +194,7 @@ static void setPropertyIMP(id self, SEL _cmd, id value) {
         else {
             [[self mutableChildren] addObject:value];
             
-            LXNodeNew *node = value;
+            LXNode *node = value;
             node.parent = self;
         }
     }
@@ -626,32 +236,30 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)verify {
     NSRange range = self.range;
     
-    for(LXNodeNew *child in self.children) {
+    for(LXNode *child in self.children) {
         if(!rangeInside(range, child.range)) {
             NSLog(@"%@ - %@ : %@ - %@", [self class], NSStringFromRange(range), [child class], NSStringFromRange(child.range));
         }
     }
     
-    for(LXNodeNew *child in self.children) {
+    for(LXNode *child in self.children) {
         [child verify];
     }
 }
 
-- (LXNodeNew *)closestNode:(NSInteger)location {
-    if([self.children count] == 0)
-        return self;
+- (LXTokenNode *)closestCompletionNode:(NSInteger)location {
+    if([self isKindOfClass:[LXTokenNode class]]) {
+        LXTokenNode *node = (LXTokenNode *)self;
+        
+        return node;
+    }
     
     NSInteger closestDistance = NSIntegerMax;
-    LXNodeNew *closestChild = nil;
+    LXNode *closestChild = nil;
     
-    for(LXNodeNew *child in self.children) {
-        if(location < child.location) {
-            NSInteger distance = child.location - location;
-            
-            if(distance < closestDistance) {
-                closestDistance = distance;
-                closestChild = child;
-            }
+    for(LXNode *child in self.children) {
+        if(location <= child.location) {
+            continue;
         }
         else if(location > NSMaxRange(child.range)) {
             NSInteger distance = location - NSMaxRange(child.range);
@@ -668,16 +276,13 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         }
     }
     
-    if(closestDistance > 0)
-        return closestChild;
-    else
-        return [closestChild closestNode:location];
+    return [closestChild closestCompletionNode:location];
 }
 
 - (void)print:(NSInteger)indent {
     NSLog(@"%@%@ : %ld - %ld", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], [self class], self.line, self.column);
     
-    for(LXNodeNew *child in self.children) {
+    for(LXNode *child in self.children) {
         [child print:indent+1];
     }
 }
@@ -699,12 +304,45 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     return tokenNode;
 }
 
+- (void)setPrev:(LXTokenNode *)prev {
+    _prev = prev;
+    _prev.next = self;
+}
+
+- (BOOL)isKeyword {
+    return (self.tokenType >= FIRST_RESERVED && self.tokenType < LX_TK_CONCAT);
+}
+
+- (BOOL)isReserved {
+    return ((self.tokenType) == LX_TK_NAME ||
+            (self.tokenType >= FIRST_RESERVED && self.tokenType < LX_TK_CONCAT) ||
+            (self.tokenType >= LX_TK_TYPE_VAR && self.tokenType < LX_TK_CLASS));
+}
+
 - (void)print:(NSInteger)indent {
     NSLog(@"%@%@", [@"" stringByPaddingToLength:indent withString:@" " startingAtIndex:0], self.value);
 }
 
 - (void)compile:(LXLuaWriter *)writer {
     [writer write:self.value line:self.line column:self.column];
+}
+
+- (LXScope *)scope {
+    LXScope *scope = nil;
+    id parent = self.parent;
+    
+    while(parent) {
+        if([parent respondsToSelector:@selector(scope)]) {
+            scope = [parent scope];
+            
+            if(scope)
+                break;
+        }
+        
+        parent = [parent parent];
+    }
+    
+    return scope;
 }
 
 @end
@@ -718,6 +356,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
     self.resultType = self.expr.resultType;
+    
+    self.leftParenToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -736,7 +376,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [self.token compile:writer];
+    self.token ? [self.token compile:writer] : [writer write:@"0"];
 }
 
 @end
@@ -749,7 +389,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [self.token compile:writer];
+    self.token ? [self.token compile:writer] : [writer write:@"\"\""];
 }
 
 @end
@@ -762,7 +402,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [self.nilToken compile:writer];
+    self.nilToken ? [self.nilToken compile:writer] : [writer write:@"nil"];
 }
 
 @end
@@ -775,7 +415,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [self.token compile:writer];
+    self.token ? [self.token compile:writer] : [writer write:@"false"];
 }
 
 @end
@@ -796,7 +436,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     LXVariable *variable = [context.currentScope variable:self.token.value];
     
     if(!variable) {
-        [context addError:[NSString stringWithFormat:@"Variable %@ is undefined.", self.token.value] range:self.token.range line:self.token.line column:self.token.column];
+        [context addWarning:[NSString stringWithFormat:@"Variable %@ is undefined.", self.token.value] range:self.token.range line:self.token.line column:self.token.column];
     }
     
     self.resultType = variable;
@@ -878,6 +518,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             break;
         }
     }
+    
+    self.memberToken.completionFlags = LXTokenCompletionFlagsMembers;
+    self.memberToken.type = self.prefix.resultType.type;
+    self.value.isMember = YES;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -909,8 +553,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.prefix resolveTypes:context];
     [self.expr resolveTypes:context];
+    
+    self.leftBracketToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
-
 
 - (void)compile:(LXLuaWriter *)writer {
     [self.prefix compile:writer];
@@ -960,6 +605,11 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             }
         }
     }
+    
+    self.memberToken.completionFlags = LXTokenCompletionFlagsFunctions;
+    self.memberToken.type = self.prefix.resultType.type;
+    self.value.isMember = YES;
+    self.leftParenToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -968,7 +618,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.value compile:writer];
     [self.leftParenToken compile:writer];
     
-    for(LXNodeNew *arg in self.args) {
+    for(LXNode *arg in self.args) {
         [arg compile:writer];
     }
     
@@ -988,6 +638,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [self.expr resolveTypes:context];
     
     self.resultType = self.expr.resultType;
+    self.opToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1021,6 +672,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     //TODO: Find the type resulting from the operation
     self.resultType = self.lhs.resultType;
+    self.opToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1047,6 +699,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     return returnTypes;
 }
 
+- (void)resolveTypes:(LXContext *)context {
+    self.leftParenToken.completionFlags = LXTokenCompletionFlagsTypes;
+}
+
 @end
 
 @implementation LXFunctionArguments
@@ -1065,10 +721,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     return arguments;
 }
 
+- (void)resolveTypes:(LXContext *)context {
+    self.leftParenToken.completionFlags = LXTokenCompletionFlagsTypes;
+    self.rightParenToken.completionFlags = LXTokenCompletionFlagsBlock;
+}
+
 - (void)compile:(LXLuaWriter *)writer {
     [self.leftParenToken compile:writer];
     
-    for(LXNodeNew *node in self.args) {
+    for(LXNode *node in self.args) {
         [node compile:writer];
     }
     
@@ -1081,8 +742,6 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic scopeToken, staticToken, functionToken, returnTypes, nameExpr, args, body, endToken;
 
 - (void)resolveVariables:(LXContext *)context {
-    self.scope = [context createScope:NO];
-
     if(self.nameExpr) {
         LXScope *scope = self.isGlobal ? context.compiler.globalScope : self.scope.parent;
         LXVariable *variable = [scope localVariable:self.nameExpr.value];
@@ -1091,7 +750,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", self.nameExpr.value] range:self.nameExpr.range line:self.nameExpr.line column:self.nameExpr.column];
         }
         else {
-            variable = [scope createFunction:self.nameExpr.value];
+            variable = self.isGlobal ? [context createGlobalFunction:self.nameExpr.value] : [scope createFunction:self.nameExpr.value];
             variable.definedLocation = self.nameExpr.location;
             
             NSMutableArray *mutableReturnTypes = [[NSMutableArray alloc] init];
@@ -1103,6 +762,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
                 [mutableReturnTypes addObject:[LXVariable variableWithType:type]];
             }
             
+            //TODO: Need to do this anyways for anonymous functions
             NSMutableArray *mutableArguments = [[NSMutableArray alloc] init];
             for(LXDeclarationNode *node in self.args.args) {
                 if(![node isKindOfClass:[LXDeclarationNode class]])
@@ -1132,27 +792,28 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     [self.body resolveVariables:context];
-    
-    [context popScope];
 }
 
 - (void)resolveTypes:(LXContext *)context {
-    [context pushScope:self.scope];
     /*if(self.nameExpr) {
-        [self.nameExpr resolveTypes:context];
-    }*/
-    
+     [self.nameExpr resolveTypes:context];
+     }*/
+
+    [context pushScope:self.scope];
+
     [self.body resolveTypes:context];
     
     self.resultType = [LXVariable variableWithType:[LXClassFunction classFunction]];
     [context popScope];
+    
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
     [self compile:writer class:nil];
 }
 
-- (void)compile:(LXLuaWriter *)writer class:(LXClass *)class {
+- (void)compile:(LXLuaWriter *)writer class:(LXClassStmt *)class {
     if(!class && !self.isGlobal && self.nameExpr) {
         if(self.scopeToken) {
             [self.scopeToken compile:writer];
@@ -1166,11 +827,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     [self.functionToken compile:writer];
     
+    BOOL compileInitFunction = NO;
+    
     if(self.nameExpr) {
+        compileInitFunction = (class && [self.nameExpr.value isEqualToString:@"init"]);
+        
         [writer writeSpace];
         
         if(class) {
-            [writer write:class.name];
+            [writer write:class.type.name];
             [writer write:@":"];
         }
         
@@ -1179,10 +844,19 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     [self.args compile:writer];
     
-    if([self.body.stmts count]) {
+    if([self.body.stmts count] || compileInitFunction) {
         writer.indentationLevel++;
-        [writer writeNewline];
-        [self.body compile:writer];
+        
+        if(compileInitFunction) {
+            [writer writeNewline];
+            [class compileInitFunction:writer];
+        }
+        
+        if([self.body.stmts count]) {
+            [writer writeNewline];
+            [self.body compile:writer];
+        }
+        
         writer.indentationLevel--;
     }
     
@@ -1208,8 +882,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic stmts;
 
 - (void)resolveVariables:(LXContext *)context {
-    self.scope = [context createScope:YES];
-    
+    [context pushScope:self.scope];
+
     for(LXStmt *statement in self.stmts) {
         [statement resolveVariables:context];
     }
@@ -1253,10 +927,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     else {
         [context declareType:self.type];
-        self.type.isDefined = YES;
     }
     
-    self.scope = [context createScope:YES];
+    [context pushScope:self.scope];
 
     for(LXDeclarationStmt *stmt in self.vars) {
         [stmt resolveVariables:context];
@@ -1267,7 +940,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     [context popScope];
-    
+
     NSMutableArray *mutableVariables = [[NSMutableArray alloc] init];
     NSMutableArray *mutableFunctions = [[NSMutableArray alloc] init];
 
@@ -1284,6 +957,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     self.type.variables = mutableVariables;
     self.type.functions = mutableFunctions;
+    
+    LXVariable *classTable = [context.compiler.globalScope localVariable:self.nameToken.value];
+    
+    if(classTable) {
+        [context addError:[NSString stringWithFormat:@"Global variable %@ is already defined.", self.nameToken.value] range:self.nameToken.range line:self.nameToken.line column:self.nameToken.column];
+    }
+    else {
+        classTable = [context createGlobalVariable:self.nameToken.value type:self.type];
+    }
 }
 
 - (void)resolveTypes:(LXContext *)context {
@@ -1291,7 +973,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         LXClass *type = [context findType:self.superToken.value];
         
         if(!type.isDefined) {
-            [context addError:[NSString stringWithFormat:@"Type %@ is undefined.", self.superToken.value] range:self.superToken.range line:self.superToken.line column:self.superToken.column];
+            [context addWarning:[NSString stringWithFormat:@"Type %@ is undefined.", self.superToken.value] range:self.superToken.range line:self.superToken.line column:self.superToken.column];
         }
     }
     
@@ -1306,9 +988,16 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     [context popScope];
+    
+    self.extendsToken.completionFlags = LXTokenCompletionFlagsTypes;
+    self.nameToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.superToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
+    //TODO: Figure out metamethods like __mul, __add, etc.
+    
     if(self.type.parent) {
         [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
         [writer writeNewline];
@@ -1327,29 +1016,65 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [writer writeNewline];
         [writer write:[NSString stringWithFormat:@"end"]];
         [writer writeNewline];
-
-        /*[writer write:[NSString stringWithFormat:@"function %@:init(...)", name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"%@.init(self, ...)", superclass]];
-        [writer writeNewline];*/
     }
     else {
         [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
         [writer writeNewline];
         [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\"}, {__index = class})", self.type.name]];
         [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
+        [writer writeNewline];
         [writer write:[NSString stringWithFormat:@"  return obj"]];
         [writer writeNewline];
         [writer write:[NSString stringWithFormat:@"end})"]];
         [writer writeNewline];
-        
-        /*[writer write:[NSString stringWithFormat:@"function %@:init(...)", name]];
-        [writer writeNewline];*/
     }
     
     for(LXFunctionExpr *function in self.functions) {
-        [function compile:writer class:self.type];
+        [function compile:writer class:self];
         [writer writeNewline];
+    }
+    
+    LXVariable *initFunction = [self.scope localVariable:@"init"];
+    
+    if(!initFunction || !initFunction.isFunction) {
+        [writer write:@"function "];
+        [writer write:self.type.name];
+        [writer write:@":init(...)"];
+        writer.indentationLevel++;
+        [writer writeNewline];
+
+        [self compileInitFunction:writer];
+
+        writer.indentationLevel--;
+        [writer writeNewline];
+        [writer write:@"end"];
+    }
+}
+
+- (void)compileInitFunction:(LXLuaWriter *)writer {
+    for(LXDeclarationStmt *stmt in self.vars) {
+        for(NSInteger i = 0; i < [stmt.vars count]; ++i) {
+            LXTokenNode *tokenNode = stmt.vars[i];
+            
+            if([tokenNode.value isEqualToString:@","])
+                continue;
+            
+            LXVariable *variable = [self.scope localVariable:tokenNode.value];
+            
+            if(!variable)
+                continue;
+            
+            [writer write:@"self."];
+            [tokenNode compile:writer];
+            [writer write:@" = "];
+            
+            LXExpr *expr = i < [stmt.exprs count] ? stmt.exprs[i] : [variable.type defaultExpression];
+            [expr compile:writer];
+            
+            if(stmt != self.vars.lastObject || tokenNode != stmt.vars.lastObject)
+                [writer writeNewline];
+        }
     }
 }
 
@@ -1378,6 +1103,11 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     [self.elseStmt resolveTypes:context];
+    
+    self.ifToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.thenToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.elseToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1426,6 +1156,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
     [self.body resolveTypes:context];
+    
+    self.elseIfToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.thenToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1456,6 +1189,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
     [self.body resolveTypes:context];
+    
+    self.whileToken.completionFlags = LXTokenCompletionFlagsVariables;
+    self.doToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1487,6 +1224,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     [self.body resolveTypes:context];
+    
+    self.doToken.completionFlags = LXTokenCompletionFlagsBlock;
+    self.endToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1560,6 +1300,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @implementation LXLabelStmt
 @dynamic beginLabelToken, endLabelToken;
 
+- (void)resolveTypes:(LXContext *)context {
+    self.endLabelToken.completionFlags = LXTokenCompletionFlagsBlock;
+}
+
 - (void)compile:(LXLuaWriter *)writer {
     [self.beginLabelToken compile:writer];
     [writer writeSpace];
@@ -1573,6 +1317,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @implementation LXGotoStmt
 @dynamic gotoToken;
 
+- (void)resolveTypes:(LXContext *)context {
+    //self.value.completionFlags = LXTokenCompletionFlagsBlock;
+}
+
 - (void)compile:(LXLuaWriter *)writer {
     [self.gotoToken compile:writer];
     [writer writeSpace];
@@ -1582,6 +1330,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 @implementation LXBreakStmt
 @dynamic breakToken;
+
+- (void)resolveTypes:(LXContext *)context {
+    self.breakToken.completionFlags = LXTokenCompletionFlagsBlock;
+}
 
 - (void)compile:(LXLuaWriter *)writer {
     [self.breakToken compile:writer];
@@ -1602,6 +1354,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     for(LXExpr *expr in self.exprs) {
         [expr resolveTypes:context];
     }
+    
+    self.returnToken.completionFlags = LXTokenCompletionFlagsVariables;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1632,12 +1386,8 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             [context addError:[NSString stringWithFormat:@"Variable %@ is already defined.", node.value] range:node.range line:node.line column:node.column];
         }
         else {
-            variable = [scope createVariable:node.value type:type];
+            variable = self.isGlobal ? [context createGlobalVariable:node.value type:type] : [scope createVariable:node.value type:type];
             variable.definedLocation = node.location;
-            
-            if(self.isGlobal) {
-                //TODO: Keep track of globals
-            }
         }
     }
     
@@ -1650,12 +1400,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     LXClass *type = [context findType:self.typeToken.value];
 
     if(!type.isDefined) {
-        [context addError:[NSString stringWithFormat:@"Type %@ is undefined.", self.typeToken.value] range:self.typeToken.range line:self.typeToken.line column:self.typeToken.column];
+        [context addWarning:[NSString stringWithFormat:@"Type %@ is undefined.", self.typeToken.value] range:self.typeToken.range line:self.typeToken.line column:self.typeToken.column];
     }
     
     for(LXExpr *expr in self.exprs) {
         [expr resolveTypes:context];
     }
+    
+    self.scopeToken.completionFlags = LXTokenCompletionFlagsTypes;
+    self.typeToken.isType = YES;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
@@ -1670,13 +1423,13 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [writer writeSpace];
     }
     
-    for(LXNodeNew *node in self.vars) {
+    for(LXNode *node in self.vars) {
         [node compile:writer];
     }
     
     [self.equalsToken compile:writer];
     
-    for(LXNodeNew *node in self.exprs) {
+    for(LXNode *node in self.exprs) {
         [node compile:writer];
     }
 }
@@ -1687,8 +1440,32 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic vars, equalsToken, exprs;
 
 - (void)resolveVariables:(LXContext *)context {
-    for(LXExpr *expr in self.vars) {
+    BOOL assignable = NO;
+    
+    for(NSInteger i = 0; i < [self.vars count]; ++i) {
+        LXExpr *expr = self.vars[i];
+        
+        if(![expr isKindOfClass:[LXExpr class]])
+            continue;
+        
         [expr resolveVariables:context];
+        
+        assignable = assignable || expr.assignable;
+        
+        if(i > 0 && !expr.assignable) {
+            [context addError:@"Expected assignment statement" range:expr.range line:expr.line column:expr.column];
+        }
+    }
+    
+    if(assignable) {
+        if(!self.equalsToken) {
+            [context addError:@"Expected assignment statement" range:self.range line:self.line column:self.column];
+        }
+    }
+    else {
+        if(self.equalsToken) {
+            [context addError:[NSString stringWithFormat:@"Unexpected '=' near %@", self.equalsToken.value] range:self.equalsToken.range line:self.equalsToken.line column:self.equalsToken.column];
+        }
     }
      
     for(LXExpr *expr in self.exprs) {
@@ -1704,16 +1481,31 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     for(LXExpr *expr in self.exprs) {
         [expr resolveTypes:context];
     }
+    
+    self.equalsToken.completionFlags = LXTokenCompletionFlagsVariables;
+    
+    LXNode *lastNode = self.children.lastObject;
+    
+    while(lastNode) {
+        if([lastNode isKindOfClass:[LXTokenNode class]]) {
+            LXTokenNode *lastTokenNode = (LXTokenNode *)lastNode;
+            lastTokenNode.completionFlags = LXTokenCompletionFlagsBlock;
+            break;
+        }
+        else {
+            lastNode = lastNode.children.lastObject;
+        }
+    }
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    for(LXNodeNew *node in self.vars) {
+    for(LXNode *node in self.vars) {
         [node compile:writer];
     }
     
     [self.equalsToken compile:writer];
     
-    for(LXNodeNew *node in self.exprs) {
+    for(LXNode *node in self.exprs) {
         [node compile:writer];
     }
 }
@@ -1729,6 +1521,19 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     [self.expr resolveTypes:context];
+    
+    LXNode *lastNode = self.expr.children.lastObject;
+    
+    while(lastNode) {
+        if([lastNode isKindOfClass:[LXTokenNode class]]) {
+            LXTokenNode *lastTokenNode = (LXTokenNode *)lastNode;
+            lastTokenNode.completionFlags = LXTokenCompletionFlagsBlock;
+            break;
+        }
+        else {
+            lastNode = lastNode.children.lastObject;
+        }
+    }
 }
 
 - (void)compile:(LXLuaWriter *)writer {

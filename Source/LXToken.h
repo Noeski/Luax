@@ -27,16 +27,6 @@ typedef enum {
     LX_TK_ERROR
 } LXTokenType;
 
-typedef enum {
-    LXTokenCompletionFlagsTypes = 1,
-    LXTokenCompletionFlagsVariables = 2,
-    LXTokenCompletionFlagsMembers = 4,
-    LXTokenCompletionFlagsFunctions = 8,
-    LXTokenCompletionFlagsControlStructures = 16,
-    LXTokenCompletionFlagsClass = /*LXTokenCompletionFlagsFunction |*/LXTokenCompletionFlagsTypes,
-    LXTokenCompletionFlagsBlock = LXTokenCompletionFlagsControlStructures | LXTokenCompletionFlagsVariables | LXTokenCompletionFlagsTypes
-} LXTokenCompletionFlags;
-
 @interface LXToken : NSObject 
 @property (nonatomic) LXTokenType type;
 @property (nonatomic) NSRange range;
@@ -44,12 +34,6 @@ typedef enum {
 @property (nonatomic) NSInteger endLine;
 @property (nonatomic) NSInteger column;
 @property (nonatomic) NSInteger endColumn;
-@property (nonatomic, strong) LXVariable *variable;
-@property (nonatomic, strong) LXClass *variableType;
-//@property (nonatomic, strong) LXScope *scope;
-@property (nonatomic) BOOL isMember;
-@property (nonatomic, assign) LXTokenCompletionFlags completionFlags;
-
 - (BOOL)isKeyword;
 - (BOOL)isType;
 - (BOOL)isAssignmentOperator;

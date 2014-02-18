@@ -7,6 +7,7 @@
 //
 
 #import "LXProject.h"
+#import "LXLuaWriter.h"
 #import "LXLuaCallStackIndex.h"
 #import "LXLuaVariable.h"
 #import "NSString+JSON.h"
@@ -162,7 +163,7 @@ typedef enum {
 
 - (void)compile {
     if([self isCompiled]) {
-        //return;
+        return;
     }
     
     self.cachedCompiledContents = nil;
@@ -171,7 +172,7 @@ typedef enum {
     [self.context compile:self.contents];
     
     if([self hasErrors]) {
-    //    return;
+        return;
     }
     
     LXLuaWriter *writer = [[LXLuaWriter alloc] init];

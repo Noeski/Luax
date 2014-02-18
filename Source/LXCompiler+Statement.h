@@ -10,6 +10,7 @@
 
 @interface LXContext(Statement)
 - (LXBlock *)parseBlock;
+- (LXBlock *)parseBlock:(NSDictionary *)closeKeywords;
 - (LXStmt *)parseStatement;
 - (LXClassStmt *)parseClassStatement;
 - (LXIfStmt *)parseIfStatement;
