@@ -464,30 +464,70 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXKVP
+@dynamic key, assignmentToken, value;
 
-- (id)initWithKey:(LXExpr *)key value:(LXExpr *)value {
-    if(self = [super init]) {
-        _key = key;
-        _value = value;
-    }
-    
-    return self;
+- (void)resolveVariables:(LXContext *)context {
+    [self.value resolveVariables:context];
 }
 
-- (id)initWithValue:(LXExpr *)value {
-    if(self = [super init]) {
-        _value = value;
-    }
-    
-    return self;
+- (void)resolveTypes:(LXContext *)context {
+    [self.value resolveTypes:context];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.key compile:writer];
+    [self.assignmentToken compile:writer];
+    [self.value compile:writer];
+}
+
+@end
+
+@implementation LXIndexedKVP
+@dynamic leftBracketToken, key, rightBracketToken, assignmentToken, value;
+
+- (void)resolveVariables:(LXContext *)context {
+    [self.key resolveVariables:context];
+    [self.value resolveVariables:context];
+}
+
+- (void)resolveTypes:(LXContext *)context {
+    [self.key resolveTypes:context];
+    [self.value resolveTypes:context];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.leftBracketToken compile:writer];
+    [self.key compile:writer];
+    [self.rightBracketToken compile:writer];
+    [self.assignmentToken compile:writer];
+    [self.value compile:writer];
 }
 
 @end
 
 @implementation LXTableCtorExpr
+@dynamic leftBraceToken, keyValuePairs, rightBraceToken;
+
+- (void)resolveVariables:(LXContext *)context {
+    for(LXNode *node in self.keyValuePairs) {
+        [node resolveVariables:context];
+    }
+}
 
 - (void)resolveTypes:(LXContext *)context {
+    for(LXNode *node in self.keyValuePairs) {
+        [node resolveTypes:context];
+    }
+    
     self.resultType = [LXVariable variableWithType:[LXClassTable classTable]];
+}
+
+- (void)compile:(LXLuaWriter *)writer {
+    [self.leftBraceToken compile:writer];
+    for(LXNode *node in self.keyValuePairs) {
+        [node compile:writer];
+    }
+    [self.rightBraceToken compile:writer];
 }
 
 @end
@@ -595,7 +635,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     }
     
     if([self.prefix isKindOfClass:[LXVariableExpr class]]) {
-        self.resultType = self.prefix.resultType.returnTypes.firstObject;
+        self.resultType = self.prefix.resultType;
     }
     else {
         for(LXVariable *function in self.prefix.resultType.type.functions) {
@@ -1610,7 +1650,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     while(lastNode) {
         if([lastNode isKindOfClass:[LXTokenNode class]]) {
             LXTokenNode *lastTokenNode = (LXTokenNode *)lastNode;
-            lastTokenNode.completionFlags = LXTokenCompletionFlagsBlock;
+            lastTokenNode.completionFlags |= LXTokenCompletionFlagsBlock;
             break;
         }
         else {
@@ -1648,7 +1688,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     while(lastNode) {
         if([lastNode isKindOfClass:[LXTokenNode class]]) {
             LXTokenNode *lastTokenNode = (LXTokenNode *)lastNode;
-            lastTokenNode.completionFlags = LXTokenCompletionFlagsBlock;
+            lastTokenNode.completionFlags |= LXTokenCompletionFlagsBlock;
             break;
         }
         else {

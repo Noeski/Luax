@@ -225,158 +225,22 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
 
 - (NSArray *)completionsForLocation:(NSInteger)location range:(NSRangePointer)range {
     LXTokenNode *node = [self.block closestCompletionNode:location];
+    *range = NSMakeRange(location, 0);
     
-    if(node.isReserved && locationInsideRange(location, node.range)) {
-        *range = NSMakeRange(node.location, location-node.location);
-        node = node.prev;
-    }
-    else {
-        *range = NSMakeRange(location, 0);
+    if(locationInsideRange(location, node.range)) {
+        if(node.isReserved) {
+            *range = NSMakeRange(node.location, location-node.location);
+            node = node.prev;
+        }
+        else if(node.tokenType == '.' || node.tokenType == ':') {
+            
+        }
+        else {
+            node = nil;
+        }
     }
     
     NSMutableArray *autoCompleteDefinitions = [[NSMutableArray alloc] init];
-    
-    if((node.completionFlags & LXTokenCompletionFlagsControlStructures) == LXTokenCompletionFlagsControlStructures) {
-        //NSInteger line = [self lineForLocation:affectedCharRange.location];
-        
-        if(YES) {
-            /*for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
-             BOOL found = NO;
-             
-             for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
-             if([otherDefinition.key isEqualToString:definition.key]) {
-             found = YES;
-             break;
-             }
-             }
-             
-             if(found)
-             continue;
-             
-             [autoCompleteDefinitions addObject:definition];
-             }*/
-        }
-    }
-    
-    if((node.completionFlags & LXTokenCompletionFlagsVariables) == LXTokenCompletionFlagsVariables) {
-        LXScope *scope = [node scope];
-        
-        while(scope) {
-            for(LXVariable *variable in scope.localVariables) {
-                if(!variable.isFunction && !variable.type.isDefined) {
-                    continue;
-                }
-                
-                if(!scope.isGlobalScope && variable.definedLocation >= location) {
-                    continue;
-                }
-                
-                BOOL found = NO;
-                
-                for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
-                    if([definition.key isEqualToString:variable.name]) {
-                        found = YES;
-                        break;
-                    }
-                }
-                
-                if(found)
-                    continue;
-                
-                if([variable isFunction]) {
-                    LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                    
-                    autoCompleteDefinition.key = variable.name;
-                    
-                    if([variable.returnTypes count]) {
-                        LXVariable *returnType = variable.returnTypes[0];
-                        
-                        autoCompleteDefinition.type = returnType.type.name;
-                        
-                        for(NSInteger i = 1; i < [variable.returnTypes count]; ++i) {
-                            returnType = variable.returnTypes[i];
-                            
-                            autoCompleteDefinition.type = [autoCompleteDefinition.type stringByAppendingFormat:@", %@", returnType.type.name];
-                        }
-                    }
-                    else {
-                        autoCompleteDefinition.type = @"void";
-                    }
-                    
-                    autoCompleteDefinition.string = [NSString stringWithFormat:@"%@(", variable.name];
-                    autoCompleteDefinition.title = [NSString stringWithFormat:@"%@(", variable.name];
-                    
-                    NSMutableArray *markers = nil;
-                    
-                    if([variable.arguments count]) {
-                        markers = [NSMutableArray array];
-                        
-                        LXVariable *argument = variable.arguments[0];
-                        
-                        NSRange marker = NSMakeRange(autoCompleteDefinition.string.length, argument.name.length);
-                        [markers addObject:[NSValue valueWithRange:marker]];
-                        
-                        autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@"%@", argument.name];
-                        autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@"%@", argument.type.name];
-                        
-                        for(NSInteger i = 1; i < [variable.arguments count]; ++i) {
-                            argument = variable.arguments[i];
-                            
-                            marker = NSMakeRange(autoCompleteDefinition.string.length+2, argument.name.length);
-                            [markers addObject:[NSValue valueWithRange:marker]];
-                            
-                            autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@", %@", argument.name];
-                            autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@", %@", argument.type.name];
-                        }
-                    }
-                    
-                    autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingString:@")"];
-                    autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
-                    
-                    autoCompleteDefinition.markers = markers;
-                    autoCompleteDefinition.description = nil;
-                    
-                    [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                }
-                
-                if(variable.type.isDefined) {
-                    LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-                    
-                    autoCompleteDefinition.key = variable.name;
-                    
-                    autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
-                    autoCompleteDefinition.string = variable.name;
-                    autoCompleteDefinition.title = variable.name;
-                    autoCompleteDefinition.description = nil;
-                    autoCompleteDefinition.markers = nil;
-                    
-                    [autoCompleteDefinitions addObject:autoCompleteDefinition];
-                }
-            }
-            
-            scope = scope.parent;
-        }
-    }
-    
-    if((node.completionFlags & LXTokenCompletionFlagsTypes) == LXTokenCompletionFlagsTypes) {
-        NSMutableDictionary *typeMap = [self.compiler.baseTypeMap mutableCopy];
-        [typeMap addEntriesFromDictionary:self.compiler.typeMap];
-        
-        for(NSString *key in [typeMap allKeys]) {
-            if(![typeMap[key] isDefined])
-                continue;
-            
-            LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-            
-            autoCompleteDefinition.key = key;
-            autoCompleteDefinition.type = @"Class";
-            autoCompleteDefinition.string = key;
-            autoCompleteDefinition.title = key;
-            autoCompleteDefinition.description = nil;
-            autoCompleteDefinition.markers = nil;
-            [autoCompleteDefinitions addObject:autoCompleteDefinition];
-        }
-    }
     
     if((node.completionFlags & LXTokenCompletionFlagsMembers) == LXTokenCompletionFlagsMembers ||
        (node.completionFlags & LXTokenCompletionFlagsFunctions) == LXTokenCompletionFlagsFunctions) {
@@ -484,6 +348,149 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
                 }
                 
                 type = type.parent;
+            }
+        }
+    }
+    else {
+        if((node.completionFlags & LXTokenCompletionFlagsControlStructures) == LXTokenCompletionFlagsControlStructures) {
+            //NSInteger line = [self lineForLocation:affectedCharRange.location];
+            
+            if(YES) {
+                /*for(LXAutoCompleteDefinition *definition in baseAutoCompleteDefinitions) {
+                 BOOL found = NO;
+                 
+                 for(LXAutoCompleteDefinition *otherDefinition in autoCompleteDefinitions) {
+                 if([otherDefinition.key isEqualToString:definition.key]) {
+                 found = YES;
+                 break;
+                 }
+                 }
+                 
+                 if(found)
+                 continue;
+                 
+                 [autoCompleteDefinitions addObject:definition];
+                 }*/
+            }
+        }
+        
+        if((node.completionFlags & LXTokenCompletionFlagsVariables) == LXTokenCompletionFlagsVariables) {
+            LXScope *scope = [node scope];
+            
+            while(scope) {
+                for(LXVariable *variable in scope.localVariables) {
+                    if(!variable.isFunction && !variable.type.isDefined) {
+                        continue;
+                    }
+                    
+                    if(!scope.isGlobalScope && variable.definedLocation >= location) {
+                        continue;
+                    }
+                    
+                    BOOL found = NO;
+                    
+                    for(LXAutoCompleteDefinition *definition in autoCompleteDefinitions) {
+                        if([definition.key isEqualToString:variable.name]) {
+                            found = YES;
+                            break;
+                        }
+                    }
+                    
+                    if(found)
+                        continue;
+                    
+                    if([variable isFunction]) {
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                        
+                        autoCompleteDefinition.key = variable.name;
+                        
+                        if([variable.returnTypes count]) {
+                            LXVariable *returnType = variable.returnTypes[0];
+                            
+                            autoCompleteDefinition.type = returnType.type.name;
+                            
+                            for(NSInteger i = 1; i < [variable.returnTypes count]; ++i) {
+                                returnType = variable.returnTypes[i];
+                                
+                                autoCompleteDefinition.type = [autoCompleteDefinition.type stringByAppendingFormat:@", %@", returnType.type.name];
+                            }
+                        }
+                        else {
+                            autoCompleteDefinition.type = @"void";
+                        }
+                        
+                        autoCompleteDefinition.string = [NSString stringWithFormat:@"%@(", variable.name];
+                        autoCompleteDefinition.title = [NSString stringWithFormat:@"%@(", variable.name];
+                        
+                        NSMutableArray *markers = nil;
+                        
+                        if([variable.arguments count]) {
+                            markers = [NSMutableArray array];
+                            
+                            LXVariable *argument = variable.arguments[0];
+                            
+                            NSRange marker = NSMakeRange(autoCompleteDefinition.string.length, argument.name.length);
+                            [markers addObject:[NSValue valueWithRange:marker]];
+                            
+                            autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@"%@", argument.name];
+                            autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@"%@", argument.type.name];
+                            
+                            for(NSInteger i = 1; i < [variable.arguments count]; ++i) {
+                                argument = variable.arguments[i];
+                                
+                                marker = NSMakeRange(autoCompleteDefinition.string.length+2, argument.name.length);
+                                [markers addObject:[NSValue valueWithRange:marker]];
+                                
+                                autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingFormat:@", %@", argument.name];
+                                autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingFormat:@", %@", argument.type.name];
+                            }
+                        }
+                        
+                        autoCompleteDefinition.string = [autoCompleteDefinition.string stringByAppendingString:@")"];
+                        autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
+                        
+                        autoCompleteDefinition.markers = markers;
+                        autoCompleteDefinition.description = nil;
+                        
+                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
+                    }
+                    
+                    if(variable.type.isDefined) {
+                        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                        
+                        autoCompleteDefinition.key = variable.name;
+                        
+                        autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
+                        autoCompleteDefinition.string = variable.name;
+                        autoCompleteDefinition.title = variable.name;
+                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.markers = nil;
+                        
+                        [autoCompleteDefinitions addObject:autoCompleteDefinition];
+                    }
+                }
+                
+                scope = scope.parent;
+            }
+        }
+        
+        if((node.completionFlags & LXTokenCompletionFlagsTypes) == LXTokenCompletionFlagsTypes) {
+            NSMutableDictionary *typeMap = [self.compiler.baseTypeMap mutableCopy];
+            [typeMap addEntriesFromDictionary:self.compiler.typeMap];
+            
+            for(NSString *key in [typeMap allKeys]) {
+                if(![typeMap[key] isDefined])
+                    continue;
+                
+                LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
+                
+                autoCompleteDefinition.key = key;
+                autoCompleteDefinition.type = @"Class";
+                autoCompleteDefinition.string = key;
+                autoCompleteDefinition.title = key;
+                autoCompleteDefinition.description = nil;
+                autoCompleteDefinition.markers = nil;
+                [autoCompleteDefinitions addObject:autoCompleteDefinition];
             }
         }
     }

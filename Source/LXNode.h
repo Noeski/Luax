@@ -127,12 +127,18 @@ typedef enum {
 @property (nonatomic, strong) LXTokenNode *var;
 @end
 
-@interface LXKVP : NSObject
-@property (nonatomic, strong) LXExpr *key;
+@interface LXKVP : LXNode
+@property (nonatomic, strong) LXTokenNode *key;
+@property (nonatomic, strong) LXTokenNode *assignmentToken;
 @property (nonatomic, strong) LXExpr *value;
+@end
 
-- (id)initWithKey:(LXExpr *)key value:(LXExpr *)value;
-- (id)initWithValue:(LXExpr *)value;
+@interface LXIndexedKVP : LXNode
+@property (nonatomic, strong) LXTokenNode *leftBracketToken;
+@property (nonatomic, strong) LXExpr *key;
+@property (nonatomic, strong) LXTokenNode *rightBracketToken;
+@property (nonatomic, strong) LXTokenNode *assignmentToken;
+@property (nonatomic, strong) LXExpr *value;
 @end
 
 @interface LXTableCtorExpr : LXExpr

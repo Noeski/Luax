@@ -79,47 +79,39 @@
     
     do {
         if(_current.type == '[') {
-            [self consumeTokenNode];
-            LXExpr *key = [self parseExpression];
+            LXIndexedKVP *kvp = [self nodeWithType:[LXIndexedKVP class]];
+            kvp.leftBracketToken = [self consumeTokenNode];
+            kvp.key = [self parseExpression];
             
             if(_current.type != ']') {
                 [self addError:[NSString stringWithFormat:@"Expected ']' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
                 break;
             }
             
-            [self consumeTokenNode];
+            kvp.rightBracketToken = [self consumeTokenNode];
             
             if(_current.type != '=') {
                 [self addError:[NSString stringWithFormat:@"Expected '=' near: %@", [self tokenValue:_current]] range:_current.range line:_current.line column:_current.column];
                 break;
             }
             
-            [self consumeTokenNode];
+            kvp.assignmentToken = [self consumeTokenNode];
+            kvp.value = [self parseExpression];
             
-            LXExpr *value = [self parseExpression];
-            
-            [mutableKeyValuePairs addObject:[[LXKVP alloc] initWithKey:key value:value]];
+            [mutableKeyValuePairs addObject:[self finish:kvp]];
         }
-        else if(_current.type == LX_TK_NAME) {
-            LXExpr *key = [self parseExpression];
-            
-            LXKVP *kvp = [[LXKVP alloc] initWithValue:key];
-
-            if(_current.type == '=') {
-                [self consumeTokenNode];
-                
-                kvp.value = [self parseExpression];
-            }
-            
-            [mutableKeyValuePairs addObject:kvp];
+        else if(_current.type == LX_TK_NAME && _next.type == '=') {
+            LXKVP *kvp = [self nodeWithType:[LXKVP class]];
+            kvp.key = [self consumeTokenNode];
+            kvp.assignmentToken = [self consumeTokenNode];
+            kvp.value = [self parseExpression];
+            [mutableKeyValuePairs addObject:[self finish:kvp]];
         }
         else if(_current.type == '}') {
             break;
         }
         else {
-            LXExpr *value = [self parseExpression];
-            
-            [mutableKeyValuePairs addObject:[[LXKVP alloc] initWithValue:value]];
+            [mutableKeyValuePairs addObject:[self parseExpression]];
         }
         
         if(_current.type ==';' || _current.type == ',') {
