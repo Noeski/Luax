@@ -7,6 +7,27 @@
 #import "LXTextFieldCell.h"
 #import "LXBlurWindow.h"
 
+@interface LXAutoCompleteTableView : LXTableView
+@end
+
+@implementation LXAutoCompleteTableView
+
+- (BOOL)isOpaque {
+    return NO;
+}
+
+- (void)drawBackgroundInClipRect:(NSRect)clipRect {
+}
+
+- (void)highlightSelectionInClipRect:(NSRect)theClipRect {
+    NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:self.visibleRect xRadius:4 yRadius:4];
+    [path addClip];
+    
+    [super highlightSelectionInClipRect:theClipRect];
+}
+
+@end
+
 @interface LXAutoCompleteCell : NSTextFieldCell
 @end
 
@@ -88,15 +109,10 @@
         identifierCharacterSet = [NSCharacterSet characterSetWithCharactersInString:
                                   @"_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"];
         NSRect frame = NSMakeRect(0, 0, 150, 150);
-        autoCompleteWindow = [[NSWindow alloc] initWithContentRect:frame
-                                             styleMask:NSBorderlessWindowMask
-                                               backing:NSBackingStoreBuffered
-                                                 defer:NO];
-        autoCompleteWindow.alphaValue = 0.0f;
+        autoCompleteWindow = [[LXBlurWindow alloc] initWithFrame:frame];
         autoCompleteWindow.hasShadow = YES;
-        
         autoCompleteWindow.delegate = self;
-        [autoCompleteWindow setBackgroundColor:[NSColor clearColor]];
+        [autoCompleteWindow setBackgroundColor:[NSColor colorWithCalibratedWhite:1 alpha:0.8]];
         
         font = [[NSFontManager sharedFontManager] fontWithFamily:@"Menlo"
                                                                   traits:0
@@ -104,16 +120,16 @@
                                                                     size:11];
         
         NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        [contentView setWantsLayer:YES];
-        [contentView.layer setBackgroundColor:[NSColor whiteColor].CGColor];
         autoCompleteScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        autoCompleteTableView = [[LXTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
+        [autoCompleteScrollView setDrawsBackground:NO];
+        autoCompleteTableView = [[LXAutoCompleteTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         
         [autoCompleteTableView setAllowsEmptySelection:NO];
         [autoCompleteTableView setAllowsMultipleSelection:NO];
         [autoCompleteTableView setDoubleAction:@selector(finishAutoComplete)];
         
         NSTextFieldCell *cell = [[LXAutoCompleteCell alloc] init];
+        [cell setDrawsBackground:NO];
         cell.font = font;
         cell.alignment = NSRightTextAlignment;
         NSTableColumn *tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column1"];
@@ -123,6 +139,7 @@
         [autoCompleteTableView addTableColumn:tableColumn];
         
         cell = [[LXAutoCompleteCell alloc] init];
+        [cell setDrawsBackground:NO];
         cell.font = font;
         tableColumn = [[NSTableColumn alloc] initWithIdentifier:@"Column2"];
         [tableColumn setWidth:75];
@@ -136,22 +153,6 @@
         [autoCompleteScrollView setDocumentView:autoCompleteTableView];
         [autoCompleteScrollView setHasVerticalScroller:YES];
         [contentView addSubview:autoCompleteScrollView];
-
-        /*autoCompleteDescriptionView = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
-        [autoCompleteDescriptionView setFont:font];
-        [autoCompleteDescriptionView setStringValue:@"My Label"];
-        [autoCompleteDescriptionView setBezeled:NO];
-        [autoCompleteDescriptionView setDrawsBackground:NO];
-        [autoCompleteDescriptionView setEditable:NO];
-        [autoCompleteDescriptionView setSelectable:NO];
-        
-        NSView *separatorView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 1)];
-        [separatorView setAutoresizingMask:NSViewWidthSizable | NSViewMaxYMargin];
-        [separatorView setWantsLayer:YES];
-        [separatorView.layer setBackgroundColor:CGColorCreateGenericGray(0.8, 1)];
-        [autoCompleteDescriptionView addSubview:separatorView];
-        
-        [contentView addSubview:autoCompleteDescriptionView];*/
         
         autoCompleteWindow.contentView = contentView;
         

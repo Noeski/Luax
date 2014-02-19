@@ -52,6 +52,9 @@ extern CGSConnection CGSDefaultConnectionForThread();
 }
 
 - (NSColor *)backgroundColorPatternImage:(CGRect)frame color:(NSColor *)color {
+    if(frame.size.width <= 0 || frame.size.height <= 0)
+        return nil;
+    
     NSImage *bg = [[NSImage alloc] initWithSize:frame.size];
     NSRect bgRect = NSZeroRect;
     bgRect.size = [bg size];
