@@ -794,6 +794,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic scopeToken, staticToken, functionToken, returnTypes, nameExpr, args, body, endToken;
 
 - (void)resolveVariables:(LXContext *)context {
+    [self resolveVariables:context class:nil];
+}
+
+- (void)resolveVariables:(LXContext *)context class:(LXClassStmt *)class {
     if(self.nameExpr) {
         LXScope *scope = self.isGlobal ? context.compiler.globalScope : self.scope.parent;
         LXVariable *variable = [scope localVariable:self.nameExpr.value];
@@ -804,6 +808,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         else {
             variable = self.isGlobal ? [context createGlobalFunction:self.nameExpr.value] : [scope createFunction:self.nameExpr.value];
             variable.definedLocation = self.nameExpr.location;
+            
+            if(class) {
+                [self.scope createVariable:@"self" type:class.type];
+            }
             
             NSMutableArray *mutableReturnTypes = [[NSMutableArray alloc] init];
             for(LXTokenNode *node in self.returnTypes.returnTypes) {
@@ -836,10 +844,6 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             
             variable.returnTypes = mutableReturnTypes;
             variable.arguments = mutableArguments;
-            
-            if(self.isGlobal) {
-                //TODO: Keep track of globals
-            }
         }
     }
     
@@ -847,12 +851,12 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)resolveTypes:(LXContext *)context {
+    [self.returnTypes resolveTypes:context];
     /*if(self.nameExpr) {
      [self.nameExpr resolveTypes:context];
      }*/
-
     [context pushScope:self.scope];
-
+    [self.args resolveTypes:context];
     [self.body resolveTypes:context];
     
     self.resultType = [LXVariable variableWithType:[LXClassFunction classFunction]];
@@ -989,12 +993,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     [context pushScope:self.scope];
 
+    LXVariable *super = [self.scope createVariable:@"super" type:parent];
+    super.isMember = YES;
+    
     for(LXDeclarationStmt *stmt in self.vars) {
         [stmt resolveVariables:context];
     }
     
-    for(LXExprStmt *stmt in self.functions) {
-        [stmt resolveVariables:context];
+    for(LXFunctionExpr *stmt in self.functions) {
+        [stmt resolveVariables:context class:self];
     }
     
     [context popScope];

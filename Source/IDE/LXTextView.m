@@ -753,6 +753,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     [currentAutoCompleteDefinitions addObjectsFromArray:mutableAutoCompleteDefinitions];
 
     [autoCompleteTableView reloadData];
+    [self tableViewSelectionDidChange:nil];
 }
 
 - (BOOL)shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {
