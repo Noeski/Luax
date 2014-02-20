@@ -7,8 +7,6 @@
 @protocol LXProjectFileViewDelegate<NSObject>
 @optional
 - (void)fileWasModified:(LXProjectFileView *)file modified:(BOOL)modifier;
-- (void)fileDidAddBreakpoint:(LXProjectFileView *)file line:(NSUInteger)line;
-- (void)fileDidRemoveBreakpoint:(LXProjectFileView *)file line:(NSUInteger)line;
 @end
 
 @interface LXProjectFileView : NSView<NSTextViewDelegate> {

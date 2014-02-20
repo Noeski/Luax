@@ -148,6 +148,21 @@ typedef enum {
     }
 }
 
+- (void)offsetBreakpoints:(NSInteger)line diff:(NSInteger)diff {
+    NSArray *allBreakpoints = [[self.mutableBreakpoints allKeys] sortedArrayUsingComparator:^NSComparisonResult(NSNumber *obj1, NSNumber *obj2) {
+        return [obj1 compare:obj2];
+    }];
+    
+    for(NSNumber *breakpoint in allBreakpoints) {
+        NSInteger breakpointLine = [breakpoint integerValue];
+        
+        if(breakpointLine > line) {
+            [self removeBreakpoint:breakpointLine];
+            [self addBreakpoint:breakpointLine+diff];
+        }
+    }
+}
+
 - (NSDictionary *)save {
     return [NSDictionary dictionaryWithObjectsAndKeys:self.uid, @"uid", self.name, @"name", self.mutablePath, @"path", [[LXProjectFile dateFormatter] stringFromDate:self.lastModifiedDate], @"modified", [[LXProjectFile dateFormatter] stringFromDate:self.lastCompileDate], @"build", self.isMain ? @(YES) : nil, @"isMain", nil];
 }

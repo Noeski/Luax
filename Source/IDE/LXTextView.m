@@ -433,8 +433,6 @@ NSTrackingArea *_trackingArea;
             
             [self shouldChangeTextInRange:NSMakeRange(token.range.location, 0) replacementString:[@"" stringByPaddingToLength:diff withString:@" " startingAtIndex:0] undo:YES];
         }
-        
-        NSLog(@"%ld Number of spaces: %ld - expected: %ld", line, numberOfSpaces, scope.scopeLevel * 2);
     }
 }
 
@@ -799,7 +797,21 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         
         [[undoManager prepareWithInvocationTarget:self] shouldChangeTextInRange:newAffectedCharRange replacementString:newReplacementString undo:YES];
     }
-                
+    
+    NSInteger deletedLines = [[[self.string substringWithRange:affectedCharRange] componentsSeparatedByString:@"\n"] count] - 1;
+    NSInteger newLines = [[replacementString componentsSeparatedByString:@"\n"] count] - 1;
+    
+    NSInteger line = [self lineForLocation:affectedCharRange.location];
+    NSInteger lineDiff = newLines - deletedLines;
+    
+    if(highlightedLine != -1) {
+        if(line < highlightedLine-1) {
+            highlightedLine += lineDiff;
+        }
+    }
+
+    [self.file offsetBreakpoints:line diff:lineDiff];
+    
     NSMutableArray *newMarkers = [NSMutableArray arrayWithCapacity:[autoCompleteMarkers count]];
     
     [self replaceCharactersInRange:affectedCharRange withString:replacementString];

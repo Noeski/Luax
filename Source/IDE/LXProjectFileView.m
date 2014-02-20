@@ -230,8 +230,8 @@
 	for(index = 0, lineNumber = 0; index < visibleRange.location; lineNumber++) {
 		index = NSMaxRange([searchString lineRangeForRange:NSMakeRange(index, 0)]);
 	}
-	
-	NSInteger indexNonWrap = [searchString lineRangeForRange:NSMakeRange(index, 0)].location;
+    
+    NSInteger indexNonWrap = [searchString lineRangeForRange:NSMakeRange(index, 0)].location;
 	NSInteger maxRangeVisibleRange = NSMaxRange([textString lineRangeForRange:NSMakeRange(NSMaxRange(visibleRange), 0)]); // Set it to just after the last glyph on the last visible line
 	NSInteger numberOfGlyphsInTextString = [layoutManager numberOfGlyphs];
 	BOOL oneMoreTime = NO;
@@ -283,18 +283,10 @@
 
 - (void)addBreakpoint:(NSUInteger)line {
     [self.file addBreakpoint:line];
-    
-    if([self.delegate respondsToSelector:@selector(fileDidAddBreakpoint:line:)]) {
-        [self.delegate fileDidAddBreakpoint:self line:line];
-    }
 }
 
 - (void)removeBreakpoint:(NSUInteger)line {
     [self.file removeBreakpoint:line];
-
-    if([self.delegate respondsToSelector:@selector(fileDidRemoveBreakpoint:line:)]) {
-        [self.delegate fileDidRemoveBreakpoint:self line:line];
-    }
 }
 
 - (NSUndoManager *)undoManagerForTextView:(NSTextView *)view {
