@@ -198,47 +198,8 @@ NSTrackingArea *_trackingArea;
     stringsColor = [NSColor colorWithCalibratedRed:0.796 green:0.569 blue:0.573 alpha:1];//[NSColor redColor];
     typesColor = [NSColor colorWithCalibratedRed:0.949 green:0.875 blue:0.710 alpha:1];//[NSColor colorWithDeviceRed:0.314 green:0.506 blue:0.529 alpha:1];
     
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"AutoCompleteDefinitions" ofType:@"json"];
-    NSError *error;
-    NSDictionary *dictionary = [[NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error] JSONValue];
-    NSArray *definitions = dictionary[@"definitions"];
-    baseAutoCompleteDefinitions = [[NSMutableArray alloc] initWithCapacity:[definitions count]];
     autoCompleteDefinitions = [[NSMutableArray alloc] init];
     currentAutoCompleteDefinitions = [[NSMutableArray alloc] init];
-    
-    for(NSDictionary *definition in definitions) {
-        LXAutoCompleteDefinition *autoCompleteDefinition = [[LXAutoCompleteDefinition alloc] init];
-        
-        autoCompleteDefinition.key = definition[@"key"];
-        
-        NSString *string = definition[@"string"];
-        NSMutableArray *autoCompleteDefinitionMarkers = [NSMutableArray array];
-        NSRange firstMarkerRange = [string rangeOfString:@"\\m" options:NSLiteralSearch range:NSMakeRange(0, [string length])];
-        NSInteger offset = 0;
-        
-        while(firstMarkerRange.location != NSNotFound) {
-            NSRange secondMarkerRange = [string rangeOfString:@"\\m" options:NSLiteralSearch range:NSMakeRange(NSMaxRange(firstMarkerRange), [string length] - NSMaxRange(firstMarkerRange))];
-            
-            if(secondMarkerRange.location == NSNotFound)
-                break;
-                        
-            NSInteger location = NSMaxRange(firstMarkerRange) - offset - 2;
-            NSInteger length = secondMarkerRange.location - location - offset - 2;
-            
-            [autoCompleteDefinitionMarkers addObject:[NSValue valueWithRange:NSMakeRange(location, length)]];
-
-            firstMarkerRange = [string rangeOfString:@"\\m" options:NSLiteralSearch range:NSMakeRange(NSMaxRange(secondMarkerRange), [string length] - NSMaxRange(secondMarkerRange))];
-            
-            offset += 4;
-        }
-        
-        autoCompleteDefinition.string = [string stringByReplacingOccurrencesOfString:@"\\m" withString:@""];
-        autoCompleteDefinition.title = definition[@"title"];
-        autoCompleteDefinition.description = definition[@"description"];
-        autoCompleteDefinition.markers = autoCompleteDefinitionMarkers;
-        [baseAutoCompleteDefinitions addObject:autoCompleteDefinition];
-    }
-    
     autoCompleteMarkers = [[NSMutableArray alloc] init];
     
     [self setInsertionPointColor:textColor];

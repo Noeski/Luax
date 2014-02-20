@@ -42,7 +42,6 @@
     NSRange autoCompleteWordRange;
     NSString *autoCompleteString;
     
-    NSMutableArray *baseAutoCompleteDefinitions;
     NSMutableArray *autoCompleteDefinitions;
     NSMutableArray *currentAutoCompleteDefinitions;
     NSMutableArray *autoCompleteMarkers;

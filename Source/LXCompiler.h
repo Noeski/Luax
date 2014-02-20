@@ -25,6 +25,7 @@
 @property (nonatomic, strong) NSMutableDictionary *fileMap;
 @property (nonatomic, strong) NSMutableDictionary *baseTypeMap;
 @property (nonatomic, strong) NSMutableDictionary *typeMap;
+@property (nonatomic, strong) NSMutableArray *baseAutoCompleteDefinitions;
 
 - (LXContext *)compilerContext:(NSString *)name;
 

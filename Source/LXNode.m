@@ -767,7 +767,19 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
+    [self compile:writer isMeta:NO];
+}
+
+- (void)compile:(LXLuaWriter *)writer isMeta:(BOOL)isMeta {
     [self.leftParenToken compile:writer];
+    
+    if(isMeta) {
+        [writer write:@"self"];
+        
+        if([self.args count]) {
+            [writer write:@", "];
+        }
+    }
     
     for(LXNode *node in self.args) {
         [node compile:writer];
@@ -850,11 +862,11 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [self compile:writer class:nil];
+    [self compile:writer class:nil isMeta:NO];
 }
 
-- (void)compile:(LXLuaWriter *)writer class:(LXClassStmt *)class {
-    if(!class && !self.isGlobal && self.nameExpr) {
+- (void)compile:(LXLuaWriter *)writer class:(LXClassStmt *)class isMeta:(BOOL)isMeta {
+    if(!class && !isMeta && !self.isGlobal && self.nameExpr) {
         if(self.scopeToken) {
             [self.scopeToken compile:writer];
         }
@@ -869,7 +881,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     BOOL compileInitFunction = NO;
     
-    if(self.nameExpr) {
+    if(self.nameExpr && !isMeta) {
         compileInitFunction = (class && [self.nameExpr.value isEqualToString:@"init"]);
         
         [writer writeSpace];
@@ -882,7 +894,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [self.nameExpr compile:writer];
     }
     
-    [self.args compile:writer];
+    [self.args compile:writer isMeta:isMeta];
     
     if([self.body.stmts count] || compileInitFunction) {
         writer.indentationLevel++;
@@ -956,11 +968,17 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic classToken, nameToken, extendsToken, superToken, vars, functions, endToken;
 
 - (void)resolveVariables:(LXContext *)context {
+    LXClass *parent = nil;
+    
     if(self.superToken) {
-        [context findType:self.superToken.value];
+        parent = [context findType:self.superToken.value];
+    }
+    else {
+        parent = [LXClassTable classTable];
     }
     
     self.type = [context findType:self.nameToken.value];
+    self.type.parent = parent;
     
     if(self.type.isDefined) {
         [context addError:[NSString stringWithFormat:@"Class %@ is already defined.", self.nameToken.value] range:self.nameToken.range line:self.nameToken.line column:self.nameToken.column];
@@ -1010,9 +1028,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 
 - (void)resolveTypes:(LXContext *)context {
     if(self.superToken) {
-        LXClass *type = [context findType:self.superToken.value];
+        LXClass *parent = [context findType:self.superToken.value];
         
-        if(!type.isDefined) {
+        if(!parent.isDefined) {
             [context addWarning:[NSString stringWithFormat:@"Type %@ is undefined.", self.superToken.value] range:self.superToken.range line:self.superToken.line column:self.superToken.column];
         }
     }
@@ -1036,42 +1054,59 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    //TODO: Figure out metamethods like __mul, __add, etc.
-    
-    if(self.type.parent) {
-        [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class})", self.type.name, self.type.parent.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  return obj"]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"end})"]];
-        [writer writeNewline];
-
-        [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", self.type.parent.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  %@[k] = v", self.type.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"end"]];
-        [writer writeNewline];
-    }
-    else {
-        [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\"}, {__index = class})", self.type.name]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"  return obj"]];
-        [writer writeNewline];
-        [writer write:[NSString stringWithFormat:@"end})"]];
-        [writer writeNewline];
-    }
+    NSDictionary *metaTokens = @{@"__add" : @(YES), @"__sub" : @(YES), @"__mul" : @(YES), @"__div" : @(YES), @"__unm" : @(YES), @"__pow" : @(YES), @"__concat" : @(YES)};
+    NSMutableArray *functions = [[NSMutableArray alloc] init];
+    NSMutableArray *metaFunctions = [[NSMutableArray alloc] init];
     
     for(LXFunctionExpr *function in self.functions) {
-        [function compile:writer class:self];
+        NSString *functionName = function.nameExpr.value;
+        
+        if(functionName) {
+            BOOL isMeta = [metaTokens[functionName] boolValue];
+            
+            if(isMeta) {
+                [metaFunctions addObject:function];
+            }
+            else {
+                [functions addObject:function];
+            }
+        }
+    }
+    
+    NSString *parent = @"table";
+    
+    if(self.superToken) {
+        parent = self.superToken.value;
+    }
+    
+    [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class", self.type.name, parent]];
+    for(LXFunctionExpr *function in metaFunctions) {
+        [writer write:@","];
+        [writer writeNewline];
+        [function.nameExpr compile:writer];
+        [writer write:@"="];
+        [function compile:writer class:self isMeta:YES];
+    }
+    [writer write:[NSString stringWithFormat:@"})"]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  return obj"]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"end})"]];
+    [writer writeNewline];
+
+    [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", parent]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  %@[k] = v", self.type.name]];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"end"]];
+    [writer writeNewline];
+    
+    for(LXFunctionExpr *function in functions) {
+        [function compile:writer class:self isMeta:NO];
         [writer writeNewline];
     }
     
@@ -1083,9 +1118,9 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [writer write:@":init(...)"];
         writer.indentationLevel++;
         [writer writeNewline];
-
+        
         [self compileInitFunction:writer];
-
+        
         writer.indentationLevel--;
         [writer writeNewline];
         [writer write:@"end"];
@@ -1568,7 +1603,21 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [expr resolveTypes:context];
     }
     
+    LXNode *lastNode = self.children.lastObject;
+    
+    while(lastNode) {
+        if([lastNode isKindOfClass:[LXTokenNode class]]) {
+            LXTokenNode *lastTokenNode = (LXTokenNode *)lastNode;
+            lastTokenNode.completionFlags |= LXTokenCompletionFlagsBlock;
+            break;
+        }
+        else {
+            lastNode = lastNode.children.lastObject;
+        }
+    }
+    
     self.scopeToken.completionFlags = LXTokenCompletionFlagsTypes;
+    self.equalsToken.completionFlags = LXTokenCompletionFlagsVariables;
     self.typeToken.isType = YES;
 }
 

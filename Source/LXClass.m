@@ -260,6 +260,70 @@
         self.isDefined = YES;
         
         self.defaultExpression = [[LXTableCtorExpr alloc] initWithLine:-1 column:-1 location:-1];
+        
+        LXVariable *concatFunction = [LXVariable functionWithName:@"concat"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassString classString]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"sep" type:[LXClassString classString]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"i" type:[LXClassNumber classNumber]];
+            LXVariable *arg3 = [LXVariable variableWithName:@"j" type:[LXClassNumber classNumber]];
+
+            concatFunction.returnTypes = @[retType];
+            concatFunction.arguments = @[arg1, arg2, arg3];
+        }
+        
+        LXVariable *insertFunction = [LXVariable functionWithName:@"insert"];
+        
+        {
+            LXVariable *arg1 = [LXVariable variableWithName:@"pos" type:[LXClassNumber classNumber]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"value" type:[LXClassVar classVar]];
+            
+            insertFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *packFunction = [LXVariable functionWithName:@"pack"];
+        packFunction.isStatic = YES;
+        
+        {
+            LXVariable *arg1 = [LXVariable variableWithName:@"..." type:[LXClassVar classVar]];
+            
+            packFunction.arguments = @[arg1];
+        }
+
+        LXVariable *removeFunction = [LXVariable functionWithName:@"remove"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            LXVariable *arg1 = [LXVariable variableWithName:@"pos" type:[LXClassNumber classNumber]];
+            
+            removeFunction.returnTypes = @[retType];
+            removeFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *sortFunction = [LXVariable functionWithName:@"sort"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:self];
+            LXVariable *arg1 = [LXVariable variableWithName:@"comp" type:[LXClassFunction classFunction]];
+            
+            sortFunction.returnTypes = @[retType];
+            sortFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *unpackFunction = [LXVariable functionWithName:@"unpack"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            LXVariable *arg1 = [LXVariable variableWithName:@"i" type:[LXClassNumber classNumber]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"j" type:[LXClassNumber classNumber]];
+            
+            unpackFunction.returnTypes = @[retType];
+            unpackFunction.arguments = @[arg1, arg2];
+        }
+        
+        self.variables = @[concatFunction, insertFunction, packFunction, removeFunction, sortFunction, unpackFunction];
     }
     
     return self;
