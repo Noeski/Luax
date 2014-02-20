@@ -975,12 +975,11 @@
             }
             
             [contentView setSubviews:@[fileView]];
-            //[fileView resizeViews];
             
             [fileView.textView setHighlightedLine:index.originalLine];
             
             if(index.error) {
-                [fileView.textView setHighlightedLineColor:[NSColor redColor] background:[NSColor colorWithDeviceRed:1.0f green:0.8f blue:0.8f alpha:1.0f]];
+                [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:1.000 green:0.191 blue:0.186 alpha:1.000] background:[NSColor colorWithDeviceRed:0.736 green:0.104 blue:0.005 alpha:1.000]];
             }
             else {
                 [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:0.000 green:0.565 blue:0.745 alpha:1] background:[NSColor colorWithCalibratedRed:0.000 green:0.376 blue:0.573 alpha:1]];

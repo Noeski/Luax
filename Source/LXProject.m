@@ -1600,6 +1600,7 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
         }
         
         LXLuaCallStackIndex *index = [[LXLuaCallStackIndex alloc] init];
+        index.error = (self.debugState == LXDebugStateError);
         index.source = source;
         index.line = ar.currentline;
         index.firstLine = ar.linedefined;
