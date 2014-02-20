@@ -1561,6 +1561,8 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
     if(self.debugState == LXDebugStateError)
         stackDepth++;
     
+    BOOL first = YES;
+    
     for(; true; ++stackDepth) {
         lua_Debug ar;
         
@@ -1600,7 +1602,7 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
         }
         
         LXLuaCallStackIndex *index = [[LXLuaCallStackIndex alloc] init];
-        index.error = (self.debugState == LXDebugStateError);
+        index.error = (first && self.debugState == LXDebugStateError);
         index.source = source;
         index.line = ar.currentline;
         index.firstLine = ar.linedefined;
@@ -1661,6 +1663,8 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
         [stack addObject:index];
         
         callStackSize++;
+        
+        first = NO;
     }
     
     _callStack = stack;

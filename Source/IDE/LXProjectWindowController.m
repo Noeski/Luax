@@ -979,7 +979,7 @@
             [fileView.textView setHighlightedLine:index.originalLine];
             
             if(index.error) {
-                [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:1.000 green:0.191 blue:0.186 alpha:1.000] background:[NSColor colorWithDeviceRed:0.736 green:0.104 blue:0.005 alpha:1.000]];
+                [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:1.000 green:0.911 blue:0.000 alpha:1.000] background:[NSColor colorWithDeviceRed:0.631 green:0.542 blue:0.024 alpha:1.000]];
             }
             else {
                 [fileView.textView setHighlightedLineColor:[NSColor colorWithCalibratedRed:0.000 green:0.565 blue:0.745 alpha:1] background:[NSColor colorWithCalibratedRed:0.000 green:0.376 blue:0.573 alpha:1]];
