@@ -1494,7 +1494,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXLabelStmt
-@dynamic beginLabelToken, endLabelToken;
+@dynamic beginLabelToken, labelToken, endLabelToken;
 
 - (void)resolveTypes:(LXContext *)context {
     self.endLabelToken.completionFlags = LXTokenCompletionFlagsBlock;
@@ -1503,7 +1503,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)compile:(LXLuaWriter *)writer {
     [self.beginLabelToken compile:writer];
     [writer writeSpace];
-    //[self.value compile:writer];
+    [self.labelToken compile:writer];
     [writer writeSpace];
     [self.endLabelToken compile:writer];
 }
@@ -1511,15 +1511,16 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXGotoStmt
-@dynamic gotoToken;
+@dynamic gotoToken, labelToken;
 
 - (void)resolveTypes:(LXContext *)context {
-    //self.value.completionFlags = LXTokenCompletionFlagsBlock;
+    self.labelToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
     [self.gotoToken compile:writer];
     [writer writeSpace];
+    [self.labelToken compile:writer];
 }
 
 @end

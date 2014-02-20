@@ -122,6 +122,7 @@
         NSView *contentView = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         autoCompleteScrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         [autoCompleteScrollView setDrawsBackground:NO];
+        autoCompleteScrollView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         autoCompleteTableView = [[LXAutoCompleteTableView alloc] initWithFrame:NSMakeRect(0, 0, 150, 150)];
         
         [autoCompleteTableView setAllowsEmptySelection:NO];
@@ -677,13 +678,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         BOOL isMemberAccessor = (ch == '.' || ch == ':');
         
         if([identifierCharacterSet characterIsMember:ch] || isMemberAccessor) {
-            //NSInteger startIndex = affectedCharRange.location-1;
-            
-            //NSString *string = [NSString stringWithFormat:@"%@%@", [[self string] substringWithRange:NSMakeRange(startIndex+1, affectedCharRange.location-(startIndex+1))], replacementString];
-            
-            //if(isMemberAccessor ||
-            //   ([string length] >= 1 && ![[NSCharacterSet decimalDigitCharacterSet] characterIsMember:[string characterAtIndex:0]])) {
-            
             NSRange range;
             
             [autoCompleteDefinitions addObjectsFromArray:[self.file.context completionsForLocation:affectedCharRange.location+replacementString.length range:&range]];
@@ -697,8 +691,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
 }
 
 - (void)updateCurrentAutoCompleteDefinitions {
-    [currentAutoCompleteDefinitions removeAllObjects];
-    
+    NSMutableArray *mutableAutoCompleteDefinitions = [[NSMutableArray alloc] init];
     NSDictionary *sizeAttribute = @{NSFontAttributeName : font};
     
     CGFloat largestTypeWidth = 0;
@@ -711,7 +704,7 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
             NSString *autoCompleteKey = definition.key;
             
             if([string isEqualToString:@""] || [autoCompleteKey hasPrefix:string]) {
-                [currentAutoCompleteDefinitions addObject:definition];
+                [mutableAutoCompleteDefinitions addObject:definition];
                 
                 CGFloat sizeOfString = [definition.title sizeWithAttributes:sizeAttribute].width + 6;
                 
@@ -728,18 +721,16 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         }
     }
     
-    [currentAutoCompleteDefinitions sortUsingComparator:^NSComparisonResult(LXAutoCompleteDefinition *obj1, LXAutoCompleteDefinition *obj2) {
+    [mutableAutoCompleteDefinitions sortUsingComparator:^NSComparisonResult(LXAutoCompleteDefinition *obj1, LXAutoCompleteDefinition *obj2) {
         return [obj1.key compare:obj2.key options:NSCaseInsensitiveSearch];
     }];
     
-    CGFloat windowHeight = [currentAutoCompleteDefinitions count] * (autoCompleteTableView.rowHeight + 2);
+    CGFloat windowHeight = [mutableAutoCompleteDefinitions count] * (autoCompleteTableView.rowHeight + 2);
     if(windowHeight > 150) {
         windowHeight = 150;
     }
     
-    //windowHeight += 20;
-    
-    if([currentAutoCompleteDefinitions count] == 0) {
+    if([mutableAutoCompleteDefinitions count] == 0) {
         [self hideAutoCompleteWindow];
     }
     else {
@@ -748,9 +739,6 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     
     [[autoCompleteTableView tableColumnWithIdentifier:@"Column1"] setWidth:largestTypeWidth];
     [[autoCompleteTableView tableColumnWithIdentifier:@"Column2"] setWidth:largestStringWidth];
-    
-    [autoCompleteTableView reloadData];
-    [self tableViewSelectionDidChange:nil];
     
     NSRect rect = [self.layoutManager boundingRectForGlyphRange:autoCompleteWordRange inTextContainer:self.textContainer];
     rect.origin.x -= 3;
@@ -763,8 +751,10 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
     CGFloat width = [autoCompleteTableView tableColumnWithIdentifier:@"Column1"].width + 3;
     
     [autoCompleteWindow setFrame:NSMakeRect(screenRect.origin.x - width, screenRect.origin.y - windowHeight, largestTypeWidth + largestStringWidth + 4, windowHeight) display:YES];
-    [autoCompleteScrollView setFrame:NSMakeRect(0, 0, largestTypeWidth + largestStringWidth + 6, windowHeight)];
-    //[autoCompleteDescriptionView setFrame:NSMakeRect(0, 5, largestTypeWidth + largestStringWidth, 15)];
+    [currentAutoCompleteDefinitions removeAllObjects];
+    [currentAutoCompleteDefinitions addObjectsFromArray:mutableAutoCompleteDefinitions];
+
+    [autoCompleteTableView reloadData];
 }
 
 - (BOOL)shouldChangeTextInRange:(NSRange)affectedCharRange replacementString:(NSString *)replacementString {

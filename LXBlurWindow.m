@@ -36,19 +36,19 @@ extern CGSConnection CGSDefaultConnectionForThread();
 }
 
 - (void)setFrame:(NSRect)frameRect display:(BOOL)flag {
-    [super setFrame:frameRect display:YES];
+    [self updateBackground:frameRect];
     
-    [self updateBackground];
+    [super setFrame:frameRect display:YES];
 }
 
 - (void)setBackgroundColor:(NSColor *)color {
     self.windowColor = color;
     
-    [self updateBackground];
+    [self updateBackground:self.frame];
 }
 
-- (void)updateBackground {
-    [super setBackgroundColor:[self backgroundColorPatternImage:self.frame color:self.windowColor]];
+- (void)updateBackground:(NSRect)frame {
+    [super setBackgroundColor:[self backgroundColorPatternImage:frame color:self.windowColor]];
 }
 
 - (NSColor *)backgroundColorPatternImage:(CGRect)frame color:(NSColor *)color {
