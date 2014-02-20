@@ -1713,10 +1713,34 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [node compile:writer];
     }
     
-    [self.equalsToken compile:writer];
+    NSDictionary *assignmentOperators = @{@"+=" : @(YES), @"-=" : @(YES),  @"*=" : @(YES),  @"/=" : @(YES),
+                                          @"^=" : @(YES),  @"%=" : @(YES),  @"..=" : @(YES)};
     
-    for(LXNode *node in self.exprs) {
-        [node compile:writer];
+    if([assignmentOperators[self.equalsToken.value] boolValue]) {
+        NSString *operator = [self.equalsToken.value substringToIndex:1];
+
+        [writer write:@"="];
+        
+        for(NSInteger i = 0; i < [self.vars count] && i < [self.exprs count]; ++i) {
+            LXNode *var = self.vars[i];
+            LXNode *expr = self.exprs[i];
+            
+            if([var isKindOfClass:[LXExpr class]] && [expr isKindOfClass:[LXExpr class]]) {
+                [var compile:writer];
+                [writer write:operator];
+                [expr compile:writer];
+            }
+            else {
+                [expr compile:writer];
+            }
+        }
+    }
+    else {
+        [self.equalsToken compile:writer];
+        
+        for(LXNode *node in self.exprs) {
+            [node compile:writer];
+        }
     }
 }
 
