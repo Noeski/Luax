@@ -1649,6 +1649,17 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @implementation LXAssignmentStmt
 @dynamic vars, equalsToken, exprs;
 
++ (LXAssignmentStmt *)assignmentStatementWithVars:(NSArray *)vars {
+    LXNode *firstVar = vars.firstObject;
+    LXAssignmentStmt *statement = [[LXAssignmentStmt alloc] init];
+    statement.line = firstVar.line;
+    statement.column = firstVar.line;
+    statement.location = firstVar.location;
+    statement.vars = vars;
+    
+    return statement;
+}
+
 - (void)resolveVariables:(LXContext *)context {
     BOOL assignable = NO;
     
@@ -1717,7 +1728,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
                                           @"^=" : @(YES),  @"%=" : @(YES),  @"..=" : @(YES)};
     
     if([assignmentOperators[self.equalsToken.value] boolValue]) {
-        NSString *operator = [self.equalsToken.value substringToIndex:1];
+        NSString *operator = [self.equalsToken.value substringToIndex:[self.equalsToken.value length]-1];
 
         [writer write:@"="];
         

@@ -342,6 +342,8 @@ typedef enum {
 @property (nonatomic, strong) NSArray *vars;
 @property (nonatomic, strong) LXTokenNode *equalsToken;
 @property (nonatomic, strong) NSArray *exprs;
+
++ (LXAssignmentStmt *)assignmentStatementWithVars:(NSArray *)vars;
 @end
 
 @interface LXExprStmt : LXStmt
