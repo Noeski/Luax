@@ -653,10 +653,32 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
+    BOOL isSuper = NO;
+    
+    if([self.prefix isKindOfClass:[LXVariableExpr class]]) {
+        LXVariableExpr *expr = (LXVariableExpr *)self.prefix;
+        if([expr.token.value isEqualToString:@"super"]) {
+            isSuper = YES;
+        }
+    }
+    
     [self.prefix compile:writer];
-    [self.memberToken compile:writer];
-    [self.value compile:writer];
-    [self.leftParenToken compile:writer];
+
+    if(isSuper) {
+        [writer write:@"."];
+        [self.value compile:writer];
+        [self.leftParenToken compile:writer];
+        [writer write:@"self"];
+        
+        if([self.args count]) {
+            [writer write:@","];
+        }
+    }
+    else {
+        [self.memberToken compile:writer];
+        [self.value compile:writer];
+        [self.leftParenToken compile:writer];
+    }
     
     for(LXNode *arg in self.args) {
         [arg compile:writer];
