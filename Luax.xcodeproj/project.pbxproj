@@ -58,8 +58,6 @@
 		6570AE111867B2050084BD25 /* hide.png in Resources */ = {isa = PBXBuildFile; fileRef = 6570AE101867B2050084BD25 /* hide.png */; };
 		659858E418B10C210036FBEB /* LXLuaWriter.m in Sources */ = {isa = PBXBuildFile; fileRef = 659858E318B10C210036FBEB /* LXLuaWriter.m */; };
 		659858E518B10C210036FBEB /* LXLuaWriter.m in Sources */ = {isa = PBXBuildFile; fileRef = 659858E318B10C210036FBEB /* LXLuaWriter.m */; };
-		659858E818B27AAE0036FBEB /* LXBlurWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 659858E718B27AAE0036FBEB /* LXBlurWindow.m */; };
-		659858E918B27AAE0036FBEB /* LXBlurWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 659858E718B27AAE0036FBEB /* LXBlurWindow.m */; };
 		659DE1B91844C65700627535 /* LXTextFieldCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 659DE1B81844C65700627535 /* LXTextFieldCell.m */; };
 		659DE1BB184BE2ED00627535 /* scripticon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BA184BE2ED00627535 /* scripticon.png */; };
 		659DE1BD184BF06F00627535 /* foldericon.png in Resources */ = {isa = PBXBuildFile; fileRef = 659DE1BC184BF06F00627535 /* foldericon.png */; };
@@ -70,6 +68,7 @@
 		65A8157C16629CCC0050D80A /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65A8157B16629CCC0050D80A /* Cocoa.framework */; };
 		65E68B4C186DC8B200E72E3C /* LXConsoleTextView.m in Sources */ = {isa = PBXBuildFile; fileRef = 65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */; };
 		65F35F6516BEE70C007692D2 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 65F35F6416BEE70C007692D2 /* QuartzCore.framework */; };
+		79698E2118B6A6C60031A9CF /* LXBlurWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 79698E2018B6A6C60031A9CF /* LXBlurWindow.m */; };
 		79B95E5F184E5B93005486F3 /* checkicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 79B95E5C184E5B93005486F3 /* checkicon.png */; };
 		79B95E60184E5B93005486F3 /* erroricon.png in Resources */ = {isa = PBXBuildFile; fileRef = 79B95E5D184E5B93005486F3 /* erroricon.png */; };
 		79B95E61184E5B93005486F3 /* warningicon.png in Resources */ = {isa = PBXBuildFile; fileRef = 79B95E5E184E5B93005486F3 /* warningicon.png */; };
@@ -235,8 +234,6 @@
 		6570AE101867B2050084BD25 /* hide.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = hide.png; sourceTree = "<group>"; };
 		659858E218B10C210036FBEB /* LXLuaWriter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXLuaWriter.h; path = Source/LXLuaWriter.h; sourceTree = SOURCE_ROOT; };
 		659858E318B10C210036FBEB /* LXLuaWriter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXLuaWriter.m; path = Source/LXLuaWriter.m; sourceTree = SOURCE_ROOT; };
-		659858E618B27AAE0036FBEB /* LXBlurWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LXBlurWindow.h; sourceTree = SOURCE_ROOT; };
-		659858E718B27AAE0036FBEB /* LXBlurWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LXBlurWindow.m; sourceTree = SOURCE_ROOT; };
 		659DE1B71844C65700627535 /* LXTextFieldCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXTextFieldCell.h; path = Source/IDE/LXTextFieldCell.h; sourceTree = SOURCE_ROOT; };
 		659DE1B81844C65700627535 /* LXTextFieldCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXTextFieldCell.m; path = Source/IDE/LXTextFieldCell.m; sourceTree = SOURCE_ROOT; };
 		659DE1BA184BE2ED00627535 /* scripticon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = scripticon.png; sourceTree = "<group>"; };
@@ -253,6 +250,8 @@
 		65E68B4A186DC8B100E72E3C /* LXConsoleTextView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXConsoleTextView.h; path = Source/IDE/LXConsoleTextView.h; sourceTree = SOURCE_ROOT; };
 		65E68B4B186DC8B200E72E3C /* LXConsoleTextView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXConsoleTextView.m; path = Source/IDE/LXConsoleTextView.m; sourceTree = SOURCE_ROOT; };
 		65F35F6416BEE70C007692D2 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		79698E1F18B6A6C60031A9CF /* LXBlurWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LXBlurWindow.h; path = Source/IDE/LXBlurWindow.h; sourceTree = SOURCE_ROOT; };
+		79698E2018B6A6C60031A9CF /* LXBlurWindow.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LXBlurWindow.m; path = Source/IDE/LXBlurWindow.m; sourceTree = SOURCE_ROOT; };
 		79B95E5C184E5B93005486F3 /* checkicon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = checkicon.png; sourceTree = "<group>"; };
 		79B95E5D184E5B93005486F3 /* erroricon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = erroricon.png; sourceTree = "<group>"; };
 		79B95E5E184E5B93005486F3 /* warningicon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = warningicon.png; sourceTree = "<group>"; };
@@ -390,6 +389,8 @@
 				656AD279183ADD0200E691D6 /* MainMenu.xib */,
 				656AD272183ADBEA00E691D6 /* LXAppDelegate.h */,
 				656AD273183ADBEA00E691D6 /* LXAppDelegate.m */,
+				79698E1F18B6A6C60031A9CF /* LXBlurWindow.h */,
+				79698E2018B6A6C60031A9CF /* LXBlurWindow.m */,
 				656AD283183ADF0D00E691D6 /* LXTextView.h */,
 				656AD284183ADF0D00E691D6 /* LXTextView.m */,
 				79C7A08A183BFFC500AB0A7C /* LXProjectFileView.h */,
@@ -407,8 +408,6 @@
 				656AD2A11842741200E691D6 /* LXProjectWindowController.xib */,
 				656AD2AC1842C26C00E691D6 /* LXProjectAccessoryView.xib */,
 				79B95E7B18512214005486F3 /* NSView+BackgroundColor.h */,
-				659858E618B27AAE0036FBEB /* LXBlurWindow.h */,
-				659858E718B27AAE0036FBEB /* LXBlurWindow.m */,
 				79B95E7C18512214005486F3 /* NSView+BackgroundColor.m */,
 			);
 			name = IDE;
@@ -756,7 +755,6 @@
 			files = (
 				659E09B6189F2D43003100C4 /* LXCompiler+Expression.m in Sources */,
 				654D752B1837FD0300E37009 /* LXToken.m in Sources */,
-				659858E918B27AAE0036FBEB /* LXBlurWindow.m in Sources */,
 				654D752C1837FD0300E37009 /* LXClass.m in Sources */,
 				654D752D1837FD0300E37009 /* LXVariable.m in Sources */,
 				659E09C418A072FC003100C4 /* LXCompiler+Statement.m in Sources */,
@@ -791,7 +789,7 @@
 				659DE1B91844C65700627535 /* LXTextFieldCell.m in Sources */,
 				656AD29918426CFC00E691D6 /* LXClient.m in Sources */,
 				79B95E7D18512214005486F3 /* NSView+BackgroundColor.m in Sources */,
-				659858E818B27AAE0036FBEB /* LXBlurWindow.m in Sources */,
+				79698E2118B6A6C60031A9CF /* LXBlurWindow.m in Sources */,
 				656AD29B18426CFC00E691D6 /* LXServer.m in Sources */,
 				659E09C318A072FC003100C4 /* LXCompiler+Statement.m in Sources */,
 				656AD274183ADBEA00E691D6 /* LXAppDelegate.m in Sources */,

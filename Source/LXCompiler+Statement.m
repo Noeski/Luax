@@ -285,7 +285,7 @@
 }
 
 - (LXStmt *)parseExpressionStatement {
-    LXAssignmentStmt *statement = [self nodeWithType:[LXAssignmentStmt class]];
+    LXExprStmt *statement = [self nodeWithType:[LXExprStmt class]];
     
     NSMutableArray *mutableVars = [[NSMutableArray alloc] init];
     
@@ -300,12 +300,11 @@
         }
     } while(YES);
     
-    statement.vars = mutableVars;
-    
     NSMutableArray *mutableExprs = [[NSMutableArray alloc] init];
     
-    if([_current isAssignmentOperator]) {
-        statement.equalsToken = [self consumeTokenNode];
+    if([mutableVars count] > 1 || [_current isAssignmentOperator]) {
+        LXAssignmentStmt *assignmentStatement = [LXAssignmentStmt assignmentStatementWithVars:mutableVars];
+        assignmentStatement.equalsToken = [self consumeTokenNode];
         
         do {
             [mutableExprs addObject:[self parseExpression]];
@@ -317,9 +316,14 @@
                 break;
             }
         } while(YES);
+        
+        assignmentStatement.exprs = mutableExprs;
+        
+        return [self finish:assignmentStatement];
     }
-    
-    statement.exprs = mutableExprs;
+    else {
+        statement.expr = mutableVars.firstObject;
+    }
     
     return [self finish:statement];
 }

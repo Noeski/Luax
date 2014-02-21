@@ -8,6 +8,7 @@ What's Luax?
 * Classes
 * Variables are local by default
 * Assignment operators ('+=', '-=', etc.)
+* IDE + project management
 * ... 
 
 Example
@@ -46,8 +47,22 @@ end
 local eagle = Bird()
 eagle:fly()
 ```
+
+IDE
+===
+![alt text](docs/images/image1.png)
+![alt text](docs/images/image2.png)
+
+Autocomplete
+------------
+![alt text](docs/images/image3.png)
+
+Integrated Debugger
+-------------------
+![alt text](docs/images/image4.png)
+
 The Complete Syntax of Luax
----------------------------
+===========================
 <pre>
 chunk ::= block
 

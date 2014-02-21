@@ -816,6 +816,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @dynamic scopeToken, staticToken, functionToken, returnTypes, nameExpr, args, body, endToken;
 
 - (void)resolveVariables:(LXContext *)context {
+    [self resolveVariables:context class:nil];
+}
+
+- (void)resolveVariables:(LXContext *)context class:(LXClassStmt *)class {
     if(self.nameExpr) {
         LXScope *scope = self.isGlobal ? context.compiler.globalScope : self.scope.parent;
         LXVariable *variable = [scope localVariable:self.nameExpr.value];
@@ -826,6 +830,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         else {
             variable = self.isGlobal ? [context createGlobalFunction:self.nameExpr.value] : [scope createFunction:self.nameExpr.value];
             variable.definedLocation = self.nameExpr.location;
+            
+            if(class) {
+                [self.scope createVariable:@"self" type:class.type];
+            }
             
             NSMutableArray *mutableReturnTypes = [[NSMutableArray alloc] init];
             for(LXTokenNode *node in self.returnTypes.returnTypes) {
@@ -858,10 +866,6 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
             
             variable.returnTypes = mutableReturnTypes;
             variable.arguments = mutableArguments;
-            
-            if(self.isGlobal) {
-                //TODO: Keep track of globals
-            }
         }
     }
     
@@ -869,12 +873,12 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)resolveTypes:(LXContext *)context {
+    [self.returnTypes resolveTypes:context];
     /*if(self.nameExpr) {
      [self.nameExpr resolveTypes:context];
      }*/
-
     [context pushScope:self.scope];
-
+    [self.args resolveTypes:context];
     [self.body resolveTypes:context];
     
     self.resultType = [LXVariable variableWithType:[LXClassFunction classFunction]];
@@ -1011,12 +1015,15 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     [context pushScope:self.scope];
 
+    LXVariable *super = [self.scope createVariable:@"super" type:parent];
+    super.isMember = YES;
+    
     for(LXDeclarationStmt *stmt in self.vars) {
         [stmt resolveVariables:context];
     }
     
-    for(LXExprStmt *stmt in self.functions) {
-        [stmt resolveVariables:context];
+    for(LXFunctionExpr *stmt in self.functions) {
+        [stmt resolveVariables:context class:self];
     }
     
     [context popScope];
@@ -1516,7 +1523,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXLabelStmt
-@dynamic beginLabelToken, endLabelToken;
+@dynamic beginLabelToken, labelToken, endLabelToken;
 
 - (void)resolveTypes:(LXContext *)context {
     self.endLabelToken.completionFlags = LXTokenCompletionFlagsBlock;
@@ -1525,7 +1532,7 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 - (void)compile:(LXLuaWriter *)writer {
     [self.beginLabelToken compile:writer];
     [writer writeSpace];
-    //[self.value compile:writer];
+    [self.labelToken compile:writer];
     [writer writeSpace];
     [self.endLabelToken compile:writer];
 }
@@ -1533,15 +1540,16 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @end
 
 @implementation LXGotoStmt
-@dynamic gotoToken;
+@dynamic gotoToken, labelToken;
 
 - (void)resolveTypes:(LXContext *)context {
-    //self.value.completionFlags = LXTokenCompletionFlagsBlock;
+    self.labelToken.completionFlags = LXTokenCompletionFlagsBlock;
 }
 
 - (void)compile:(LXLuaWriter *)writer {
     [self.gotoToken compile:writer];
     [writer writeSpace];
+    [self.labelToken compile:writer];
 }
 
 @end
@@ -1671,6 +1679,17 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 @implementation LXAssignmentStmt
 @dynamic vars, equalsToken, exprs;
 
++ (LXAssignmentStmt *)assignmentStatementWithVars:(NSArray *)vars {
+    LXNode *firstVar = vars.firstObject;
+    LXAssignmentStmt *statement = [[LXAssignmentStmt alloc] init];
+    statement.line = firstVar.line;
+    statement.column = firstVar.line;
+    statement.location = firstVar.location;
+    statement.vars = vars;
+    
+    return statement;
+}
+
 - (void)resolveVariables:(LXContext *)context {
     BOOL assignable = NO;
     
@@ -1735,10 +1754,34 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [node compile:writer];
     }
     
-    [self.equalsToken compile:writer];
+    NSDictionary *assignmentOperators = @{@"+=" : @(YES), @"-=" : @(YES),  @"*=" : @(YES),  @"/=" : @(YES),
+                                          @"^=" : @(YES),  @"%=" : @(YES),  @"..=" : @(YES)};
     
-    for(LXNode *node in self.exprs) {
-        [node compile:writer];
+    if([assignmentOperators[self.equalsToken.value] boolValue]) {
+        NSString *operator = [self.equalsToken.value substringToIndex:[self.equalsToken.value length]-1];
+
+        [writer write:@"="];
+        
+        for(NSInteger i = 0; i < [self.vars count] && i < [self.exprs count]; ++i) {
+            LXNode *var = self.vars[i];
+            LXNode *expr = self.exprs[i];
+            
+            if([var isKindOfClass:[LXExpr class]] && [expr isKindOfClass:[LXExpr class]]) {
+                [var compile:writer];
+                [writer write:operator];
+                [expr compile:writer];
+            }
+            else {
+                [expr compile:writer];
+            }
+        }
+    }
+    else {
+        [self.equalsToken compile:writer];
+        
+        for(LXNode *node in self.exprs) {
+            [node compile:writer];
+        }
     }
 }
 

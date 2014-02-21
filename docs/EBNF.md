@@ -16,7 +16,7 @@ stat ::= '<b>;</b>' |
          <b>while</b> exp <b>do</b> block <b>end</b> | 
          <b>repeat</b> block <b>until</b> exp | 
          <b>if</b> exp <b>then</b> block {<b>elseif</b> exp <b>then</b> block} [<b>else</b> block] <b>end</b> | 
-         <b>for</b> type Name '<b>=</b>' exp '<b>,</b>' exp ['<b>,</b>' exp] <b>do</b> block <b>end</b> | 
+         <b>for</b> Name '<b>=</b>' exp '<b>,</b>' exp ['<b>,</b>' exp] <b>do</b> block <b>end</b> | 
          <b>for</b> typednamelist <b>in</b> explist <b>do</b> block <b>end</b> | 
          <b>class</b> Name [extends Name] classbody |
          <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] funcname funcbody | 
@@ -54,7 +54,7 @@ args ::= '<b>(</b>' [explist] '<b>)</b>' | tableconstructor | String
 
 classbody ::= {classstat} <b>end</b>
 
-classstat ::= <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] Name funcbody | type namelist ['<b>=</b>' explist]
+classstat ::= [<b>static</b>] <b>function</b> ['<b>(</b>'parlist'<b>)</b>'] Name funcbody | type namelist ['<b>=</b>' explist]
 
 function ::= <b>function</b> funcbody
 

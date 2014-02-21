@@ -73,30 +73,268 @@
 
         _globalScope = [[LXScope alloc] initWithParent:nil openScope:NO];
         
+        [_globalScope createVariable:@"_G" type:[LXClassTable classTable]];
         [_globalScope createVariable:@"_VERSION" type:[LXClassString classString]];
-        [_globalScope createFunction:@"assert"];
-        [_globalScope createFunction:@"collectgarbage"];
-        [_globalScope createFunction:@"dofile"];
-        [_globalScope createFunction:@"error"];
-        [_globalScope createFunction:@"getmetatable"];
-        [_globalScope createFunction:@"ipairs"];
-        [_globalScope createFunction:@"load"];
-        [_globalScope createFunction:@"loadfile"];
-        [_globalScope createFunction:@"next"];
-        [_globalScope createFunction:@"pairs"];
-        [_globalScope createFunction:@"pcall"];
-        [_globalScope createFunction:@"print"];
-        [_globalScope createFunction:@"rawequal"];
-        [_globalScope createFunction:@"rawget"];
-        [_globalScope createFunction:@"rawlen"];
-        [_globalScope createFunction:@"rawset"];
-        [_globalScope createFunction:@"require"];
-        [_globalScope createFunction:@"select"];
-        [_globalScope createFunction:@"setmetatable"];
-        [_globalScope createFunction:@"tonumber"];
-        [_globalScope createFunction:@"tostring"];
-        [_globalScope createFunction:@"type"];
-        [_globalScope createFunction:@"xpcall"];
+
+        LXVariable *assertFunction = [_globalScope createFunction:@"assert"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"v" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"message" type:[LXClassString classString]];
+            
+            assertFunction.returnTypes = @[retType];
+            assertFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *collectgarbageFunction = [_globalScope createFunction:@"collectgarbage"];
+        
+        {
+            LXVariable *arg1 = [LXVariable variableWithName:@"opt" type:[LXClassString classString]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"arg" type:[LXClassString classString]];
+            
+            collectgarbageFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *dofileFunction = [_globalScope createFunction:@"dofile"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"filename" type:[LXClassString classString]];
+            
+            dofileFunction.returnTypes = @[retType];
+            dofileFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *errorFunction = [_globalScope createFunction:@"error"];
+        
+        {
+            LXVariable *arg1 = [LXVariable variableWithName:@"message" type:[LXClassString classString]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"level" type:[LXClassNumber classNumber]];
+            
+            errorFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *getmetatableFunction = [_globalScope createFunction:@"getmetatable"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"object" type:[LXClassVar classVar]];
+            
+            getmetatableFunction.returnTypes = @[retType];
+            getmetatableFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *ipairsFunction = [_globalScope createFunction:@"ipairs"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"t" type:[LXClassTable classTable]];
+            
+            ipairsFunction.returnTypes = @[retType];
+            ipairsFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *loadFunction = [_globalScope createFunction:@"load"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassFunction classFunction]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"ld" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"source" type:[LXClassVar classVar]];
+            LXVariable *arg3 = [LXVariable variableWithName:@"mode" type:[LXClassString classString]];
+            LXVariable *arg4 = [LXVariable variableWithName:@"env" type:[LXClassVar classVar]];
+
+            loadFunction.returnTypes = @[retType];
+            loadFunction.arguments = @[arg1, arg2, arg3, arg4];
+        }
+        
+        LXVariable *loadFileFunction = [_globalScope createFunction:@"loadfile"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassFunction classFunction]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"filename" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"mode" type:[LXClassString classString]];
+            LXVariable *arg3 = [LXVariable variableWithName:@"env" type:[LXClassVar classVar]];
+            
+            loadFileFunction.returnTypes = @[retType];
+            loadFileFunction.arguments = @[arg1, arg2, arg3];
+        }
+        
+        LXVariable *nextFunction = [_globalScope createFunction:@"next"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+
+            LXVariable *arg1 = [LXVariable variableWithName:@"table" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"index" type:[LXClassNumber classNumber]];
+            
+            nextFunction.returnTypes = @[retType];
+            nextFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *pairsFunction = [_globalScope createFunction:@"pairs"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"t" type:[LXClassTable classTable]];
+            
+            pairsFunction.returnTypes = @[retType];
+            pairsFunction.arguments = @[arg1];
+        }
+
+        LXVariable *pcallFunction = [_globalScope createFunction:@"pcall"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"f" type:[LXClassFunction classFunction]];
+            
+            pcallFunction.returnTypes = @[retType];
+            pcallFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *printFunction = [_globalScope createFunction:@"print"];
+        
+        {
+            LXVariable *arg1 = [LXVariable variableWithName:@"..." type:[LXClassVar classVar]];
+            
+            printFunction.arguments = @[arg1];
+        }
+
+        LXVariable *rawequalFunction = [_globalScope createFunction:@"rawequal"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassBool classBool]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"v1" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"v2" type:[LXClassVar classVar]];
+
+            rawequalFunction.returnTypes = @[retType];
+            rawequalFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *rawgetFunction = [_globalScope createFunction:@"rawget"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"table" type:[LXClassTable classTable]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"index" type:[LXClassVar classVar]];
+            
+            rawgetFunction.returnTypes = @[retType];
+            rawgetFunction.arguments = @[arg1, arg2];
+        }
+        
+        LXVariable *rawlenFunction = [_globalScope createFunction:@"rawlen"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassNumber classNumber]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"v" type:[LXClassVar classVar]];
+            
+            rawlenFunction.returnTypes = @[retType];
+            rawlenFunction.arguments = @[arg1];
+        }
+
+        LXVariable *rawsetFunction = [_globalScope createFunction:@"rawset"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassTable classTable]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"table" type:[LXClassTable classTable]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"index" type:[LXClassVar classVar]];
+            LXVariable *arg3 = [LXVariable variableWithName:@"value" type:[LXClassVar classVar]];
+
+            rawsetFunction.returnTypes = @[retType];
+            rawsetFunction.arguments = @[arg1, arg2, arg3];
+        }
+        
+        LXVariable *requireFunction = [_globalScope createFunction:@"require"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"modname" type:[LXClassString classString]];
+            
+            requireFunction.returnTypes = @[retType];
+            requireFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *selectFunction = [_globalScope createFunction:@"select"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"index" type:[LXClassVar classVar]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"..." type:[LXClassVar classVar]];
+
+            selectFunction.returnTypes = @[retType];
+            selectFunction.arguments = @[arg1, arg2];
+        }
+
+        LXVariable *setmetatableFunction = [_globalScope createFunction:@"setmetatable"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassTable classTable]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"table" type:[LXClassTable classTable]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"metatable" type:[LXClassTable classTable]];
+            
+            setmetatableFunction.returnTypes = @[retType];
+            setmetatableFunction.arguments = @[arg1, arg2];
+        }
+
+        LXVariable *tonumberFunction = [_globalScope createFunction:@"tonumber"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassNumber classNumber]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"e" type:[LXClassVar classVar]];
+            
+            tonumberFunction.returnTypes = @[retType];
+            tonumberFunction.arguments = @[arg1];
+        }
+
+        LXVariable *tostringFunction = [_globalScope createFunction:@"tostring"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassString classString]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"v" type:[LXClassVar classVar]];
+            
+            tostringFunction.returnTypes = @[retType];
+            tostringFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *typeFunction = [_globalScope createFunction:@"type"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassString classString]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"v" type:[LXClassVar classVar]];
+            
+            typeFunction.returnTypes = @[retType];
+            typeFunction.arguments = @[arg1];
+        }
+        
+        LXVariable *xpcallFunction = [_globalScope createFunction:@"xpcall"];
+        
+        {
+            LXVariable *retType = [LXVariable variableWithType:[LXClassVar classVar]];
+            
+            LXVariable *arg1 = [LXVariable variableWithName:@"f" type:[LXClassFunction classFunction]];
+            LXVariable *arg2 = [LXVariable variableWithName:@"msgh" type:[LXClassFunction classFunction]];
+
+            xpcallFunction.returnTypes = @[retType];
+            xpcallFunction.arguments = @[arg1, arg2];
+        }
     }
     
     return self;

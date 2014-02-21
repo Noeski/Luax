@@ -148,6 +148,21 @@ typedef enum {
     }
 }
 
+- (void)offsetBreakpoints:(NSInteger)line diff:(NSInteger)diff {
+    NSArray *allBreakpoints = [[self.mutableBreakpoints allKeys] sortedArrayUsingComparator:^NSComparisonResult(NSNumber *obj1, NSNumber *obj2) {
+        return [obj1 compare:obj2];
+    }];
+    
+    for(NSNumber *breakpoint in allBreakpoints) {
+        NSInteger breakpointLine = [breakpoint integerValue];
+        
+        if(breakpointLine > line) {
+            [self removeBreakpoint:breakpointLine];
+            [self addBreakpoint:breakpointLine+diff];
+        }
+    }
+}
+
 - (NSDictionary *)save {
     return [NSDictionary dictionaryWithObjectsAndKeys:self.uid, @"uid", self.name, @"name", self.mutablePath, @"path", [[LXProjectFile dateFormatter] stringFromDate:self.lastModifiedDate], @"modified", [[LXProjectFile dateFormatter] stringFromDate:self.lastCompileDate], @"build", self.isMain ? @(YES) : nil, @"isMain", nil];
 }
@@ -1546,6 +1561,8 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
     if(self.debugState == LXDebugStateError)
         stackDepth++;
     
+    BOOL first = YES;
+    
     for(; true; ++stackDepth) {
         lua_Debug ar;
         
@@ -1585,6 +1602,7 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
         }
         
         LXLuaCallStackIndex *index = [[LXLuaCallStackIndex alloc] init];
+        index.error = (first && self.debugState == LXDebugStateError);
         index.source = source;
         index.line = ar.currentline;
         index.firstLine = ar.linedefined;
@@ -1645,6 +1663,8 @@ void lua_toValue(LXLuaVariable *value, lua_State* state, int index, NSMutableArr
         [stack addObject:index];
         
         callStackSize++;
+        
+        first = NO;
     }
     
     _callStack = stack;

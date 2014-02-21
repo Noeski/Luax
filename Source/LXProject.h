@@ -34,6 +34,7 @@
 - (void)addBreakpoint:(NSInteger)line;
 - (void)removeBreakpoint:(NSInteger)line;
 - (void)setBreakpoint:(NSInteger)line;
+- (void)offsetBreakpoints:(NSInteger)line diff:(NSInteger)diff;
 @end
 
 @interface LXProjectFileReference : NSObject
@@ -57,7 +58,6 @@
 @property (nonatomic, readonly) NSDictionary *tablesDictionary;
 @property (nonatomic, readonly) NSArray *callStack;
 @property (nonatomic, readonly) LXLuaVariable *globalTable;
-
 
 - (void)save;
 - (void)load:(NSDictionary *)dictionary;
