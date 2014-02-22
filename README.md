@@ -10,6 +10,7 @@ Luax
 * Add support for lua files in projects
 * Add support for class extensions
 * Add support for coroutine syntax
+* Add support for library specs (defining class/functions for the analyzer)
 
 What's Luax?
 ------------
