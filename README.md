@@ -26,7 +26,7 @@ What's Luax?
 Motivation
 ----------
 
-Luax began as a Lua debugger for a game I had been writing. I chose Lua because it is incredibly simple, fast and proven with an active community, but as time went on, I started to get annoyed with how my scripts were working and I didn't feel like this was the best workflow for me. I knew I wanted more readable code and to rid myself of a few annoying quirks of Lua (no assignment ops, global variable bugs, etc.), but I didn't want to lose the incredible power and support of Lua (and [LuaJIT](http://luajit.org)). So, taking some inspiration from other cross-compiled languages ([CoffeeScript](http://coffeescript.org), [LiveScript](http://livescript.net), etc.) I created Luax, a *new* language co-developed with it's own IDE for fast, fun development.
+Luax began as a Lua debugger for a game I had been writing. I chose Lua because it is incredibly simple, fast and proven with an active community, but as time went on, I started to get annoyed with how my scripts were working and I didn't feel like this was the best workflow for me. I knew I wanted more readable code and to rid myself of a few annoying quirks of Lua (no assignment ops, global variable bugs, etc.), but I didn't want to lose the incredible power and support of Lua (and [LuaJIT](http://luajit.org)). So, taking some inspiration from other cross-compiled languages ([CoffeeScript](http://coffeescript.org), [LiveScript](http://livescript.net), etc.) I created Luax, a *new* language co-developed with its own IDE for fast, fun development.
 
 Example
 -------
