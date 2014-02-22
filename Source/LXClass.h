@@ -7,6 +7,7 @@
 //
 
 @class LXExpr;
+@class LXClassStmt;
 @interface LXClass : NSObject
 @property (nonatomic, strong) NSString *name;
 @property (nonatomic, strong) LXClass *parent;
@@ -14,6 +15,7 @@
 @property (nonatomic, strong) NSArray *functions;
 @property (nonatomic, assign) BOOL isDefined;
 @property (nonatomic, strong) LXExpr *defaultExpression;
+@property (nonatomic, weak) LXClassStmt *statement;
 @end
 
 @interface LXClassNumber : LXClass

@@ -81,7 +81,7 @@
 - (void)write:(NSString *)generated name:(NSString *)name line:(NSInteger)line column:(NSInteger)column {
     if(line != self.lastLine ||
        column != self.lastColumn ||
-       ![name isEqual:self.lastName]) {
+       ([name length] > 0 && ![name isEqual:self.lastName])) {
         NSDictionary *dictionary = @{@"source" : self.currentSource, @"name" : name ? name : @"", @"original" : @{@"line" : @(line), @"column" : @(column)}, @"generated" : @{@"line" : @(self.currentLine), @"column" : @(self.currentColumn)}};
         
         [self.mutableMappings addObject:dictionary];

@@ -324,7 +324,12 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compile:(LXLuaWriter *)writer {
-    [writer write:self.value line:self.line column:self.column];
+    if(self.tokenType == LX_TK_NAME) {
+        [writer write:self.value name:self.value line:self.line column:self.column];
+    }
+    else {
+        [writer write:self.value line:self.line column:self.column];    
+    }
 }
 
 - (LXScope *)scope {
@@ -446,7 +451,14 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     LXVariable *variable = self.resultType;
     
     if(variable.isMember) {
-        [writer write:@"self."];
+        [writer write:@"self"];
+        
+        if(variable.isFunction) {
+            [writer write:@":"];
+        }
+        else {
+            [writer write:@"."];
+        }
     }
     
     [writer write:self.token.value name:self.token.value line:self.line column:self.column];
@@ -926,7 +938,6 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         writer.indentationLevel++;
         
         if(compileInitFunction) {
-            [writer writeNewline];
             [class compileInitFunction:writer];
         }
         
@@ -999,12 +1010,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     if(self.superToken) {
         parent = [context findType:self.superToken.value];
     }
-    else {
-        parent = [LXClassTable classTable];
-    }
     
     self.type = [context findType:self.nameToken.value];
     self.type.parent = parent;
+    self.type.statement = self;
     
     if(self.type.isDefined) {
         [context addError:[NSString stringWithFormat:@"Class %@ is already defined.", self.nameToken.value] range:self.nameToken.range line:self.nameToken.line column:self.nameToken.column];
@@ -1104,13 +1113,14 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     
     NSString *parent = @"table";
     
-    if(self.superToken) {
-        parent = self.superToken.value;
+    if(self.type.parent) {
+        parent = self.type.parent.name;
     }
     
-    [writer write:[NSString stringWithFormat:@"%@ = %@ or setmetatable({}, {__call = function(class, ...)", self.type.name, self.type.name]];
+    [writer write:[NSString stringWithFormat:@"%@ = %@ or {}", self.type.name, self.type.name]];
     [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\", super = %@}, {__index = class", self.type.name, parent]];
+    NSString *classMetatable = [NSString stringWithFormat:@"__%@", self.type.name];
+    [writer write:[NSString stringWithFormat:@"local %@ = {__index = %@", classMetatable, self.type.name]];
     for(LXFunctionExpr *function in metaFunctions) {
         [writer write:@","];
         [writer writeNewline];
@@ -1118,13 +1128,19 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [writer write:@"="];
         [function compile:writer class:self isMeta:YES];
     }
-    [writer write:[NSString stringWithFormat:@"})"]];
+    [writer write:@"}"];
     [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"  obj:init(...)"]];
+    [writer write:[NSString stringWithFormat:@"setmetatable(%@, {", self.type.name]];
     [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"  return obj"]];
+    [writer write:@"__call = function(self, ...)"];
     [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"end})"]];
+    [writer write:[NSString stringWithFormat:@"  local obj = setmetatable({class = \"%@\", super = %@}, %@)", self.type.name, parent, classMetatable] line:self.nameToken.line column:self.nameToken.column];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  obj:init(...)"] line:self.nameToken.line column:self.nameToken.column];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"  return obj"] line:self.nameToken.line column:self.nameToken.column];
+    [writer writeNewline];
+    [writer write:[NSString stringWithFormat:@"end})"] line:self.nameToken.line column:self.nameToken.column];
     [writer writeNewline];
 
     [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", parent]];
@@ -1146,8 +1162,10 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
         [writer write:self.type.name];
         [writer write:@":init(...)"];
         writer.indentationLevel++;
-        [writer writeNewline];
-        
+        if(self.type.parent) {
+            [writer writeNewline];
+            [writer write:@"self.super.init(self, ...)"];
+        }
         [self compileInitFunction:writer];
         
         writer.indentationLevel--;
@@ -1157,27 +1175,31 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
 }
 
 - (void)compileInitFunction:(LXLuaWriter *)writer {
-    for(LXDeclarationStmt *stmt in self.vars) {
-        for(NSInteger i = 0; i < [stmt.vars count]; ++i) {
-            LXTokenNode *tokenNode = stmt.vars[i];
-            
-            if([tokenNode.value isEqualToString:@","])
-                continue;
-            
-            LXVariable *variable = [self.scope localVariable:tokenNode.value];
-            
-            if(!variable)
-                continue;
-            
-            [writer write:@"self."];
-            [tokenNode compile:writer];
-            [writer write:@" = "];
-            
-            LXExpr *expr = i < [stmt.exprs count] ? stmt.exprs[i] : [variable.type defaultExpression];
-            [expr compile:writer];
-            
-            if(stmt != self.vars.lastObject || tokenNode != stmt.vars.lastObject)
-                [writer writeNewline];
+    if([self.vars count]) {
+        [writer writeNewline];
+        
+        for(LXDeclarationStmt *stmt in self.vars) {
+            for(NSInteger i = 0; i < [stmt.vars count]; ++i) {
+                LXTokenNode *tokenNode = stmt.vars[i];
+                
+                if([tokenNode.value isEqualToString:@","])
+                    continue;
+                
+                LXVariable *variable = [self.scope localVariable:tokenNode.value];
+                
+                if(!variable)
+                    continue;
+                
+                [writer write:@"self."];
+                [tokenNode compile:writer];
+                [writer write:@" = "];
+                
+                LXExpr *expr = i < [stmt.exprs count] ? stmt.exprs[i] : [variable.type defaultExpression];
+                [expr compile:writer];
+                
+                if(stmt != self.vars.lastObject || tokenNode != stmt.vars.lastObject)
+                    [writer writeNewline];
+            }
         }
     }
 }
