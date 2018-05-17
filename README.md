@@ -1,11 +1,11 @@
 Luax
 ====
 
-###Current Version: 0.1
-####Known Issues
+### Current Version: 0.1
+#### Known Issues
 * Classes suffer from require dependencies which mean they will not compile correctly if they are not declared in a specific order
 
-###Next Release: 0.2
+### Next Release: 0.2
 * Compile classes to single file and fix require dependencies
 * Add support for lua files in projects
 * Add support for class extensions
