@@ -667,7 +667,7 @@
             NSMutableArray *indices = [NSMutableArray array];;
             
             while(var.parent != nil) {
-                [indices addObject:var.key];
+                [indices insertObject:var.key atIndex:0];
                 
                 var = var.parent;
             }
@@ -676,7 +676,6 @@
                 [self.project setLocalValue:[NSString stringWithFormat:@"return %@", object] where:var.where index:var.index indices:indices];
             }
             else if(var.scope == LXLuaVariableScopeUpvalue) {
-                [self.project setUpValue:[NSString stringWithFormat:@"return %@", object] where:var.where index:var.index indices:indices];
             }
             else if(var.scope == LXLuaVariableScopeGlobal) {
                 [self.project setGlobalValue:[NSString stringWithFormat:@"return %@", object] indices:indices];
@@ -986,7 +985,7 @@
             }
         }
         
-        self.localVariables = [index.upVariables arrayByAddingObjectsFromArray:index.localVariables];
+        self.localVariables = index.localVariables;
     }
 }
 

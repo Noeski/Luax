@@ -59,7 +59,7 @@
             
             autoCompleteDefinition.string = [string stringByReplacingOccurrencesOfString:@"\\m" withString:@""];
             autoCompleteDefinition.title = definition[@"title"];
-            autoCompleteDefinition.description = definition[@"description"];
+            autoCompleteDefinition.summary = definition[@"description"];
             autoCompleteDefinition.markers = autoCompleteDefinitionMarkers;
             [_baseAutoCompleteDefinitions addObject:autoCompleteDefinition];
         }
@@ -615,13 +615,13 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
                         autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
                         
                         autoCompleteDefinition.markers = markers;
-                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.summary = nil;
                     }
                     else {
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
                         autoCompleteDefinition.string = variable.name;
                         autoCompleteDefinition.title = variable.name;
-                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.summary = nil;
                         autoCompleteDefinition.markers = nil;
                     }
                     
@@ -728,7 +728,7 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
                         autoCompleteDefinition.title = [autoCompleteDefinition.title stringByAppendingString:@")"];
                         
                         autoCompleteDefinition.markers = markers;
-                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.summary = nil;
                         
                         [autoCompleteDefinitions addObject:autoCompleteDefinition];
                     }
@@ -741,7 +741,7 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
                         autoCompleteDefinition.type = variable.type.name ? variable.type.name : @"(Undefined)";
                         autoCompleteDefinition.string = variable.name;
                         autoCompleteDefinition.title = variable.name;
-                        autoCompleteDefinition.description = nil;
+                        autoCompleteDefinition.summary = nil;
                         autoCompleteDefinition.markers = nil;
                         
                         [autoCompleteDefinitions addObject:autoCompleteDefinition];
@@ -766,7 +766,7 @@ BOOL locationInsideRange(NSInteger location, NSRange range) {
                 autoCompleteDefinition.type = @"Class";
                 autoCompleteDefinition.string = key;
                 autoCompleteDefinition.title = key;
-                autoCompleteDefinition.description = nil;
+                autoCompleteDefinition.summary = nil;
                 autoCompleteDefinition.markers = nil;
                 [autoCompleteDefinitions addObject:autoCompleteDefinition];
             }

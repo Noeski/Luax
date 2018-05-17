@@ -65,7 +65,7 @@
     return self;
 }
 
-- (NSString *)description {
+- (NSString *)summary {
     return self.string;
 }
 
@@ -984,8 +984,8 @@ BOOL LXLocationInRange(NSInteger location, NSRange range) {
         
         insertAutoComplete = YES;
         
-        if(definition.description) {
-            autoCompleteDescriptionView.stringValue = definition.description;
+        if(definition.summary) {
+            autoCompleteDescriptionView.stringValue = definition.summary;
             [autoCompleteDescriptionView setHidden:NO];
         }
         else {

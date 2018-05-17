@@ -15,7 +15,7 @@
 @property (nonatomic, retain) NSString *type;
 @property (nonatomic, retain) NSString *string;
 @property (nonatomic, retain) NSString *title;
-@property (nonatomic, retain) NSString *description;
+@property (nonatomic, retain) NSString *summary;
 @property (nonatomic, retain) NSArray *markers;
 
 @end

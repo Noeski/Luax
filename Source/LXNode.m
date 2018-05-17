@@ -1143,12 +1143,14 @@ BOOL rangeInside(NSRange range1, NSRange range2) {
     [writer write:[NSString stringWithFormat:@"end})"] line:self.nameToken.line column:self.nameToken.column];
     [writer writeNewline];
 
-    [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", parent]];
-    [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"  %@[k] = v", self.type.name]];
-    [writer writeNewline];
-    [writer write:[NSString stringWithFormat:@"end"]];
-    [writer writeNewline];
+    if(self.type.parent) {
+        [writer write:[NSString stringWithFormat:@"for k, v in pairs(%@) do", parent]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"  %@[k] = v", self.type.name]];
+        [writer writeNewline];
+        [writer write:[NSString stringWithFormat:@"end"]];
+        [writer writeNewline];
+    }
     
     for(LXFunctionExpr *function in functions) {
         [function compile:writer class:self isMeta:NO];

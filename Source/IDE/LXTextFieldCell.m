@@ -28,22 +28,25 @@
 	return cell;
 }
 
-- (void)setImage:(NSImage *)image{
-	if(image != _image) {
-		_image = image;
-		
-		NSSize iconSize = [image size];
-		NSRect iconRect = {NSZeroPoint, iconSize};
-		highlightImage = [[NSImage alloc] initWithSize:iconSize];
-		
-		[highlightImage lockFocus];
-        
-		[image drawInRect: iconRect fromRect:NSZeroRect operation:NSCompositeCopy fraction: 1.0];
-		
-		[[[NSColor blackColor] colorWithAlphaComponent: .5] set];
-		NSRectFillUsingOperation(iconRect, NSCompositeSourceAtop);
-		[highlightImage unlockFocus];
-	}
+- (void)setImage:(NSImage *)image {
+    [super setImage:image];
+    
+    if(image) {
+        NSSize iconSize = [image size];
+        NSRect iconRect = {NSZeroPoint, iconSize};
+        highlightImage = [[NSImage alloc] initWithSize:iconSize];
+
+        [highlightImage lockFocus];
+
+        [image drawInRect: iconRect fromRect:NSZeroRect operation:NSCompositeCopy fraction: 1.0];
+
+        [[[NSColor blackColor] colorWithAlphaComponent: .5] set];
+        NSRectFillUsingOperation(iconRect, NSCompositeSourceAtop);
+        [highlightImage unlockFocus];
+    }
+    else {
+        highlightImage = nil;
+    }
 }
 
 - (void)editWithFrame:(NSRect)aRect inView:(NSView *)controlView editor:(NSText *)textObj delegate:(id)anObject event:(NSEvent *)theEvent {
